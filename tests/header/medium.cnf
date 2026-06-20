@@ -5,3 +5,10 @@ p cnf 4 6
 2 -4 0
 -2 3 0
 -1 4 0
+
+c T or F = T
+c T or T = T
+c T or !T = T
+c T or !T = T
+c !F or T = T
+c !T or T = T

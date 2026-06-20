@@ -5,6 +5,7 @@
 
 #include <string>
 #include <string_view>
+#include <optional>
 #include <vector>
 
 namespace SATurn {
@@ -23,7 +24,16 @@ namespace SATurn {
             /// @return the number of clauses in the SAT solver
             const size_t getNumClauses() const;
 
+            /// @brief Gets the clauses used in the equation
+            /// @return A reference to the clauses field
             const std::vector<std::vector<int>>& getClauses() const;
+
+            /// @brief Gets the solution, if solveCNF() was called
+            /// @return A reference to the solution
+            const std::optional<std::vector<bool>>& getSolution() const;
+
+            /// @brief Prints out the solution, if the equation was attempted to be solved
+            void printSolution();
 
             /// @brief Solves the given problem as if it was in CNF format
             /// @return true iff there's a solution, false otherwise
@@ -40,7 +50,7 @@ namespace SATurn {
 
             size_t numVars;
             size_t numClauses;
-            std::vector<bool> lits;
+            std::optional<std::vector<bool>> lits;
             std::vector<std::vector<int>> clauses;
     };
 }

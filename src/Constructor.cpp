@@ -35,6 +35,9 @@ namespace SATurn {
     }
 
     void SATSolver::parse(std::string_view equation) {
+        //make sure that lits is set to be nullopt in the beginning
+        lits = std::nullopt;
+
         // see if the header is there
         size_t start = equation.find("p cnf");
 
@@ -47,7 +50,7 @@ namespace SATurn {
         //ensure we're not currently reading a comment
         bool reading_comment = *ptr == 'c';
         if (start == std::string::npos) {
-            std::cout << "no header\n";
+            // std::cout << "no header\n";
 
             size_t num_vars = 0;
             size_t num_clauses = 0;
@@ -56,13 +59,13 @@ namespace SATurn {
             while (ptr < end) {
                 int lit;
                 if (reading_comment) {
-                    std::cout << "reading comment\n";
+                    // std::cout << "reading comment\n";
                     //skip to next newline
                     while (*ptr != '\n') {
                         ++ptr;
                     }
                     //we are no longer reading the comment
-                    std::cout << "skipped comment\n";
+                    // std::cout << "skipped comment\n";
                     reading_comment = false;
                 } else {
                     auto [next, ec] = std::from_chars(ptr, end, lit);
@@ -100,16 +103,16 @@ namespace SATurn {
             numClauses = num_clauses;
         } else {
             //header found => first two numbers are: number of literals, number of clauses
-            std::cout << "header found\n";
+            // std::cout << "header found\n";
             //get the number of variables
             while (ptr < end) {
                 if (reading_comment) {
-                    std::cout << "reading comment\n";
+                    // std::cout << "reading comment\n";
                     //skip to next newline
                     while (*ptr != '\n') {
                         ++ptr;
                     }
-                    std::cout << "skipped comment\n";
+                    // std::cout << "skipped comment\n";
                     //we are no longer reading the comment
                     reading_comment = false;
                 } else {
@@ -139,12 +142,12 @@ namespace SATurn {
             //get the number of clauses
             while (ptr < end) {
                 if (reading_comment) {
-                    std::cout << "reading comment\n";
+                    // std::cout << "reading comment\n";
                     //skip to next newline
                     while (*ptr != '\n') {
                         ++ptr;
                     }
-                    std::cout << "skipped comment\n";
+                    // std::cout << "skipped comment\n";
                     //we are no longer reading the comment
                     reading_comment = false;
                 } else {
@@ -174,11 +177,11 @@ namespace SATurn {
             std::vector<int> current_clause;
             while (ptr < end) {
                 if (reading_comment) {
-                    std::cout << "reading comment\n";
+                    // std::cout << "reading comment\n";
                     while (*ptr != 'c') {
                         ++ptr;
                     }
-                    std::cout << "skipped comment\n";
+                    // std::cout << "skipped comment\n";
                     reading_comment = false;
                 } else {
                     //create a temp literal/variable
@@ -214,17 +217,5 @@ namespace SATurn {
                 }
             }
         }
-    }
-
-    const size_t SATSolver::getNumVars() const {
-        return numVars;
-    }
-
-    const size_t SATSolver::getNumClauses() const {
-        return numClauses;
-    }
-
-    const std::vector<std::vector<int>>& SATSolver::getClauses() const {
-        return clauses;
     }
 }

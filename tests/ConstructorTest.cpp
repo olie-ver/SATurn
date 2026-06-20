@@ -29,7 +29,7 @@ TEST(Constructor, string_input) {
 TEST(Constructor, simple_cnf) {
     SATurn::SATSolver solver("tests/header/simple.cnf");
     const size_t numVars = solver.getNumVars();
-    EXPECT_EQ(numVars, 1);
+    ASSERT_EQ(numVars, 1);
 
     const size_t numClauses = solver.getNumClauses();
     ASSERT_EQ(numClauses, 1);
