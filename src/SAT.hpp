@@ -39,10 +39,6 @@ namespace SATurn {
             /// @return true iff there's a solution, false otherwise
             bool solveCNF();
 
-            /// @brief Solves the given problem as if it was in DNF format
-            /// @return true iff there's a solution, false otherwise
-            bool solveDNF();
-
         private:
             /// @brief parses the string_view into the SATSolver
             /// @param equation the cnf equation
