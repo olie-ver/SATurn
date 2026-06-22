@@ -5,18 +5,19 @@
 
 namespace SATurn {
     bool SATSolver::solveCNF() {
-        std::vector<bool> solution(numVars);
-        unsigned long long iterations = 0b1 << numVars;
+        lits = std::vector<bool>();
+        (*lits).reserve(numVars);
+        return solve(*lits);
+    }
 
-        bool solution_found = false;
-
-        for (unsigned long long curIter = 0; curIter < iterations && !solution_found; curIter++) {
+    bool SATSolver::solve(std::vector<bool>& assignment) {
+        //once we've assigned all of our variables, evaluate the cnf equation
+        if (assignment.size() == numVars) {
+            // for (bool b : assignment) {
+            //     std::cout << b;
+            // }
+            // std::cout << '\n';
             bool solved = true;
-            //set the current combination of bits*
-            for (size_t idx = 0; idx < numVars; idx++) {
-                solution[idx] = curIter & (1 << idx);
-            }
-            
             for (size_t i = 0; i < clauses.size(); i++) {
                 bool true_clause = false;
                 //evaluate whether or not the current clause evaluates to true
@@ -24,26 +25,32 @@ namespace SATurn {
                     int val = clauses[i][j];
                     int idx = std::abs(val) - 1;
                     if (val < 0) {
-                        true_clause |= !solution[idx];
+                        true_clause |= !assignment[idx];
                     } else {
-                        true_clause |= solution[idx];
+                        true_clause |= assignment[idx];
                     }
                 }
                 //check if the whole equation evaluates to true
                 solved &= true_clause;
             }
-            solution_found = solved;
+            return solved;
+        } else {
+            //otherwise, assign this variable true, then recurse
+            assignment.push_back(true);
+            //if we solve(assignment) returns true, we've found a solution, so return true
+            if (solve(assignment)) {
+                return true;
+            } else {
+                //otherwise, switch the current variable's assignment to be opposite of what it was
+                assignment.pop_back();
+                assignment.push_back(false);
+                if (solve(assignment)) {
+                    return true;
+                } else {
+                    assignment.pop_back();
+                    return false;
+                }
+            }
         }
-
-        //move the current solution to our literal assignment
-        lits = std::move(solution);
-        solution.clear();
-
-        return solution_found;
     }
 }
-
-//*curIter is a binary number of numVars bits from 0b0...0 to 0b1...1
-//  the loop basically takes that binary number and stores the nth bit into the nth boolean
-//  setting it to be either 1 or 0 (true or false), thus that code does generate every
-//  possible boolean combination

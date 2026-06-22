@@ -44,6 +44,11 @@ namespace SATurn {
             /// @param equation the cnf equation
             void parse(std::string_view equation);
 
+            /// @brief recursively assigns boolean values and evaluates the cnf equation
+            /// @param assignment the current boolean assignment
+            /// @return true if the current assignment is satisfiable, false otherwise
+            bool solve(std::vector<bool>& assignment);
+
             size_t numVars{};
             size_t numClauses{};
             std::optional<std::vector<bool>> lits{};
