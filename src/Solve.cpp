@@ -6,13 +6,13 @@
 namespace SATurn {
     bool SATSolver::solveCNF() {
         std::vector<bool> solution(numVars);
-        unsigned long long iterations = 2 << (numVars - 1);
+        unsigned long long iterations = 0b1 << numVars;
 
         bool solution_found = false;
 
         for (unsigned long long curIter = 0; curIter < iterations && !solution_found; curIter++) {
             bool solved = true;
-            //set the current combination of bits
+            //set the current combination of bits*
             for (size_t idx = 0; idx < numVars; idx++) {
                 solution[idx] = curIter & (1 << idx);
             }
@@ -42,3 +42,8 @@ namespace SATurn {
         return solution_found;
     }
 }
+
+//*curIter is a binary number of numVars bits from 0b0...0 to 0b1...1
+//  the loop basically takes that binary number and stores the nth bit into the nth boolean
+//  setting it to be either 1 or 0 (true or false), thus that code does generate every
+//  possible boolean combination

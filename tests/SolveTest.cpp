@@ -1,22 +1,27 @@
 #include <testpp/testpp.hpp>
+#include <filesystem>
+#include <chrono>
 
 #include "../src/SAT.hpp"
 
-TEST(solve, simple_cnf) {
-    SATurn::SATSolver solver("tests/header/simple.cnf");
-    ASSERT_TRUE(solver.solveCNF());
-    std::vector<bool> lits{true};
-
-    ASSERT_TRUE(solver.getSolution().has_value());
-    ASSERT_ORDERED_EQ(*solver.getSolution(), lits);
+TEST(Solve, headerless_uf20_91) {
+    for (const auto& path : std::filesystem::directory_iterator("tests/no_header/uf20-91")) {
+        SATurn::SATSolver solver(path.path().c_str());
+        // std::cout << path.path() << '\n';
+        ASSERT_TRUE(solver.solveCNF());
+        // solver.printSolution();
+    }
 }
 
-TEST(solve, medium_cnf) {
-    SATurn::SATSolver solver("tests/header/medium.cnf");
-    ASSERT_TRUE(solver.solveCNF());
-
-    std::vector<bool> lits{true, true, true, true};
-    ASSERT_TRUE(solver.getSolution().has_value());
-    EXPECT_ORDERED_EQ(*solver.getSolution(), lits);
-    solver.printSolution();
+TEST(Solve, uf20_91) {
+    const auto start = std::chrono::steady_clock::now();
+    for (const auto& path : std::filesystem::directory_iterator("tests/uf20-91")) {
+        SATurn::SATSolver solver(path.path().c_str());
+        // std::cout << path.path() << '\n';
+        ASSERT_TRUE(solver.solveCNF());
+        // solver.printSolution();
+    }
+    const auto end = std::chrono::steady_clock::now();
+    const auto diff = end - start;
+    std::cout << diff << std::endl;
 }

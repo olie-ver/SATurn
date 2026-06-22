@@ -44,10 +44,10 @@ namespace SATurn {
             /// @param equation the cnf equation
             void parse(std::string_view equation);
 
-            size_t numVars;
-            size_t numClauses;
-            std::optional<std::vector<bool>> lits;
-            std::vector<std::vector<int>> clauses;
+            size_t numVars{};
+            size_t numClauses{};
+            std::optional<std::vector<bool>> lits{};
+            std::vector<std::vector<int>> clauses{};
     };
 }
 

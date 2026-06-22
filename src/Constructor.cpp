@@ -35,186 +35,171 @@ namespace SATurn {
     }
 
     void SATSolver::parse(std::string_view equation) {
-        //make sure that lits is set to be nullopt in the beginning
-        lits = std::nullopt;
+        const char* begin = equation.data();
+        const char* end = begin + equation.size();
+        const char* ptr;
 
-        // see if the header is there
         size_t start = equation.find("p cnf");
-
-        //create the start pointer
-        const char* ptr = equation.data() + start;
-
-        //create the end pointer to be one character past the actual end of the input
-        const char* end = ptr + equation.size() + 1;
-
-        //ensure we're not currently reading a comment
-        bool reading_comment = *ptr == 'c';
         if (start == std::string::npos) {
-            // std::cout << "no header\n";
+            ptr = begin;
 
-            size_t num_vars = 0;
-            size_t num_clauses = 0;
+            bool reading_comment = *ptr == 'c';
             std::vector<int> current_clause;
+            size_t num_vars{};
+            size_t num_clauses{};
 
             while (ptr < end) {
-                int lit;
                 if (reading_comment) {
-                    // std::cout << "reading comment\n";
-                    //skip to next newline
-                    while (*ptr != '\n') {
+                    //skip to new line
+                    while (ptr < end && *ptr != '\n') {
                         ++ptr;
                     }
-                    //we are no longer reading the comment
-                    // std::cout << "skipped comment\n";
+
+                    //*ptr == '\n'
                     reading_comment = false;
-                } else {
-                    auto [next, ec] = std::from_chars(ptr, end, lit);
-                    if (ec == std::errc{}) {
-                        if (lit == 0) {
-                            //push back the clause
-                            num_clauses++;
+                }
+
+                int lit;
+                auto [next, ec] = std::from_chars(ptr, end, lit);
+                if (ec == std::errc{}) {
+                    if (lit == 0) {
+                        if (!current_clause.empty()) {
                             clauses.push_back(std::move(current_clause));
                             current_clause.clear();
-                        } else {
-                            //num_vars = max(num_vars, abs(lit))
-                            num_vars = std::max(num_vars, static_cast<size_t>(std::abs(lit)));
-                            //add the current lit to the clause
-                            current_clause.push_back(lit);
+                            num_clauses++;
                         }
-
-                        ptr = next;
                     } else {
-                        ++ptr;
+                        num_vars = std::max(num_vars, static_cast<size_t>(std::abs(lit)));
+
+                        current_clause.push_back(lit);
                     }
-                    reading_comment = *ptr == 'c';
+
+                    ptr = next;
+                } else {
+                    ++ptr;
                 }
+
+                reading_comment = ptr < end && *ptr == 'c';
             }
 
-            //if the current_clause isn't empty => we were reading in 
-            //  a new clause up to end of file
-            if (!current_clause.empty()) {
-                num_clauses++;
-                clauses.push_back(std::move(current_clause));
-                current_clause.clear();
-            }
-
-            //assign our fields
             numVars = num_vars;
             numClauses = num_clauses;
         } else {
-            //header found => first two numbers are: number of literals, number of clauses
-            // std::cout << "header found\n";
-            //get the number of variables
+            ptr = begin + start;
+
+            bool reading_comment = *ptr == 'c';
+            //assuming there is a header
             while (ptr < end) {
                 if (reading_comment) {
-                    // std::cout << "reading comment\n";
-                    //skip to next newline
-                    while (*ptr != '\n') {
+                    //skip to new line
+                    while (ptr < end && *ptr != '\n') {
                         ++ptr;
                     }
-                    // std::cout << "skipped comment\n";
-                    //we are no longer reading the comment
-                    reading_comment = false;
-                } else {
-                    int lit;
-                    auto [next, ec] = std::from_chars(ptr, end, lit);
-                    if (ec == std::errc{}) {
-                        if (lit < 0) {
-                            std::cerr << "Can't have a negative number of literals\n";
-                            std::abort();
-                        }  
 
-                        numVars = lit;
-                        //move ptr to the position of the place where from_chars() stopped parsing
-                        ptr = next;
-                        //break out of this loop
-                        break;
+                    //*ptr == '\n'
+                    reading_comment = false;
+                }
+
+                int vars;
+                auto [next, ec] = std::from_chars(ptr, end, vars);
+                if (ec == std::errc{}) {
+                    if (vars < 0) {
+                        std::cerr << "Can't have a negative number of literals\n";
+                        std::abort();
                     }
-                    else {
-                        //increment ptr to move to the next character
-                        ++ptr;
-                    }
+
+                    numVars = vars; 
+                    ptr = next;
+                    break;
+                } else {
+                    ++ptr;
                 }
             }
 
-            reading_comment = *ptr == 'c';  
+            reading_comment = ptr < end && *ptr == 'c';
 
-            //get the number of clauses
             while (ptr < end) {
                 if (reading_comment) {
-                    // std::cout << "reading comment\n";
-                    //skip to next newline
-                    while (*ptr != '\n') {
+                    //skip to new line
+                    while (ptr < end && *ptr != '\n') {
                         ++ptr;
                     }
-                    // std::cout << "skipped comment\n";
-                    //we are no longer reading the comment
+
+                    //*ptr == '\n'
                     reading_comment = false;
-                } else {
-                    int lit;
-                    auto [next, ec] = std::from_chars(ptr, end, lit);
-                    if (ec == std::errc{}) {
-                        if (lit < 0) {
-                            std::cerr << "Can't have a negative number of clauses\n";
-                            std::abort();
-                        }  
-                        numClauses = lit;
-
-                        //move ptr to the position of the place where from_chars() stopped parsing
-                        ptr = next;
-                        break;
-                    }
-                    else {
-                        //increment ptr to move to the next character
-                        ++ptr;
-                    }
                 }
-            } 
 
-            reading_comment = *ptr == 'c';
+                int clauses;
+                auto [next, ec] = std::from_chars(ptr, end, clauses);
+                if (ec == std::errc{}) {
+                    if (clauses < 0) {
+                        std::cerr << "Can't have a negative number of clauses: " << clauses << '\n';
+                        std::abort();
+                    }
 
-            //create a temp clause
+                    numClauses = clauses; 
+                    ptr = next;
+                    break;
+                } else {
+                    ++ptr;
+                }
+            }
+
+            reading_comment = ptr < end && *ptr == 'c';
+
             std::vector<int> current_clause;
             while (ptr < end) {
                 if (reading_comment) {
-                    // std::cout << "reading comment\n";
-                    while (*ptr != 'c') {
+                    //skip to new line
+                    while (ptr < end && *ptr != '\n') {
                         ++ptr;
                     }
-                    // std::cout << "skipped comment\n";
-                    reading_comment = false;
-                } else {
-                    //create a temp literal/variable
-                    int lit;
-                
-                    //next position, error code = first numeric character sequence between ptr and end
-                    auto [next, ec] = std::from_chars(ptr, end, lit);
 
-                    //if there is no error code
-                    if (ec == std::errc{}) {
-                        //if lit == 0
-                        if (lit == 0) {
-                            //our current clause has concluded by DIMACS CNF convention
-                            //  so move its data into the SAT solver's clauses
+                    //*ptr == '\n'
+                    reading_comment = false;
+                }
+
+                int lit;
+                auto [next, ec] = std::from_chars(ptr, end, lit);
+                if (ec == std::errc{}) {
+                    if (lit == 0) {
+                        if (!current_clause.empty()) {
                             clauses.push_back(std::move(current_clause));
 
-                            //clear the current clause so we can reuse it
+                            if (clauses.size() > numClauses) {
+                                std::cerr << "Number of clauses larger than from header" << std::endl;
+                                std::abort();
+                            }
+
                             current_clause.clear();
                         }
-                        else {
-                            //otherwise, our current clause hasn't concluded,
-                            //  so add lit to our current clause
-                            current_clause.push_back(lit);
+                    } else {
+                        if (std::abs(lit) > numVars) {
+                            std::cerr << "Variable index is larger than number of variables: " 
+                                << std::abs(lit) << std::endl;
+                            std::abort();
                         }
-                        //move ptr to the position of the place where from_chars() stopped parsing
-                        ptr = next;
+
+                        current_clause.push_back(lit);
                     }
-                    else {
-                        //increment ptr to move to the next character
-                        ++ptr;
-                    }
-                    reading_comment = *ptr == 'c';
+
+                    ptr = next;
+                } else {
+                    ++ptr;
                 }
+
+                reading_comment = ptr < end && *ptr == 'c';
+            }
+
+            if (!current_clause.empty()) {
+                clauses.push_back(std::move(current_clause));
+
+                if (clauses.size() > numClauses) {
+                    std::cerr << "Number of clauses larger than from header" << std::endl;
+                    std::abort();
+                }
+
+                current_clause.clear();
             }
         }
     }

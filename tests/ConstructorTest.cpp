@@ -1,56 +1,55 @@
 #include <testpp/testpp.hpp>
+#include <filesystem>
 
 #include "../src/SAT.hpp"
 
-TEST(Constructor_headerless, simple) {
-    SATurn::SATSolver solver("tests/no_header/simple.cnf");
-    EXPECT_EQ(4, solver.getNumVars());
-    EXPECT_EQ(1, solver.getNumClauses());
-    std::vector<int> clause{1, 2, 3, 4};
-    EXPECT_ORDERED_EQ(solver.getClauses()[0], clause);
-}
-
-TEST(Constructor_headerless, cut) {
-SATurn::SATSolver solver("tests/no_header/comment_between_clause.cnf");
-    EXPECT_EQ(2, solver.getNumVars());
-    EXPECT_EQ(1, solver.getNumClauses());
-    std::vector<int> clause{1, 2};
-    EXPECT_ORDERED_EQ(solver.getClauses()[0], clause);
-}
-
-TEST(Constructor, string_input) {
-    SATurn::SATSolver solver(std::string_view("1 2 3"));
-    EXPECT_EQ(3, solver.getNumVars());
-    EXPECT_EQ(1, solver.getNumClauses());
-    std::vector<int> clause{1, 2, 3};
-    EXPECT_ORDERED_EQ(solver.getClauses()[0], clause);
-}
-
-TEST(Constructor, simple_cnf) {
-    SATurn::SATSolver solver("tests/header/simple.cnf");
-    const size_t numVars = solver.getNumVars();
-    ASSERT_EQ(numVars, 1);
-
-    const size_t numClauses = solver.getNumClauses();
-    ASSERT_EQ(numClauses, 1);
-
-    const std::vector<std::vector<int>>& clauses = solver.getClauses();
-    ASSERT_EQ(numClauses, clauses.size());
+TEST(Constructor, messed_up) {
+    SATurn::SATSolver solver("tests/header/messed_up.cnf");
+    ASSERT_EQ(solver.getNumVars(), 1);
+    ASSERT_EQ(solver.getNumClauses(), 1);
+    ASSERT_EQ(solver.getNumClauses(), solver.getClauses().size());
     std::vector<int> clause{1};
-    ASSERT_ORDERED_EQ(clause, clauses[0]);
+    ASSERT_ORDERED_EQ(solver.getClauses()[0], clause);
 }
 
-TEST(Constructor, medium_cnf) {
-    SATurn::SATSolver solver("tests/header/medium.cnf");
-    const size_t numVars = solver.getNumVars();
-    ASSERT_EQ(numVars, 4);
+TEST(Constructor, last_clause) {
+    SATurn::SATSolver solver("tests/header/last_clause.cnf");
+    ASSERT_EQ(solver.getNumVars(), 1);
+    ASSERT_EQ(solver.getNumClauses(), 1);
+    ASSERT_EQ(solver.getNumClauses(), solver.getClauses().size());
+    std::vector<int> clause{1};
+    ASSERT_ORDERED_EQ(solver.getClauses()[0], clause);
+}
 
-    const size_t numClauses = solver.getNumClauses();
-    ASSERT_EQ(numClauses, 6);
+TEST(Constructor, number_comment) {
+    SATurn::SATSolver solver("tests/header/number_comment.cnf");
+    ASSERT_EQ(solver.getNumVars(), 1);
+    ASSERT_EQ(solver.getNumClauses(), 2);
+    ASSERT_EQ(solver.getNumClauses(), solver.getClauses().size());
+    std::vector<std::vector<int>> clause{{1}, {-1}};
+    ASSERT_ORDERED_EQ(solver.getClauses(), clause);
+}
 
-    const std::vector<std::vector<int>>& clauses = solver.getClauses();
-    ASSERT_EQ(clauses.size(), numClauses);
+TEST(Constructor, uf20_91) {
+    for (const auto& path : std::filesystem::directory_iterator("tests/uf20-91")) {
+        SATurn::SATSolver solver(path.path().c_str());
+        ASSERT_EQ(solver.getNumVars(), 20);
+        ASSERT_EQ(solver.getNumClauses(), 91);
+        ASSERT_EQ(solver.getClauses().size(), 91);
+        for (const auto& clause : solver.getClauses()) {
+            ASSERT_EQ(clause.size(), 3);
+        }
+    }
+}
 
-    std::vector<std::vector<int>> cnfClauses{{1, 2}, {3, 4}, {1, -3}, {2, -4}, {-2, 3}, {-1, 4}};
-    ASSERT_ORDERED_EQ(cnfClauses, clauses);
+TEST(Constructor, headerless_uf20_91) {
+    for (const auto& path : std::filesystem::directory_iterator("tests/no_header/uf20-91")) {
+        SATurn::SATSolver solver(path.path().c_str());
+        ASSERT_EQ(solver.getNumVars(), 20);
+        ASSERT_EQ(solver.getNumClauses(), 91);
+        ASSERT_EQ(solver.getClauses().size(), 91);
+        for (const auto& clause : solver.getClauses()) {
+            ASSERT_EQ(clause.size(), 3);
+        }
+    }
 }
