@@ -7,6 +7,7 @@
 #include <string_view>
 #include <optional>
 #include <vector>
+#include <unordered_set>
 
 namespace SATurn {
     /// @brief A SAT solver
@@ -49,10 +50,27 @@ namespace SATurn {
             /// @return true if the current assignment is satisfiable, false otherwise
             bool solve(std::vector<bool>& assignment);
 
+            /// @brief learns which variables must have which assignments
+            /// @return a vector of literal assignments that it learned to be true
+            std::vector<int> learn();
+
+            //If I add pure literal elimination, I need to consider which clauses 
+            // were "eliminated" at each step and have a way to undo it at each
+            // recursion level
+
+            //I will need a vector<bool> satisfied and use that in learn as well
+            // because it's possible that learning and eliminating could bleed into 
+            // each other
+            //Should I eliminate then learn or learn and then eliminate?
+            // I think I should eliminate then learn because learning initially
+            // happens on unit clauses and propagates, but elimination can remove
+            // non-unit clauses
+
             size_t numVars{};
             size_t numClauses{};
             std::optional<std::vector<bool>> lits{};
             std::vector<std::vector<int>> clauses{};
+            std::unordered_set<int> learned{};
     };
 }
 

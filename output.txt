@@ -1,0 +1,210 @@
+Install root: /opt/homebrew/Cellar/testpp/20.0.3
+-- The C compiler identification is AppleClang 17.0.0.17000603
+-- The CXX compiler identification is AppleClang 17.0.0.17000603
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- testpp_DIR = /opt/homebrew/Cellar/testpp/20.0.3/lib/cmake/testpp
+-- testpp includes = /opt/homebrew/Cellar/testpp/20.0.3/include
+-- testpp_main includes = testpp::testpp
+-- Configuring done (1.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/oliverlie/.testpp/build
+[ 33%] Building CXX object CMakeFiles/testpp_generated.dir/Users/oliverlie/Documents/GitHub/SATurn/src/Getters.cpp.o
+[ 33%] Building CXX object CMakeFiles/testpp_generated.dir/Users/oliverlie/Documents/GitHub/SATurn/src/Solve.cpp.o
+[ 50%] Building CXX object CMakeFiles/testpp_generated.dir/Users/oliverlie/Documents/GitHub/SATurn/src/Constructor.cpp.o
+[ 66%] Building CXX object CMakeFiles/testpp_generated.dir/Users/oliverlie/Documents/GitHub/SATurn/tests/SolveTest.cpp.o
+[ 83%] Building CXX object CMakeFiles/testpp_generated.dir/Users/oliverlie/Documents/GitHub/SATurn/src/Learn.cpp.o
+[100%] Linking CXX executable bin/testpp_generated
+[100%] Built target testpp_generated
+"tests/uf20-91/uf20-0778.cnf"
+calling learn()
+learn
+made cur_size
+made new_size
+cur_size: 0
+cur_size: 2
+learn
+made cur_size
+made new_size
+cur_size: 3
+learn
+made cur_size
+made new_size
+cur_size: 4
+learn
+made cur_size
+made new_size
+cur_size: 5
+learn
+made cur_size
+made new_size
+cur_size: 6
+learn
+made cur_size
+made new_size
+cur_size: 7
+learn
+made cur_size
+made new_size
+cur_size: 8
+learn
+made cur_size
+made new_size
+cur_size: 9
+learn
+made cur_size
+made new_size
+cur_size: 10
+learn
+made cur_size
+made new_size
+cur_size: 11
+learn
+made cur_size
+made new_size
+cur_size: 12
+learn
+made cur_size
+made new_size
+cur_size: 13
+learn
+made cur_size
+made new_size
+cur_size: 14
+learn
+made cur_size
+made new_size
+cur_size: 15
+learn
+made cur_size
+made new_size
+cur_size: 16
+learn
+made cur_size
+made new_size
+cur_size: 17
+learn
+made cur_size
+made new_size
+cur_size: 18
+learn
+made cur_size
+made new_size
+cur_size: 19
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+learn
+made cur_size
+made new_size
+cur_size: 20
+Solution:
+Var 1: true
+Var 2: true
+Var 3: true
+Var 4: true
+Var 5: true
+Var 6: true
+Var 7: true
+Var 8: true
+Var 9: true
+Var 10: true
+Var 11: true
+Var 12: true
+Var 13: true
+Var 14: true
+Var 15: true
+Var 16: true
+Var 17: true
+Var 18: true
+Var 19: false
+Ran 1 tests...
+
+[FAIL] Solve -> uf20_91 (3 ms)
+	at: /Users/oliverlie/Documents/GitHub/SATurn/tests/SolveTest.cpp:47
+	Expected: solved to be true
+
+--------------------------------------------------
+Total: 1 | Passed: 0 | Failed: 1 | Skipped: 0
+Time: 3 ms
+/Users/oliverlie/.testpp/build/bin/testpp_generated  
