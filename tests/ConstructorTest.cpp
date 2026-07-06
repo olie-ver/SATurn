@@ -3,6 +3,11 @@
 
 #include "../src/SAT.hpp"
 
+TEST(Constructor, empty_clause) {
+    SATurn::SATSolver solver("tests/header/empty_clause.cnf");
+    ASSERT_EQ(solver.getNumClauses(), 2);
+}
+
 TEST(Constructor, messed_up) {
     SATurn::SATSolver solver("tests/header/messed_up.cnf");
     ASSERT_EQ(solver.getNumVars(), 1);
@@ -15,10 +20,10 @@ TEST(Constructor, messed_up) {
 TEST(Constructor, last_clause) {
     SATurn::SATSolver solver("tests/header/last_clause.cnf");
     ASSERT_EQ(solver.getNumVars(), 1);
-    ASSERT_EQ(solver.getNumClauses(), 1);
+    ASSERT_EQ(solver.getNumClauses(), 2);
     ASSERT_EQ(solver.getNumClauses(), solver.getClauses().size());
     std::vector<int> clause{1};
-    ASSERT_ORDERED_EQ(solver.getClauses()[0], clause);
+    ASSERT_ORDERED_EQ(solver.getClauses()[1], clause);
 }
 
 TEST(Constructor, number_comment) {
