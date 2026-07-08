@@ -32,6 +32,7 @@
 
 TEST(Solve, UUF50_218_1000) {
     for (const auto& path : std::filesystem::directory_iterator("tests/UUF50.218.1000")) {
+        // std::cout << path.path() << '\n';
         SATurn::SATSolver solver(path.path().c_str());
 
         ASSERT_FALSE(solver.solveCNF());
