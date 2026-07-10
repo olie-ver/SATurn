@@ -5,16 +5,3 @@ p cnf 5 6
 4 -1 0
 -4 -5 0
 5 -4 0
-
-c 1: F
-c 2: F
-c 3: F
-c 4: F
-c 5: T
-
-c !F
-c F F !F
-c F !F
-c T !F
-c !F !T
-c T !T

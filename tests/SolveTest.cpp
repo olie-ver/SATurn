@@ -57,3 +57,8 @@ TEST(Solve, uf20_91) {
     // SATurn::SATSolver solver("tests/uf20-91/uf20-0750.cnf");
     // ASSERT_TRUE(solver.solveCNF());
 }
+
+// TEST(watch_list, basic) {
+//     SATurn::SATSolver solver("tests/header/learn.cnf");
+//     solver.solveCNF();
+// }
