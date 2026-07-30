@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 namespace SATurn {
     bool SATSolver::solveCNF() {
@@ -23,84 +24,69 @@ namespace SATurn {
 
             // delta.has_value() => conflict
             if (delta.has_value()) {
+                // std::cout << "\nCurrent level trail:\n";
+
                 //want a NEW clause instead of a reference
                 std::unordered_set<int> conflict(delta.value().begin(), delta.value().end());
 
-                bool found = false;
-                int trail_idx;
+                //start from the end of the trail
+                size_t start_from = trail.size() - 1;
+                //end at the beginning of the current decision level
+                size_t end_at = decisions.back().level_start;
 
-                for (int i = trail.size() - 1; i >= 0; --i)
-                {
-                    if (!trail[i].reason) {
-                        continue;
-                    }
+                size_t current_level_count = 0;
 
+                for (int i = static_cast<int>(start_from); i >= static_cast<int>(end_at); --i) {
                     if (conflict.contains(-trail[i].lit))
                     {
-                        found = true;
-                        trail_idx = i;
-                        break;
+                        current_level_count++;
                     }
                 }
 
-                while (found) {
-                    found = false;
-                    const TrailEntry& t = trail[trail_idx];
-                    int pivot = t.lit;
+                int uip;
+
+                int i;
+
+                for (i = static_cast<int>(start_from); i >= static_cast<int>(end_at); --i) {
+                    const TrailEntry& t = trail[i];
+                    int pivot = trail[i].lit;
+
+                    if (!conflict.contains(-pivot)) {
+                        continue;
+                    }
+
+                    current_level_count--;
+
+                    if (current_level_count == 0) {
+                        uip = -pivot;
+                        break;
+                    }
+
+                    assert(*t.reason != -1);
 
                     const std::vector<int>& reason_clause = clauses[*t.reason];
                     std::unordered_set<int> reason(reason_clause.begin(), reason_clause.end());
-
-                    // std::cout << "Resolving literal " << pivot << '\n';
-
-                    // std::cout << "Conflict: ";
-                    // for (int x : conflict)
-                    //     std::cout << x << ' ';
-                    // std::cout << '\n';
-
-                    // std::cout << "Reason Clause: ";
-                    // for (int x : reason_clause)
-                    //     std::cout << x << ' ';
-                    // std::cout << '\n';
-
-                    // std::cout << "Reason: ";
-                    // for (int x : reason)
-                    //     std::cout << x << ' ';
-                    // std::cout << '\n';
-
-                    // std::cout << "Trail literal: "
-                    //         << trail[trail_idx].lit
-                    //         << '\n';
-                    // std::cout << std::endl;
 
                     assert(conflict.contains(-pivot));
                     assert(reason.contains(pivot));
 
                     conflict.merge(reason);
 
-                    if (conflict.contains(-pivot)) {
-                        conflict.erase(-pivot);
-                        conflict.erase(pivot);
-                    }
+                    conflict.erase(-pivot);
+                    conflict.erase(pivot);
 
-                    for (int i = trail.size() - 1; i >= 0; --i)
+                    current_level_count = 0;
+
+                    for (int lit : conflict)
                     {
-                        if (!trail[i].reason) {
-                            continue;
-                        }
-
-                        if (conflict.contains(-trail[i].lit))
-                        {
-                            found = true;
-                            trail_idx = i;
-                            break;
-                        }
+                        if (varData[abs(lit)-1].decision_level == decisions.size() - 1)
+                            current_level_count++;
                     }
+                }
 
-                    if (!found) {
-                        trail_idx = -1;
-                        break;
-                    }
+                if (i < end_at) {
+                    std::cout << "Ran off beginning of current decision level!\n";
+                    abort();
                 }
 
                 //at this point, conflict *should* not contain any conflicting literals
@@ -110,54 +96,85 @@ namespace SATurn {
                 //create the learned clause
                 std::vector<int> learned(conflict.begin(), conflict.end());
 
-                //add it to the clauses database
-                clauses.push_back(std::move(learned));
+                //grab the index of the decision level we need to back-jump to
+                int current = decisions.size() - 1;
 
-                //initialize the new clause's watched literals
-                create_watched(clauses.back());
+                int jump_to = 0;
 
-                //backtrack one level
-                while (decisions.size() > 0) {
-                    DecisionLevel& decision_level = decisions.back();
+                for (int lit : learned)
+                {
+                    int var = std::abs(lit) - 1;
+                    int lvl = varData[var].decision_level;
 
-                    while (trail.size() > decision_level.level_start + 1)
+                    if (lvl != current) {
+                        jump_to = std::max(jump_to, lvl);
+                    }
+                }
+
+                if (jump_to == current) {
+                    assert(current == 0);
+                    return false;
+                }
+                
+                assert(jump_to < current);
+
+                //back-jump
+                while (decisions.size() - 1 > jump_to) {
+                    size_t begin = decisions.back().level_start;
+
+                    while (trail.size() > begin)
                     {
                         int lit = trail.back().lit;
                         assignment[std::abs(lit) - 1] = Unassigned;
                         varData[std::abs(lit) - 1].trail_index = -1;
+                        varData[std::abs(lit) - 1].decision_level = -1;
                         trail.pop_back();
                     }
 
-                    if (!decision_level.tried_second_branch) {
-                        TrailEntry& decision = trail.back();
-                        assignment[std::abs(decision.lit) - 1] = Unassigned;
-                        decision.lit = -decision.lit;
-                        assignment[std::abs(decision.lit) - 1] = static_cast<lit>(decision.lit > 0);
+                    decisions.pop_back();
+                }
 
-                        //try the second branch
-                        decision_level.tried_second_branch = true;
-                        varData[abs(decision.lit)-1].trail_index = decision_level.level_start;
-                        qhead = decision_level.level_start;
-                        break; //something sus about this
-                    } else {
-                        int lit = trail.back().lit;
-                        assignment[std::abs(lit) - 1] = Unassigned;
-                        varData[std::abs(lit) - 1].trail_index = -1;
-                        trail.pop_back();
-                        decisions.pop_back();
-                        qhead = decisions.back().level_start;
+                decisions.resize(jump_to + 1);
+                qhead = decisions.back().level_start;
+
+
+                //add it to the clauses database
+                clauses.push_back(std::move(learned));
+
+                //add the uip literal and the index of the learned clause to the trail
+                //force assignment and varData
+
+                int unassigned = 0;
+
+                for (int lit : clauses.back())
+                {
+                    auto val = assignment[abs(lit)-1];
+
+                    if (val == Unassigned)
+                        unassigned++;
+
+                    else if ((lit > 0 && val == True) ||
+                            (lit < 0 && val == False))
+                    {
+                        std::cout << "Learned clause already satisfied!\n";
                     }
                 }
 
-                // std::cout << "\n=== AFTER BACKTRACK ===\n";
+                assert(unassigned == 1);
 
-                // std::cout << "Trail:\n";
-                // for (auto &t : trail)
-                //     std::cout << t.lit << '\n';
+                int var = std::abs(uip) - 1;
 
-                // std::cout << "\nAssignments:\n";
-                // for (size_t i = 0; i < assignment.size(); i++)
-                //     std::cout << i + 1 << ": " << assignment[i] << '\n';
+                assignment[var] = (uip > 0) ? True : False;
+
+                trail.push_back({uip, clauses.size() - 1});
+
+                varData[var].trail_index = trail.size() - 1;
+                varData[var].decision_level = jump_to;
+
+                qhead = trail.size() - 1;
+
+                //initialize the new clause's watched literals
+                create_watched(clauses.back());
 
                 if (decisions.empty()) {
                     return false;
@@ -171,7 +188,7 @@ namespace SATurn {
             size_t first_unassigned = 0;
             for (size_t i = 0; i < assignment.size(); i++) {
                 if (assignment[i] == Unassigned) {
-                    first_unassigned = i + 1;
+                    first_unassigned = i + 1; //not the index, but the actual literal
                     break;
                 }
             }
@@ -181,11 +198,14 @@ namespace SATurn {
                 return true;
             }
 
+            assert(assignment[first_unassigned - 1] == Unassigned);
+
             //otherwise, make a new decision
             assignment[first_unassigned - 1] = True;
             trail.push_back({static_cast<int>(first_unassigned), std::nullopt});
-            varData[first_unassigned - 1].trail_index = trail.size() - 1;
             decisions.push_back({trail.size() - 1, false});
+            varData[first_unassigned - 1].trail_index = trail.size() - 1;
+            varData[first_unassigned - 1].decision_level = decisions.size() - 1;
             //mark the newest decision as the starting point for propagation
             qhead = trail.size() - 1;
         }

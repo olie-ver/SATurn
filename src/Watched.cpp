@@ -40,13 +40,15 @@ namespace SATurn {
             size_t first{};
             size_t second{};
             for (size_t i = 0; i < clause.size(); i++) {
-                // bool assign = assignment[std::abs(clause[i]) - 1] == clause[i] > 0;
-
                 bool assign;
-                if (clause[i] > 0) {
-                    assign = assignment[std::abs(clause[i]) - 1] == True;
+                if (assignment[std::abs(clause[i]) - 1] == Unassigned) {
+                    assign = true;
                 } else {
-                    assign = assignment[std::abs(clause[i]) - 1] == False;
+                    if (clause[i] > 0) {
+                        assign = assignment[std::abs(clause[i]) - 1] == True;
+                    } else {
+                        assign = assignment[std::abs(clause[i]) - 1] == False;
+                    }
                 }
 
                 if (assign) {
@@ -61,12 +63,15 @@ namespace SATurn {
             }
 
             for (size_t i = first + 1; i < clause.size(); i++) {
-                // bool assign = assignment[std::abs(clause[i]) - 1] == clause[i] > 0;
                 bool assign;
-                if (clause[i] > 0) {
-                    assign = assignment[std::abs(clause[i]) - 1] == True;
+                if (assignment[std::abs(clause[i]) - 1] == Unassigned) {
+                    assign = true;
                 } else {
-                    assign = assignment[std::abs(clause[i]) - 1] == False;
+                    if (clause[i] > 0) {
+                        assign = assignment[std::abs(clause[i]) - 1] == True;
+                    } else {
+                        assign = assignment[std::abs(clause[i]) - 1] == False;
+                    }
                 }
 
                 if (assign) {
@@ -88,10 +93,14 @@ namespace SATurn {
             // bool assign = assignment[std::abs(clause[0]) - 1] == clause[0] > 0;
 
             bool assign;
-            if (clause[0] > 0) {
-                assign = assignment[std::abs(clause[0]) - 1] == True;
+            if (assignment[std::abs(clause[0]) - 1] == Unassigned) {
+                assign = true;
             } else {
-                assign = assignment[std::abs(clause[0]) - 1] == False;
+                if (clause[0] > 0) {
+                    assign = assignment[std::abs(clause[0]) - 1] == True;
+                } else {
+                    assign = assignment[std::abs(clause[0]) - 1] == False;
+                }
             }
 
             //(false and < 0) and (true and > 0) are the only valid watch literal states

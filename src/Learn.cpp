@@ -7,8 +7,6 @@
 
 namespace SATurn {
     std::optional<std::vector<int>> SATSolver::propagate() {
-        std::vector<int> delta;
-
         while (qhead < trail.size()) {
             int lit = trail[qhead].lit;
             qhead++;
@@ -43,9 +41,11 @@ namespace SATurn {
                         }
 
                         size_t lit_idx = std::abs(clause[j]) - 1;
-                        //since false = 0, true = 1, unassigned = 2, lits[lit_idx] => true or unassigned
 
-                        if (assignment[lit_idx] == Unassigned) {
+                        //evaluate the literal
+                        bool evals_false = clause[j] > 0 && assignment[lit_idx] == False || clause[j] < 0 && assignment[lit_idx] == True;
+
+                        if (!evals_false) {
                             watch_indices.first = j;
 
                             clause_indices[i] = clause_indices.back();
@@ -54,30 +54,6 @@ namespace SATurn {
                             
                             relocated = true;
                             break;
-                        } else {
-                            if (clause[j] < 0) {
-                                if (assignment[lit_idx] == False) {
-                                    watch_indices.first = j;
-
-                                    clause_indices[i] = clause_indices.back();
-                                    clause_indices.pop_back();
-                                    watch_to_clause[clause[j]].push_back(clause_idx);
-                                    
-                                    relocated = true;
-                                    break;
-                                }
-                            } else {
-                                if (assignment[lit_idx] == True) {
-                                    watch_indices.first = j;
-
-                                    clause_indices[i] = clause_indices.back();
-                                    clause_indices.pop_back();
-                                    watch_to_clause[clause[j]].push_back(clause_idx);
-                                    
-                                    relocated = true;
-                                    break;
-                                }
-                            }
                         }
                     }
 
@@ -88,11 +64,51 @@ namespace SATurn {
                         size_t lit_idx = std::abs(clause[watch_indices.second]) - 1;
                         if (assignment[lit_idx] == Unassigned) {
                             assert(assignment[std::abs(clause[watch_indices.second]) - 1] == Unassigned);
-                            //We only push back into delta (imply a variable) here
-                            // therefore, in our trail, we add in a new implication
-                            // containing the assignment (T/F), the level (same as the one at the previous index)
-                            // and the decision clause (clause)
-                            delta.push_back(clause[watch_indices.second]);
+
+                            // std::cout << "Clause:";
+                            // for (int lit : clause)
+                            // {
+                            //     int var = abs(lit) - 1;
+                            //     std::cout << ' ' << lit << " (";
+
+                            //     switch (assignment[var])
+                            //     {
+                            //     case True:
+                            //         std::cout << ((lit > 0) ? "T" : "F");
+                            //         break;
+                            //     case False:
+                            //         std::cout << ((lit > 0) ? "F" : "T");
+                            //         break;
+                            //     case Unassigned:
+                            //         std::cout << "U";
+                            //         break;
+                            //     }
+
+                            //     std::cout << ')';
+                            // }
+                            // std::cout << '\n';
+
+                            // std::cout << "watch1 = " << clause[watch_indices.first]
+                            //         << " watch2 = " << clause[watch_indices.second]
+                            //         << '\n';
+
+                            int unassigned = 0;
+                            int satisfied = 0;
+
+                            for (int l : clause)
+                            {
+                                auto val = assignment[abs(l)-1];
+
+                                if (val == Unassigned)
+                                    ++unassigned;
+                                else if ((l > 0 && val == True) ||
+                                        (l < 0 && val == False))
+                                    ++satisfied;
+                            }
+
+                            assert(satisfied == 0);
+                            assert(unassigned == 1);
+
                             //if it's positive, the literal becomes true, otherwise it becomes false
                             if (clause[watch_indices.second] > 0) {
                                 assignment[lit_idx] = True;
@@ -121,7 +137,8 @@ namespace SATurn {
 
                             // std::cout << '\n';
 
-                            varData[std::abs(clause[watch_indices.second]) - 1].trail_index = trail.size() - 1;
+                            varData[var].trail_index = trail.size() - 1;
+                            varData[var].decision_level = decisions.size() - 1;
                         } 
                         else {
                             //if it's true within the clause, move on
@@ -132,6 +149,47 @@ namespace SATurn {
                             if (clause[watch_indices.second] < 0 && assignment[lit_idx] == False) {
                                 continue;
                             }
+
+                            std::cout << "\nConflict clause:\n";
+
+                            bool actually_conflict = true;
+
+                            for (int l : clause) {
+                                auto val = assignment[abs(l)-1];
+
+                                bool lit_true =
+                                    (l > 0 && val == True) ||
+                                    (l < 0 && val == False);
+
+                                bool lit_false =
+                                    (l > 0 && val == False) ||
+                                    (l < 0 && val == True);
+
+                                std::cout
+                                    << l
+                                    << " = ";
+
+                                if (val == Unassigned)
+                                    std::cout << "U";
+                                else if (val == True)
+                                    std::cout << "T";
+                                else
+                                    std::cout << "F";
+
+                                if (lit_true)
+                                    std::cout << " (satisfied)";
+                                else if (lit_false)
+                                    std::cout << " (false)";
+                                else
+                                    std::cout << " (unassigned)";
+
+                                std::cout << '\n';
+
+                                if (!lit_false)
+                                    actually_conflict = false;
+                            }
+
+                            assert(actually_conflict);
 
                             return clause;
                         }

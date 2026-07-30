@@ -56,6 +56,7 @@ namespace SATurn {
 
             struct VarData {
                 int trail_index = -1;
+                int decision_level = -1;
             };
 
             struct DecisionLevel {
@@ -107,14 +108,6 @@ namespace SATurn {
 
             //a map from clause indices to their watched literal index pairs, good for fast lookup
             std::unordered_map<size_t, std::pair<size_t, size_t>> clause_to_watch{};
-
-        //need to refactor solve() to become purely iterative
-        //need to create a create_watched(size_t idx) overload to create the watched literals
-        //  for a clause at the idx
-        //add in a vector<size_t> levelStarts where levelStarts[i] is the index of where a new 
-        //  decision level starts
-        //Need a struct for the literals which is {lit value; Clause* reason; size_t level;}
-        //Then we make a vector of these literal structs as a trail of decision levels
     };
 }
 

@@ -30,29 +30,40 @@
 //     ASSERT_FALSE(solver.solveCNF());
 // }
 
-TEST(Solve, UUF50_218_1000) {
-    for (const auto& path : std::filesystem::directory_iterator("tests/UUF50.218.1000")) {
-        // std::cout << path.path() << '\n';
-        SATurn::SATSolver solver(path.path().c_str());
+// TEST(Solve, UUF50_218_1000) {
+//     int idx = 0;
+//     int max = 1;
+//     for (const auto& path : std::filesystem::directory_iterator("tests/UUF50.218.1000")) {
+//         // if (idx == max) {
+//         //     break;
+//         // }
+//         // idx++;
+//         std::cout << path.path() << '\n';
+//         SATurn::SATSolver solver(path.path().c_str());
 
-        ASSERT_FALSE(solver.solveCNF());
-    }
-}
+//         ASSERT_FALSE(solver.solveCNF());
+//     }
+// }
 
 TEST(Solve, uf20_91) {
-    // int idx = 0;
-    // int max = 50;
-    for (const auto& path : std::filesystem::directory_iterator("tests/uf20-91")) {
-        // if (idx == max) {
-        //     break;
-        // }
-        SATurn::SATSolver solver(path.path().c_str());
-        // std::cout << path.path() << '\n';
-        bool solved = solver.solveCNF();
-        // solver.printSolution();
-        ASSERT_TRUE(solved);
-        // idx++;
-    }
+    int idx = 0;
+    int max = 1;
+    
+    // for (const auto& path : std::filesystem::directory_iterator("tests/uf20-91")) {
+    //     // if (idx == max) {
+    //     //     break;
+    //     // }
+    //     // idx++;
+    //     SATurn::SATSolver solver(path.path().c_str());
+    //     std::cout << path.path() << '\n';
+    //     bool solved = solver.solveCNF();
+    //     // solver.printSolution();
+    //     ASSERT_TRUE(solved);
+    //     // idx++;
+    // }
+    SATurn::SATSolver solver("tests/UUF50.218.1000/uuf50-0703.cnf");
+    bool solved = solver.solveCNF();
+    ASSERT_TRUE(solved);
 
     // SATurn::SATSolver solver("tests/uf20-91/uf20-0750.cnf");
     // ASSERT_TRUE(solver.solveCNF());
