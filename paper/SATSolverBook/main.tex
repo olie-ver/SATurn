@@ -1,0 +1,31 @@
+\documentclass[oneside]{book}
+
+\usepackage{sectsty}
+\usepackage{graphicx}
+\usepackage{minted}
+\usepackage{hyperref}
+
+\usepackage{lipsum}% http://ctan.org/pkg/lipsum
+\usepackage{titletoc}% http://ctan.org/pkg/titletoc
+\titlecontents*{chapter}% <section-type>
+  [0pt]% <left>
+  {}% <above-code>
+  {\bfseries\chaptername\ \thecontentslabel\quad}% <numbered-entry-format>
+  {}% <numberless-entry-format>
+  {\bfseries\hfill\contentspage}% <filler-page-format>
+
+\input{preamble}
+\title{From Scratch:\\The Design and Implementation of a SAT Solver From Scratch}
+\author{Oliver Lie}
+\date{\today}
+\begin{document}
+\maketitle
+\frontmatter
+\tableofcontents
+\input{chapters/preface}
+\mainmatter
+\input{chapters/introduction}
+\input{chapters/brute_force}
+\input{chapters/dpll}
+\input{chapters/cdcl}
+\end{document}

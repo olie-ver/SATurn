@@ -1,0 +1,41 @@
+% Reconstructed from PDF
+\titlecontents*{chapter}% <section-type>
+  [0pt]% <left>
+  {}% <above-code>
+  {\bfseries\chaptername\ \thecontentslabel\quad}% <numbered-entry-format>
+  {}% <numberless-entry-format>
+  {\bfseries\hfill\contentspage}% <filler-page-format>
+
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+Hello! Thank you for taking me seriously enough to pick up this book and begin reading it.
+
+Before we continue, I just want you to know that I am not an expert when it comes to things such as algorithms, data structures, general computer science, or even SAT solvers (what this book is about). Despite that, that's exactly why I wanted to write this. These things that I am not an expert in are my passion, and by doing this technical research, I hope to become a little less of ``not an expert'' in those fields.
+
+The aim of this book isn't to improve or revolutionize SAT solving algorithms. Rather, it is to make the methods and reasoning more accessible to the lay undergraduate (I am open to the possibility that I myself may be the lay undergraduate, and you are simply smarter than me).
+
+Throughout this book we will build our own modern SAT solver from scratch, complete with all the bells and whistles. We will begin with the most basic algorithm imaginable---brute force---and gradually work our way through DPLL, CDCL, and beyond.
+
+Throughout this journey we will encounter thought experiments, exercises, and a handful of experiments intended to solidify our understanding. Any external resources will be cited (hopefully correctly), and in keeping with the goal of accessibility:
+
+\begin{itemize}
+    \item Questions that are explicitly asked will eventually be answered.
+    \item Proofs will be explained in informal language before becoming formal.
+    \item Code will be provided and linked through GitHub (or another hosting platform).
+    \item Revisions to this book will be made whenever I discover mistakes or better explanations.
+\end{itemize}
+
+There is one more thing that deserves acknowledgement: some pieces of code were AI-assisted.
+
+To be completely transparent, ``AI-assisted'' means that instead of spending days repeatedly banging my head against a wall trying to understand a bug or some subtle algorithmic detail, I occasionally asked an AI to explain concepts or help debug an implementation. Every word of this book, however, is my own. AI did not generate any of the explanatory text you will read here, although it certainly helped produce some of the code that accompanies it.
+
+There are practical reasons for this. SAT solvers are difficult to implement correctly, and introducing subtle bugs is remarkably easy. In fact, before deciding to write this book, I had already attempted to build a SAT solver once before. I never managed to get a working CDCL implementation.
+
+That failure, however, taught me a tremendous amount.
+
+So in a sense, we are learning SAT solving together (isn't that comforting?). My previous mistakes have shown me many of the pitfalls, and my hope is that by documenting this journey I can help you avoid making the same ones.
+
+So without further ado, let's begin.
+
+By the time we reach the end, I hope I will have taught you more than I myself learned.

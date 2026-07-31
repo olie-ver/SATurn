@@ -1,0 +1,114 @@
+\documentclass[oneside]{book}
+
+\usepackage{sectsty}
+\usepackage{graphicx}
+\usepackage{minted}
+\usepackage{hyperref}
+
+\usepackage{lipsum}% http://ctan.org/pkg/lipsum
+\usepackage{titletoc}% http://ctan.org/pkg/titletoc
+\titlecontents*{chapter}% <section-type>
+  [0pt]% <left>
+  {}% <above-code>
+  {\bfseries\chaptername\ \thecontentslabel\quad}% <numbered-entry-format>
+  {}% <numberless-entry-format>
+  {\bfseries\hfill\contentspage}% <filler-page-format>
+
+% Margins
+% \topmargin=-0.45in
+% \evensidemargin=0in
+% \oddsidemargin=0in
+% \textwidth=6.5in
+% \textheight=9.0in
+% \headsep=0.25in
+
+\title{ From Scratch \\
+    \large The design and implementation of a modern SAT solver
+}
+\author{ Oliver Lie }
+\date{\today}
+
+\begin{document}
+\maketitle	
+
+\tableofcontents
+
+\chapter{Introduction}
+
+SAT solvers, in my opinion, are one of the most underrated pieces of algo-
+rithmic technology of the modern day. They are used in both software and
+hardware verification (circuitry testing), product configuration, package man-
+agement, computational biology, cryptanalysis, particle physics, solving graph
+problems, and much much more.
+\footnote[1]{\url{https://www.cs.utexas.edu/~isil/cs389L/lecture4-6up.pdf}}
+In a more computer science-focused world,
+they have applications in NP-Completeness. Since (nearly) every problem has
+a reduction to a boolean SAT problem, creating one really really good SAT
+solver, lets us solve all those problems in a ``fast" manner. So they are impor-
+tant everywhere despite the vast majority of us never really thinking about their
+existence. One note on what ``fast" means: even if solving a SAT problem takes
+a small amount of time, the algorithmic complexity isn't necessarily ``fast" as
+there is no known polynomial algorithm for any NP-Complete problem (I am a
+firm believer that P = NP, and yes I know that makes me crazy).
+
+Before we start writing out code, proofs, and the like, we need to make sure
+we're all on the same page on things such as input and ideas. Reading though
+this introduction is important that you understand the basic notation used
+thoughout this book. One last thing to note: we will write out pseudocode rather
+than the code for one specific programming language. However, although the
+idea behind pseudocode is that it's programming language agnostic (it doesn't
+carry artifacts of any real programming languages (usually)), this idea is poorly
+executed when it comes to formatting. My algorithms professor will probably
+scream at me for this, but I'm making the executive decision that we will follow
+a general C-based syntax for readability purposes. Ie, we will use and () for
+block scope and grouping, $=$ for assignment, $==$ for equivalenct, and $<=$, $>=$,
+etc. for their respective uses. Everything that can be inferred visually will be
+used. Another thing to note is that we will pretend our arrays can dynamically
+resize, so we won't pre-allocate space, and we will also assume 1-based indexing
+for an easier map from variables to indices, as you will see later.
+
+\section{What Do SAT Solvers Even Solve?}
+
+``What do SAT solvers even solve,'' I hear you say? SAT solvers solve \textit{boolean
+satisfiability} problems. Another way to say that is they solve \textit{propositional logic}
+problems. There are many forms of propositional logic, and you may be familiar
+with it. Here are some basic examples:
+
+\begin{itemize}
+    \item $P \rightarrow Q$, an \textit{implication} statement
+    \item $(A \wedge B)$, an \textit{and} statement
+    \item $(A \vee B)$, an \textit{or} statement
+    \item $\neg A$, a \textit{negation/not} statement
+\end{itemize}
+
+Of course these are very basic examples, and we haven't included every
+operator such as \textit{xor}, \textit{nand}, etc.. As you know, we can rewrite implications to
+contain only and, or, and not operators, which is what SAT solvers operate on.
+In other words, SAT solvers only operator on \textit{boolean algebra} equations
+\footnote[2]{A boolean algebra equation is one containing only and ($\wedge$), or ($\vee$), and not ($\neg$) 
+operations (at a basic level).}
+However, SAT solvers don't operate on just any boolean algebra equation.
+No no no, they must be in a proper form, called CNF (more on that in the
+next section). CNF (Conjunction Normal Form) equations are a ``conjunction
+of disjunctions'', ie, clauses of \textit{ors}, combined with \textit{ands}. 
+Some examples of CNF are as follows:
+\begin{itemize}
+\item $(A \vee B)$
+\item $(A \vee B) \wedge (\neg C)$
+\item $(A \vee B) \wedge (\neg C \vee D)$
+\end{itemize}
+
+Some examples that are not CNF:
+\begin{itemize}
+\item $\neg(A \vee B)$, where there is a NOT in front of a clause
+\item $\neg(A \vee B) \wedge (C)$, where is a NOT in front of a clause
+\item $(A \vee B \wedge C)$, where there is an AND within a clause
+\item $(A \wedge B) \vee (C)$, where it is in DNF form
+\footnote[3]{DNF (Disjunctive Normal Form) is a ``disjunction of conjunctions'', ie clauses of 
+\textit{ands}, combined by \textit{ors}. 
+Solving these are trivially easy as we just need to find one clause where no element evaluates to false.}
+\end{itemize}
+
+\section{CNF Encoding}
+
+\end{document}

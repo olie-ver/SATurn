@@ -1,0 +1,4 @@
+\contentsline {chapter}{\numberline {1}Introduction}{2}{chapter.1}%
+\contentsline {section}{\numberline {1.1}What Do SAT Solvers Even Solve?}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}CNF Encoding}{3}{section.1.2}%
+\contentsfinish 
