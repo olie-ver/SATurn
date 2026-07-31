@@ -7,8 +7,8 @@
 #include <iostream>
 #include <sstream>
 
-namespace SATurn {
-    SATSolver::SATSolver(std::string_view param) {
+namespace saturn {
+    satsolver::satsolver(std::string_view param) {
         if (std::filesystem::exists(param)) {
             //treat it as a file
             std::ifstream file(param.data());
@@ -34,7 +34,7 @@ namespace SATurn {
         }
     }
 
-    void SATSolver::parse(std::string_view equation) {
+    void satsolver::parse(std::string_view equation) {
         const char* begin = equation.data();
         const char* end = begin + equation.size();
         const char* ptr;
