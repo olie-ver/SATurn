@@ -2,22 +2,29 @@
 
 #include <algorithm>
 #include <thread>
+#include <iostream>
 
 //for each thread, the range they have to cover is 2^numVars / numThreads
-#define interval (0b1 << numVars) / numThreads
+#define interval (0b1ul << numVars) / numThreads
 
 namespace saturn {
     bool satsolver::solveCNF() {
+        stop = false;
         size_t numThreads = std::thread::hardware_concurrency();
 
         std::vector<std::thread> threads;
 
         numThreads = std::max(1ul, numThreads); //forces there to be at least one thread
 
+        //since threadWorker is a member function of the satsolver, we need to pass 
+        //  in a pointer to the method in order to call it from our threads
+        void (satsolver::*func)(size_t low, size_t high);
+        func = &satsolver::threadWorker;
+
         //creates numThreads - 1 NEW threads 
         //(we want this current running thread to do work as well)
         for (size_t i = 1; i < numThreads; i++) {
-            threads.emplace_back(threadWorker, i * interval + 1, (i + 1) * interval);
+            threads.emplace_back(func, this, i * interval + 1, (i + 1) * interval);
         }
 
         //if numThreads = 1, then this main thread does all the work
@@ -41,10 +48,13 @@ namespace saturn {
 
                 bool satisfied_clause = false;
                 for (size_t k = 0; k < clause.size(); k++) {
-                    if (clause[k] > 0) {
-                        satisfied_clause |= i & (0b1 << numVars);
+                    int var = clause[k];
+                    int idx = std::abs(var) - 1;
+
+                    if (var > 0) {
+                        satisfied_clause |= i & (0b1ul << idx);
                     } else {
-                        satisfied_clause |= !(i & (0b1 << numVars));
+                        satisfied_clause |= !(i & (0b1ul << idx));
                     }
                 }
 
@@ -56,17 +66,26 @@ namespace saturn {
             }
 
             if (solved) {
+                if (stop.exchange(true)) {
+                    return;
+                }
+
                 const std::lock_guard<std::mutex> lock(vars_mutex);
 
                 //we change the atomic bool's value, so any other thread
                 // running the evaluation loop will check the conditional
                 // and see that it's now invalid, so they will terminate
                 stop = true;
-                (*vars).reserve(numVars);
-                
+
+                std::vector<bool> assignment;
+                assignment.resize(numVars);
+
                 for (size_t j = 0; j < numVars; j++) {
-                    (*vars)[j] = i & (0b1 << j);
+                    assignment[j] = i & (0b1 << j);
                 }
+
+                vars = std::move(assignment);
+                return;
             }
         }
     }

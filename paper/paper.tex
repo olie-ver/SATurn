@@ -865,12 +865,30 @@ kept), we use a database of problems from here:
 We gave our current implementation 1000 SAT instances (uf20-91), each
 with 20 variables and 91 clauses each, all satisfiable. It took this baseline
 brute force algorithm 2,119,301 milliseconds, which is roughly 35.32
-minutes.
+minutes. This result is actually from the first time I wrote a brute force 
+algorithm. The brute force result you can find on GitHub, it actually took 
+1,770,851 milliseconds, which is about 29.51 minutes. I have no idea what I 
+did in the rewrite that shaved off 4 minutes. I won't even lie to you reader,
+I am a busy undergraduate student, so I didn't even do the "best practice" for 
+testing, which would be to quit all other processes and then benchmark it. However,
+while I was testing, I was doing a Canvas assignment, so I was doing lots of 
+background work.
 
 Normally in science you have to run an experiment at least three times for
 data accuracy. But you must understand that I don't want to give up an hour
 and a half of my life to an algorithm that we're going to be improving upon
 anyways.
+
+For fun, I will benchmark the short-circuit and parallel versions as well.
+Short-Circuited (Basic): 49874ms (~50 seconds)
+
+Parallel: 10589ms (~10.5 seconds)
+
+For the parallel version, the implementation isn't perfect. I believe that 
+we don't prevent false sharing amongst cache lines (ie we get more cache swaps between 
+threads leading to more cache misses), which could explain why on my M1 MacBook Air, 
+we don't get close to a ~8 times speedup. Since this was for fun, I'm not going to perfect 
+the parallelized version, that can an exercise to the reader :)
 
 \chapter{DPLL}
 

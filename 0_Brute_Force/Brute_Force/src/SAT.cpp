@@ -5,7 +5,7 @@
 namespace saturn {
     bool satsolver::solveCNF() {
         std::vector<bool> assignment;
-        assignment.reserve(numVars);
+        assignment.resize(numVars);
 
         for (size_t i = 0; i < 0b1 << numVars; i++) {
             for (size_t j = 0; j < numVars; j++) {
@@ -19,7 +19,6 @@ namespace saturn {
                 bool satisfied_clause = false;
                 for (size_t k = 0; k < clause.size(); k++) {
                     int var = clause[k];
-
                     int idx = std::abs(var) - 1;
 
                     if (var > 0) {
