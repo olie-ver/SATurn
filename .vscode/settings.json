@@ -2,5 +2,6 @@
     "cSpell.words": [
         "DIMACS",
         "satsolver"
-    ]
+    ],
+    "C_Cpp.default.cppStandard": "c++20"
 }

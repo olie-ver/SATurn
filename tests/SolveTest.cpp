@@ -47,26 +47,20 @@
 
 TEST(Solve, uf20_91) {
     int idx = 0;
-    int max = 1;
+    int max = 5;
     
-    // for (const auto& path : std::filesystem::directory_iterator("tests/uf20-91")) {
-    //     // if (idx == max) {
-    //     //     break;
-    //     // }
-    //     // idx++;
-    //     SATurn::SATSolver solver(path.path().c_str());
-    //     std::cout << path.path() << '\n';
-    //     bool solved = solver.solveCNF();
-    //     // solver.printSolution();
-    //     ASSERT_TRUE(solved);
-    //     // idx++;
-    // }
-    SATurn::SATSolver solver("tests/UUF50.218.1000/uuf50-0703.cnf");
-    bool solved = solver.solveCNF();
-    ASSERT_TRUE(solved);
-
-    // SATurn::SATSolver solver("tests/uf20-91/uf20-0750.cnf");
-    // ASSERT_TRUE(solver.solveCNF());
+    for (const auto& path : std::filesystem::directory_iterator("tests/uf20-91")) {
+        // if (idx == max) {
+        //     break;
+        // }
+        // idx++;
+        SATurn::SATSolver solver(path.path().c_str());
+        std::cout << path.path() << '\n';
+        bool solved = solver.solveCNF();
+        // solver.printSolution();
+        ASSERT_TRUE(solved);
+        // idx++;
+    }
 }
 
 // TEST(watch_list, basic) {
