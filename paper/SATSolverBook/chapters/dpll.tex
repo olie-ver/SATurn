@@ -301,6 +301,256 @@ false first lead to an increase in speed?
 Hint: Look at the number of negations present in the testing set.
 
 \section{Unit Propagation}
+
+Unit propagation is the next step in implementing DPLL, and it introduces the
+idea of implication.
+
+Imagine clause: $A \rightarrow Z$, and we know that $A = \text{False}$. What
+can we say about $Z$?
+
+Well, if our equation is satisfiable, then the clause must be satisfiable,
+therefore $Z = \text{True}$ because if it didn't, that would be a contradiction.
+
+So instead of assigning variables $B$, $C$, \ldots, $X$, then assigning $Z$,
+why don't we just do it now, and use that knowledge in other clauses
+containing $Z$ or $\neg Z$?
+
+That is essentially the idea behind unit propagation: the decisions we make
+imply other assignments, and so we should force them now instead of waiting
+until later.
+
+However, this introduces a light hiccup into our implementation.
+
+You see, our initial invariant about assigning variables is that they are
+assigned in numerical order instead of (possibly) out of order.
+
+``Not a problem! We'll just make the assignment array have space for every
+variable so we can index it anywhere,'' I hear you think.
+
+Unfortunately that interferes with our base case because it relies on the size
+of the assignment array. If it is initially at a fixed size of
+\texttt{numVars}, then our base case will always fire because our assignment
+array always has a size of \texttt{numVars}. So we would either need to
+change our base case or change how we store learned variables.
+
+What about a learned set? One that holds whether or not we've learned a
+variable (positive or negative), and then as we traverse down the call stack,
+we just check if a variable is already learned, and if so, we give it its learned
+value?
+
+That would 100\% work.
+
+In fact, the first time I implemented DPLL, that is exactly what I used.
+
+However, it has the disadvantage of being annoying to maintain.
+
+Instead, why don't we create a new data type called something like
+\texttt{var} that represents the state of each variable: \texttt{True},
+\texttt{False}, and \texttt{Unassigned}.
+
+Then we can just maintain a simple counter of how many are not
+\texttt{Unassigned}, and then that keeps our base case nice and neat.
+
+Yes dear reader, we are going to do that, however, if you'd like to use the
+learned set, reading about how we do it without a learned set will help you
+and offer clues on how to implement it your way.
+
+\subsection{Changes To Our Implementation}
+
+\begin{lstlisting}
+public interface:
+    SATSolver(string input)
+    int getNumVars()
+    int getNumClauses()
+    int[][] getClauses()
+    optional<bool>[] getSolution()
+    optional<var>[] getSolution()
+    void printSolution()
+    bool solveCNF()
+
+private interface:
+    enum var
+    {
+        False
+        True
+        Unassigned
+    }
+
+    void parse(string equation)
+    bool solve(bool[] assignment)
+    bool solve(var[] assignment)
+    bool evaluate(bool[] assignment)
+    bool evaluate(var[] assignment)
+    void propagate()
+
+    int numVars
+    int numClauses
+    int numAssigned
+
+    int[][] clauses
+
+    optional<bool>[] lits
+    optional<var>[] vars
+\end{lstlisting}
+
+Here we just add in a new enum for the states that a variable can be, and
+adjust the methods using \texttt{bool}s to use the new enum type instead.
+
+\subsection{Implementing Unit Propagation}
+
+Before we start changing our algorithm, let's implement the
+\texttt{propagate()} method.
+
+As stated before, the idea is that given a clause with either only one variable
+or only one \texttt{Unassigned} variable (and the rest evaluate to
+\texttt{False}), we can immediately say that \texttt{Unassigned} variable will
+be whatever value it needs to be to evaluate to \texttt{True} for that clause.
+
+An implementation detail is that typically, once a clause is satisfied because
+of a literal, you remove every other clause that is satisfied by that literal.
+And for every other clause containing the negation of the literal, you remove
+that negation entirely.
+
+This is done to shrink the search space.
+
+Even though I find this to be a waste of memory (copying is expensive), I do
+see the benefit in reducing the search space, so we will implement it the
+``textbook'' way.\footnote{\url{https://en.wikipedia.org/wiki/Unit_propagation}}
+
+Pseudocode for \texttt{propagate()}:
+
+\begin{lstlisting}
+void propagate()
+{
+    Set<int> unit
+
+    int curSize = 0
+    int newSize = -1
+
+    int[1..N] unitClauseIdx
+    int[1..N] deleteClauseIdx
+
+    while (curSize != newSize)
+    {
+        curSize = unit.size
+
+        for (i = 1 up to numClauses)
+        {
+            int numUnassigned = 0
+            int unassignedIdx = -1
+            bool restFalse = true
+
+            for (j = 1 up to clause.size)
+            {
+                int var = clause[j]
+                int idx = abs(var)
+
+                if (vars[idx] == Unassigned)
+                {
+                    numUnassigned++
+                    unassignedIdx = j
+                }
+
+                bool evalsFalse =
+                    var < 0 && vars[idx] == True ||
+                    var > 0 && vars[idx] == False
+
+                restFalse &= evalsFalse
+
+                if (Contains(unit, -var))
+                {
+                    RemoveAt(clause, j)
+                }
+            }
+
+            if (restFalse == True)
+            {
+                int var = clause[unassignedIdx]
+                int idx = abs(var)
+
+                if (var > 0)
+                {
+                    assignment[idx] = True
+                }
+                else
+                {
+                    assignment[idx] = False
+                }
+                numAssigned = numAssigned + 1
+
+                Add(unit, var)
+                Append(unitClauseIdx, i)
+            }
+        }
+
+        newSize = unit.size
+    }
+}
+\end{lstlisting}
+
+\subsection{Changes To Our Algorithms}
+
+The first method we should change is our \texttt{solveCNF()} method. Due to
+the order of our enum labels, the default value for a \texttt{var} is
+\texttt{False} rather than \texttt{Unassigned}. This allows them to be used as
+booleans since \texttt{False = 0}, \texttt{True = 1}, and
+\texttt{Unassigned = 2}. Therefore, we need to manually initialize every
+variable to be \texttt{Unassigned} before we start solving.
+
+Pseudocode for \texttt{solveCNF()}:
+
+\begin{lstlisting}
+bool solveCNF()
+{
+    var[1..numVars] assignment;
+
+    for (i = 1 up to numVars)
+    {
+        assignment[i] = Unassigned;
+    }
+
+    numAssigned = 0;
+
+    return solve(assignment);
+}
+\end{lstlisting}
+
+Next in \texttt{solve()}:
+
+\begin{lstlisting}
+bool solve(var[] assignment)
+{
+    if (numAssigned == numVars)
+    {
+        return evaluate(assignment);
+    }
+
+    append(assignment, True);
+    numAssigned = numAssigned + 1;
+
+    if (solve(assignment) == true)
+    {
+        return true;
+    }
+
+    truncate(assignment, 1);
+    numAssigned = numAssigned - 1;
+
+    append(assignment, False);
+    numAssigned = numAssigned + 1;
+
+    if (solve(assignment) == true)
+    {
+        return true;
+    }
+
+    truncate(assignment, 1);
+    numAssigned = numAssigned - 1;
+
+    return false;
+}
+\end{lstlisting}
+
 \section{Pure Literal Elimination}
 \section{Optimizing Our Current Approach}
 \section{Iterative DPLL}

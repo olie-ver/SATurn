@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1785477617.34629 "/Users/oliverlie/Documents/GitHub/SATurn/paper/SATSolverBook/main.tex" "main.pdf" "main" 1785477618.60733 0
+["pdflatex"] 1785477784.62618 "/Users/oliverlie/Documents/GitHub/SATurn/paper/SATSolverBook/main.tex" "main.pdf" "main" 1785477785.86619 0
   "/Users/oliverlie/Documents/GitHub/SATurn/paper/SATSolverBook/main.tex" 1785475622.76787 802 b04184ba0d22689141f747b70984fde1 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
@@ -146,13 +146,13 @@
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
   "chapters/brute_force.tex" 1785477156.37825 8787 17a1a83af16c43fc88e09f7a5db804fd ""
   "chapters/cdcl.tex" 1785475561.567 22 83a372fbb0295509972728643835d402 ""
-  "chapters/dpll.tex" 1785477615.81873 10951 934f0bb606dfdf3ff2fe5b992a061604 ""
+  "chapters/dpll.tex" 1785477783.36837 17975 9861f0f6a59a140f444c93d90711ae74 ""
   "chapters/introduction.tex" 1785476890.96004 16091 a413fb5747e62deb4dd58897682bb154 ""
   "chapters/preface.tex" 1785475792.66177 3244 22a237c6f9c3e5b477b0dfc105b611c3 ""
-  "main.aux" 1785477618.48113 3288 3c80a1a13ea11d25e304b0269c26d566 "pdflatex"
-  "main.out" 1785477618.48197 2421 77fe6fc20a6b255fbbe07cbe41a70973 "pdflatex"
+  "main.aux" 1785477785.74238 3783 7f116f97bf5bab73707b92142fecd35a "pdflatex"
+  "main.out" 1785477785.74315 3046 110f0f35bc460478821096fa0e33733d "pdflatex"
   "main.tex" 1785475622.76787 802 b04184ba0d22689141f747b70984fde1 ""
-  "main.toc" 1785477618.48221 1435 cb62bc95baf14265c3bbd73f3c05e6d7 "pdflatex"
+  "main.toc" 1785477785.74338 1731 5c9d7409abbe07f1a473c1916e0bf681 "pdflatex"
   "preamble.tex" 1785475561.56881 149 7f248e966d7a74a6f0965b339611b11e ""
   (generated)
   "main.aux"

@@ -12,8 +12,11 @@
 \contentsline {section}{\numberline {3.1}Recursive Backtracking}{15}{section.3.1}%
 \contentsline {subsection}{\numberline {3.1.1}Recursive Backtracking -- Results}{18}{subsection.3.1.1}%
 \contentsline {section}{\numberline {3.2}Unit Propagation}{18}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Pure Literal Elimination}{18}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Optimizing Our Current Approach}{18}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Iterative DPLL}{18}{section.3.5}%
-\contentsline {chapter}{\numberline {4}CDCL}{19}{chapter.4}%
+\contentsline {subsection}{\numberline {3.2.1}Changes To Our Implementation}{19}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Implementing Unit Propagation}{20}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Changes To Our Algorithms}{21}{subsection.3.2.3}%
+\contentsline {section}{\numberline {3.3}Pure Literal Elimination}{22}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Optimizing Our Current Approach}{22}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Iterative DPLL}{22}{section.3.5}%
+\contentsline {chapter}{\numberline {4}CDCL}{23}{chapter.4}%
 \contentsfinish 
