@@ -968,7 +968,7 @@ how each part works.
 
 First, we need to rewrite our brute force algorithm to be recursive, as that's
 the foundation for the entire algorithm (duh). To do this, we will introduce a
-new method \texttt{solve()} which will be our recursive solving method. To
+new method \textit{solve()} which will be our recursive solving method. To
 also make things simpler, we will extract the equation evaluation into its own
 separate method as well.
 
@@ -994,27 +994,27 @@ private interface:
     optional<bool>[] lits
 \end{lstlisting}
 
-The flow essentially becomes like this: \texttt{solveCNF()} calls
-\texttt{solve()}, which calls itself over and over and returns whatever solution
-it finds back up to \texttt{solveCNF()}, who will handle any sort of cleanup.
+The flow essentially becomes like this: \textit{solveCNF()} calls
+\textit{solve()}, which calls itself over and over and returns whatever solution
+it finds back up to \textit{solveCNF()}, who will handle any sort of cleanup.
 
-Why can't we just make \texttt{solveCNF()} call itself recursively?
+Why can't we just make \textit{solveCNF()} call itself recursively?
 
 Good question.
 
-That's because \texttt{solveCNF()} will handle any setup that
-\texttt{solve()} will need in order to function properly, and it will handle any
-cleanup that \texttt{solve()} may create.
+That's because \textit{solveCNF()} will handle any setup that
+\textit{solve()} will need in order to function properly, and it will handle any
+cleanup that \textit{solve()} may create.
 
-Let's now discuss how \texttt{solve()} will work.
+Let's now discuss how \textit{solve()} will work.
 
-It will be passed in a \texttt{bool[]} for the current assignment of literals.
+It will be passed in a \textit{bool[]} for the current assignment of literals.
 When the size of our assignment is equal to the number of variables, we will
 then evaluate the satisfiability of the assignment, and if it's satisfiable we
 return true. Otherwise, we return false, backtrack, retry, until we either find a
 satisfiable assignment or we've exhausted them all.
 
-The pseudocode is as so, starting with \texttt{evaluate()}:
+The pseudocode is as so, starting with \textit{evaluate()}:
 
 \begin{lstlisting}
 bool evaluate(bool[] assignment)
@@ -1070,11 +1070,11 @@ bool evaluate(bool[] assignment)
 
 As you can see, all we've done is move our equation evaluation from brute force
 into its own function. One thing to note is that this method also handles
-updating our \texttt{lits} field. Thus, if \texttt{evaluate()} returns true, then
-\texttt{lits} will hold the satisfying assignment, and if it returns false, then
-\texttt{lits} will hold nothing.
+updating our \textit{lits} field. Thus, if \textit{evaluate()} returns true, then
+\textit{lits} will hold the satisfying assignment, and if it returns false, then
+\textit{lits} will hold nothing.
 
-Now our recursive \texttt{solve()} method:
+Now our recursive \textit{solve()} method:
 
 \begin{lstlisting}
 bool solve(bool[] assignment)
@@ -1107,15 +1107,15 @@ This might be slightly confusing at first, so let's go over it.
 
 We first check our base case. If our assignment has all of its variables, we
 evaluate it and return the result whether it be true or false. And you'll notice
-that whenever we return true from a call of \texttt{solve()}, we immediately
+that whenever we return true from a call of \textit{solve()}, we immediately
 return true afterwards, so therefore, if we find a satisfiable assignment, we
-will go up our call stack back to \texttt{solveCNF()}, so no need to worry that
+will go up our call stack back to \textit{solveCNF()}, so no need to worry that
 it will terminate if we find a satisfiable assignment.
 
 However, if our assignment still needs some variables, we append true to our
-assignment, then we do a recursive call on \texttt{solve()}. If that recursive
+assignment, then we do a recursive call on \textit{solve()}. If that recursive
 call leads to a satisfiable assignment, we return true, otherwise, we swap out
-our last value for false and try \texttt{solve()} again. And if that ends up
+our last value for false and try \textit{solve()} again. And if that ends up
 working out, we return true, but if it doesn't then we remove the last value
 and return false.
 
@@ -1128,7 +1128,7 @@ suppose we're at the top of the call stack (we've assigned the first variable)
 and the first variable is assigned false, and that didn't lead to a satisfiable
 assignment. Then we remove that first variable from the assignment, and then
 we return false. So our assignment array is empty, and we've returned to
-\texttt{solveCNF()}. Thus, \texttt{solve()} will terminate eventually.
+\textit{solveCNF()}. Thus, \textit{solve()} will terminate eventually.
 
 And how do we know that we'll try every single assignment?
 
@@ -1142,7 +1142,7 @@ This is a very informal proof, but what's most important is that we build up
 our understanding of what's going on instead of dumping notation. Perhaps I
 will do a formal proof in the future.}
 
-Lastly, our \texttt{solveCNF()} method:
+Lastly, our \textit{solveCNF()} method:
 
 \begin{lstlisting}
 bool solveCNF()
@@ -1154,22 +1154,22 @@ bool solveCNF()
 \end{lstlisting}
 
 Because we're dealing with pseudocode, we don't have to do things such as
-reserving or resizing the assignment array. And since \texttt{evaluate()} takes
-care of making sure our \texttt{lits} field holds a valid assignment (if found)
+reserving or resizing the assignment array. And since \textit{evaluate()} takes
+care of making sure our \textit{lits} field holds a valid assignment (if found)
 and holds nothing if not, we don't need to do anything else in
-\texttt{solveCNF()}.
+\textit{solveCNF()}.
 
-You may wonder though, why not pass in \texttt{lits} to \texttt{solve()} or
-have no setup and make \texttt{solveCNF()} purely recursive?
+You may wonder though, why not pass in \textit{lits} to \textit{solve()} or
+have no setup and make \textit{solveCNF()} purely recursive?
 
 Those are very valid questions to ask.
 
 This has to do with the differences between pseudocode and actual
 implementation. In the actual implementation, some methods depend on the
-state of \texttt{lits}, such as whether or not it holds anything, and by passing
-it into \texttt{solve()}, we force it to hold something, even if there is no
-satisfiable assignment. And it's true, that in \texttt{solveCNF()} if we had no
-setup, we could make it recursive on \texttt{lits}, however, I chose to
+state of \textit{lits}, such as whether or not it holds anything, and by passing
+it into \textit{solve()}, we force it to hold something, even if there is no
+satisfiable assignment. And it's true, that in \textit{solveCNF()} if we had no
+setup, we could make it recursive on \textit{lits}, however, I chose to
 implement it differently.
 
 When you are reading this, please ask yourself these kinds of questions,
@@ -1182,10 +1182,13 @@ written down here.
 \subsection{Recursive Backtracking -- Results}
 
 Running this code on the same 1000 instances (uf20-91), it took
-1,846,644\,ms, which is roughly 30.78 minutes. This is actually a pretty big
+1,846,644ms, which is roughly 30.78 minutes. This is actually a pretty big
 improvement from our 35.32 minutes via brute forcing. Although this seems
 like a big gain in speed, it should be noted that at this point the algorithm is
-still just a fancier brute forcing algorithm.
+still just a fancier brute forcing algorithm. The next time I rewrote this algorithm,
+it took 1,540,613ms, which is about 25.68 minutes. So once again, that's about a 
+~5 minute speedup just from rewriting it. Perhaps we should rewrite every piece of 
+software in the world to make it run 5 minutes faster. 
 
 Here's a question for you, why might assigning our variables true instead of
 false first lead to an increase in speed?
@@ -1221,8 +1224,8 @@ variable so we can index it anywhere,'' I hear you think.
 
 Unfortunately that interferes with our base case because it relies on the size
 of the assignment array. If it is initially at a fixed size of
-\texttt{numVars}, then our base case will always fire because our assignment
-array always has a size of \texttt{numVars}. So we would either need to
+\textit{numVars}, then our base case will always fire because our assignment
+array always has a size of \textit{numVars}. So we would either need to
 change our base case or change how we store learned variables.
 
 What about a learned set? One that holds whether or not we've learned a
@@ -1237,11 +1240,11 @@ In fact, the first time I implemented DPLL, that is exactly what I used.
 However, it has the disadvantage of being annoying to maintain.
 
 Instead, why don't we create a new data type called something like
-\texttt{var} that represents the state of each variable: \texttt{True},
-\texttt{False}, and \texttt{Unassigned}.
+\textit{var} that represents the state of each variable: \textit{True},
+\textit{False}, and \textit{Unassigned}.
 
 Then we can just maintain a simple counter of how many are not
-\texttt{Unassigned}, and then that keeps our base case nice and neat.
+\textit{Unassigned}, and then that keeps our base case nice and neat.
 
 Yes dear reader, we are going to do that, however, if you'd like to use the
 learned set, reading about how we do it without a learned set will help you
@@ -1250,198 +1253,502 @@ and offer clues on how to implement it your way.
 \subsection{Changes To Our Implementation}
 
 \begin{lstlisting}
-public interface:
-    SATSolver(string input)
-    int getNumVars()
-    int getNumClauses()
-    int[][] getClauses()
-    optional<bool>[] getSolution()
-    optional<var>[] getSolution()
-    void printSolution()
-    bool solveCNF()
+    public interface:
+        SATSolver(string input)
+        int getNumVars()
+        int getNumClauses()
+        int[][] getClauses()
+        optional<bool>[] getSolution()
+        optional<var>[] getSolution()
+        void printSolution()
+        bool solveCNF()
 
-private interface:
-    enum var
-    {
-        False
-        True
-        Unassigned
-    }
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
 
-    void parse(string equation)
-    bool solve(bool[] assignment)
-    bool solve(var[] assignment)
-    bool evaluate(bool[] assignment)
-    bool evaluate(var[] assignment)
-    void propagate()
+        void parse(string equation)
+        bool solve(bool[] assignment)
+        bool solve(var[] assignment, int level)
+        bool evaluate(bool[] assignment)
+        bool evaluate(var[] assignment)
+        void propagate()
 
-    int numVars
-    int numClauses
-    int numAssigned
+        int numVars
+        int numClauses
+        int numAssigned
 
-    int[][] clauses
+        int[][] clauses
 
-    optional<bool>[] lits
-    optional<var>[] vars
+        optional<bool>[] lits
+        optional<var>[] vars
 \end{lstlisting}
 
 Here we just add in a new enum for the states that a variable can be, and
-adjust the methods using \texttt{bool}s to use the new enum type instead.
+adjust the methods using \textit{bool}s to use the new enum type instead.
 
-\subsection{Implementing Unit Propagation}
+\subsection{``Textbook" Unit Propagation}
 
 Before we start changing our algorithm, let's implement the
-\texttt{propagate()} method.
+\textit{propagate()} method.
 
 As stated before, the idea is that given a clause with either only one variable
-or only one \texttt{Unassigned} variable (and the rest evaluate to
-\texttt{False}), we can immediately say that \texttt{Unassigned} variable will
-be whatever value it needs to be to evaluate to \texttt{True} for that clause.
+or only one \textit{Unassigned} variable (and the rest evaluate to
+\textit{False}), we can immediately say that \textit{Unassigned} variable will
+be whatever value it needs to be to evaluate to \textit{True} for that clause.
 
-An implementation detail is that typically, once a clause is satisfied because
-of a literal, you remove every other clause that is satisfied by that literal.
-And for every other clause containing the negation of the literal, you remove
-that negation entirely.
+In the ``textbook" way of implementation,
+\footnote{\url{https://en.wikipedia.org/wiki/Unit_propagation}} 
+once a clause is satisfied because of a literal, you remove every other
+clause that is satisfied by that literal. And for every other clause containing 
+the negation of the literal, you remove that negation entirely. This is done to shrink the 
+search space.
 
-This is done to shrink the search space.
-
-Even though I find this to be a waste of memory (copying is expensive), I do
-see the benefit in reducing the search space, so we will implement it the
-``textbook'' way.\footnote{\url{https://en.wikipedia.org/wiki/Unit_propagation}}
-
-Pseudocode for \texttt{propagate()}:
+We will implement this algorithm with as much malicious compliance as you can 
+carry at an office job without getting fired:
 
 \begin{lstlisting}
-void propagate()
-{
-    Set<int> unit
+    bool solveCNF() {
+        var[1..numVars] assignment
 
-    int curSize = 0
-    int newSize = -1
+        for each (var in assignment) {
+            var = Unassigned
+        }
 
-    int[1..N] unitClauseIdx
-    int[1..N] deleteClauseIdx
+        propagate(assignment)
+        solve(assignment, 0)
+    }
+\end{lstlisting}
 
-    while (curSize != newSize)
-    {
-        curSize = unit.size
+We want to propagate before we start solving in case there are clauses with 
+only one variable (it's already unit).
 
-        for (i = 1 up to numClauses)
-        {
-            int numUnassigned = 0
-            int unassignedIdx = -1
-            bool restFalse = true
+\begin{lstlisting}
+    bool solve(bool[1..numVars] Assignment, int level) {
+        if (level == numVars - 1) {
+            return evaluate(Assignment)
+        }
 
-            for (j = 1 up to clause.size)
-            {
-                int var = clause[j]
-                int idx = abs(var)
+        bool[1..N] backupAssignment = assignment
+        int[][] backupClauses = clauses
 
-                if (vars[idx] == Unassigned)
-                {
-                    numUnassigned++
-                    unassignedIdx = j
+        if (Assignment[level] == Unassigned) {
+            Assignment[level] = True
+            propagate(Assignment)
+        }
+
+        if (solve(Assignment, level + 1)) {
+            return True
+        }
+
+        clauses = backupClauses
+        Assignment = backupAssignment
+
+        if (Assignment[level] == Unassigned) {
+            Assignment[level] = False
+            propagate(Assignment)
+        }
+
+        if (solve(Assignment, level + 1)) {
+            return True
+        }
+
+        return False
+    }
+\end{lstlisting}
+
+Before we get onto the code for unit propagation, let's understand this code first. 
+Because unit propagation no longer guarantees that variables are assigned in order, 
+we need to pass in a ``level'' as a parameter so we know which variable we need to 
+assign. We also now need to check that propagation didn't already assign this variable. 
+If it's currently Unassigned, we need to assign it then propagate, but if it's been 
+assigned before we assign it, then we know that it's the result of propagation, so we 
+can continue onto the next level. Other than that, it's practically the same as our recursive 
+backtracking code, except now we need to have a ``backup'' of our clauses and our assignment. 
+Why? Because \textit{propagate()} \textbf{mutates} the clauses and the assignment in a way 
+that breaks the assumption that our literals are assigned in ``numeric'' order. Since it 
+returns nothing, we don't have a way to undo that easily, so instead, for readability, 
+we just have a backup copy and whenever propagation leads to an unsatisfying assignment, 
+we return false and undo whatever changes we made by copying back into our solver's fields.
+And the reason why we don't need to undo the propagation before returning False is because 
+when we move back up the call stack by one level, the method continues by undoing the effects for us.
+Now let's look at how we perform textbook unit propagation:
+
+\begin{lstlisting}
+    void propagate(int[1..N] Assignment) {
+        while (true) {
+            Set<int> unitClauses;
+            Set<int> unitVars;
+
+            for (i = 0 up to numClauses) {
+                clause = clauses[i]
+
+                bool isUnit = True
+                int unassignedIdx = -1
+                int numUnassigned = 0
+
+                for (j = 0 up to clause.size) {
+                    int var = clause[j]
+                    int idx = abs(var)
+
+                    if (Assignment[idx] == Unassigned) {
+                        numUnassigned = numUnassigned + 1
+                        unassignedIdx = j
+                    } else if (var > 0 && clause[j] == True || var < 0 && clause[j] == False) {
+                        isUnit = false
+                    }
                 }
 
-                bool evalsFalse =
-                    var < 0 && vars[idx] == True ||
-                    var > 0 && vars[idx] == False
+                isUnit = isUnit && numUnassigned == 1
 
-                restFalse &= evalsFalse
+                if (isUnit) {
+                    add(unitClauses, i)
+                    add(unitVars, clause[unassignedIdx])
 
-                if (Contains(unit, -var))
-                {
-                    RemoveAt(clause, j)
+                    int var = clause[unassignedIdx]
+                    int idx = abs(var)
+
+                    if (var > 0) {
+                        assignment[idx] = True
+                    } else {
+                        assignment[idx] = False
+                    }
                 }
             }
 
-            if (restFalse == True)
-            {
-                int var = clause[unassignedIdx]
-                int idx = abs(var)
+            int clauseIdx = 0;
+            for each (clause in clauses) {
+                for each (var in clause) {
+                    if (contains(unitVar, -var)) {
+                        remove(clause, -var)
+                    }
 
-                if (var > 0)
-                {
-                    assignment[idx] = True
+                    if (contains(unitVar, var) && contains(unitClause, clauseIdx)) {
+                        remove(clauses, clause)
+                    }
                 }
-                else
-                {
-                    assignment[idx] = False
-                }
-                numAssigned = numAssigned + 1
 
-                Add(unit, var)
-                Append(unitClauseIdx, i)
+                clauseIdx = clauseIdx + 1
+            }
+
+            if (unitClauses.size == 0 && unitVars.size == 0) {
+                break
+            }
+        }
+    }
+\end{lstlisting}
+
+Okay, now let's understand what's happening here. We immediately go into an 
+infinite loop (nice), and we start looking at each clause for two things:
+\begin{enumerate}
+    \item The clause has only one Unassigned variable 
+    \item Every other literal in the clause is False (remember, literals are evaluated variables)
+\end{enumerate}
+
+If both things are true, then the Unassigned variable will be assigned whatever value 
+is required to make it evaluate to True within that clause, and we know we have found 
+a unit variable and a unit clause. After we have found all of our unit variables and unit 
+clauses, we then rescan every other clause and delete the each unit variable's negative,
+(if we learn that -5 is unit, then we remove +5), and if the clause contains a unit 
+variable, we just delete that clause entirely from the database. Once we stop finding 
+new unit variables and new unit clauses, we stop entirely. You may wonder (I reread my 
+code and thought I found a bug), ``how do we know that we always terminate?'' That's a 
+great question. You see, this confusion may come from the fact that we rescan the database 
+every iteration of the \textit{while()} loop searching for unit clauses. What is stopping 
+us from re-finding the same clause as unit upon a new iteration? The answer is much simpler 
+than you'd expect: since we assign our unit variables, the clauses upon the next iteration 
+no longer foloow our criteria for being unit propagate-able because there is now a literal 
+in that clause that is True. Therefore, the number of unit variables and clauses monotonically
+decrease between iterations (a fancy way of saying the number can only go down).
+
+Now, you may be wondering, ``what's the performance of our solver now?" Let me answer that 
+as plainly as possible: worse than brute force. How? Easy! We are doing SO MANY things that 
+hurt the computer. We are allocating TONS of memory in order to backtrack, we are allocating 
+even more memory to propagate (hash sets aren't cheap), and hashing, while O(1), is not 
+a cheap operation to do. So yeah, I can believe that it's worse than brute force because 
+at least the brute force algorithm was easy on the CPU. Let's learn how this is 
+\textit{usually}
+\footnote{I wanted to say ``actually implemented'', however, that's a big generalization, and 
+again, since I'm not the expert here, I don't think I have the authority to say that. The next 
+section is how \textit{I} implemented it, and it roughly follows the idea on how SAT solvers 
+implement this.}
+implemented!
+
+\section{Better Unit Propagation}
+
+So the textbook style unit propagation sucked. Let's change that. As discussed before, 
+the biggest bottleneck/inefficiency in the actual implementation is the number of copies 
+we need to make of our clauses and assignments on each decision level. Assigning one variable 
+creates a new decision level, so 20 variables means 20 levels. For an unsatisfiable 
+CNF equation, I estimate we need to make about 3 copies of our clauses and assignments:
+one for the initial storage, another for the first failure, and a third for the second. 
+Even if we ignore the inefficiencies in how we propagate (memory allocations, traversals, and 
+adjustments our arrays would need to make when we delete things), this is a huge amount of 
+memory to store. If you think that 20 variables and 91 clauses is a lot, modern SAT solvers 
+can handle equations with \textbf{millions} of variables, so creating an algorithm that 
+makes brute force look attractive is actually an achievement.
+\footnote{They might revoke my degree for that actually}
+
+So what's the strategy? Firstly, it would be nice if we didn't actually mutate our 
+clauses at all. Ie, no clause deletion, and no variable deletion. Next, it would be 
+nice if we didn't need hash sets in order to store our unit variables. Instead, it
+would be nice if we had a data structure where we put in our decided variables, and then 
+it slowly shrinks as we iterate through. Ie, we propagate one on variable at a time and 
+never again. This sounds like we need a \textit{queue}.
+\footnote{That wasn't shoehorned in at all!}
+Lastly, instead of copying our assignment, and constantly reiterating through the 
+\textit{entire} clause database, what if we just marked which variables we assigned,
+and which clauses we've satisfied? That way when we need to undo, we just mark those 
+variables as Unassigned, and those clauses as no longer satisfied. That way we save a lot 
+of memory (and besides, copying is NOT O(1) as you might be led to believe by that deceptively
+simply ``='' operator).
+
+Let's change our interface:
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        int getNumVars()
+        int getNumClauses()
+        int[][] getClauses()
+        optional<bool>[] getSolution()
+        optional<var>[] getSolution()
+        void printSolution()
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        void parse(string equation)
+        bool solve(var[] assignment, int level)
+        bool evaluate(var[] assignment)
+        (int[] vars, int[] clauses) propagate()
+
+        int numVars
+        int numClauses
+        int numAssigned
+
+        int[][] clauses
+        bool[] satisfied
+
+        optional<bool>[] lits
+        optional<var>[] vars
+\end{lstlisting}
+
+We need to make some minimal changes to \textit{solveCNF()}:
+
+\begin{lstlisting}
+    bool solveCNF() {
+        var[1..numVars] assignment
+
+        for each (var in assignment) {
+            var = Unassigned
+        }
+
+        propagate(assignment, 0)
+        solve(assignment, 0)
+    }
+\end{lstlisting}
+
+Since \textit{propagate()} now takes a decision level/variable index, we need to pass 
+one to the method. Although no variable has an index of 0 (because it's reserved to mark the 
+end of a clause), passing in $0$ just tells it ``Hey, there isn't a literal to propagate on,
+so just find all clauses with only one variables and mark them as satisfied and `learn' those 
+variables.'' And since this is at the root level, we don't need to undo anything if it turns out 
+that the equation is unsatisfiable, since we're gathering things that HAVE to be a certain value 
+if this equation is to be satisfiable.
+
+Since we don't need to change \textit{solveCNF()}, we can go straight to \textit{solve()}:
+
+\begin{lstlisting}
+    bool solve(int[1..N] Assignment, int level) {
+        if (level == numVars - 1) {
+            return evaluate(Assignment);
+        }
+
+        if (Assignment[level] != Unassigned) {
+            return solve(Assignment, level + 1)
+        }
+
+        Assignment[level] = True
+        (int[] unitVars, int[] satisfiedClauses) = propagate(Assignment, level)
+
+        if (solve(Assignment, level + 1) == True) {
+            return True
+        }
+
+        for each (var in unitVars) {
+            int idx = abs(var)
+            Assignment[idx] = Unassigned
+        }
+
+        for each (clauseIdx in satisfiedClauses) {
+            satisfied[clauseIdx] = False
+        }
+
+        Assignment[level] = False
+        (int new_unitVars, int new_satisfiedClauses) = propagate(Assignment, level)
+
+         if (solve(Assignment, level + 1) == True) {
+            return True
+        }
+
+        for each (var in new_unitVars) {
+            int idx = abs(var)
+            Assignment[idx] = Unassigned
+        }
+
+        for each (clauseIdx in new_satisfiedClauses) {
+            satisfied[clauseIdx] = False
+        }
+
+        Assignment[level] = Unassigned
+        return False
+    }
+\end{lstlisting}
+
+This method is practically the same, except now, we just check if we've already assigned 
+the variable at the current decision level. If we have assigned a variable before we reach 
+its decision level, then it must have been inferred/learned from the \textit{propagate()} 
+method, so we don't need to call it again. Then, it's business as usual: assume the 
+current variable is True, propagate, if it leads to a satisfiable assignment, return True, 
+otherwise, we undo what we've assigned and marked as learned, then repeat with False. 
+
+What's more interesting is our shiny new \textit{propagate()} method:
+
+\begin{lstlisting}
+    (int[] vars, int[] clauses) propagate(int[] assignment, int level) {
+        queue<int> unit
+
+        int[] unitVars
+        int[] satisfiedClauses 
+
+        unit.enqueue(level)
+
+        while (unit.size > 0) {
+            unit.dequeue()
+
+            for (i = 0 up to numClauses) {
+                if (satisfied[i]) {
+                    continue
+                }
+
+                clause = clauses[i]
+
+                bool isUnit = True
+                int unassignedIdx = -1
+                int numUnassigned = 0
+
+                for (j = 0 up to clause.size) {
+                    int var = clause[j]
+                    int idx = abs(var)
+
+                    if (Assignment[idx] == Unassigned) {
+                        numUnassigned = numUnassigned + 1
+                        unassignedIdx = j
+                    } else if (var > 0 && clause[j] == True || var < 0 && clause[j] == False) {
+                        isUnit = false
+
+                        satisfied[i] = true
+                        append(satisfiedClauses, i)
+                    }
+                }
+
+                isUnit = isUnit && numUnassigned == 1
+
+                if (isUnit) {
+                    add(unitClauses, i)
+                    add(unitVars, clause[unassignedIdx])
+
+                    int var = clause[unassignedIdx]
+                    int idx = abs(var)
+
+                    if (var > 0) {
+                        assignment[idx] = True
+                    } else {
+                        assignment[idx] = False
+                    }
+
+                    unit.enqueue(var)
+
+                    append(unitVars, var)
+                    satisfied[i] = true
+                    append(satisfiedClauses, i)
+                }
             }
         }
 
-        newSize = unit.size
+        return (unitVars, satisfiedClauses)
     }
-}
 \end{lstlisting}
 
-\subsection{Changes To Our Algorithms}
+So, let's discuss what's going on. \textit{propagate()} now takes in the decision level, 
+which is also the same thing as an index for a variable (conceptually speaking). It then 
+adds that to a queue, then while the queue is not empty, it scans the clauses as before. 
+First it makes sure we're not operating on a clause that's already been satisfied 
+(because we can't tell anything from it), and when it finds a clause that has a true literal, 
+it marks the clause as satisfied. Then when it finds a unit clause, it marks the clause as 
+satisfied, keeps track of the new unit variable its found, and then adds that unit variable 
+to the queue. Then once it's done, it returns the unit variables and the indices of the satisfied 
+clauses.
 
-The first method we should change is our \texttt{solveCNF()} method. Due to
-the order of our enum labels, the default value for a \texttt{var} is
-\texttt{False} rather than \texttt{Unassigned}. This allows them to be used as
-booleans since \texttt{False = 0}, \texttt{True = 1}, and
-\texttt{Unassigned = 2}. Therefore, we need to manually initialize every
-variable to be \texttt{Unassigned} before we start solving.
+You may have some questions about this approach. Firstly, how do we make sure we don't 
+ever add the same variable twice? The answer is the same as before: because we assign a 
+variable once it's found to be in a unit clause, it can't be found as Unassigned again, 
+and therefore can't be marked as a unit variable again. Then, since we skip over already 
+satisfied clauses, the amount of clauses we scan each iteration decreases monotonically. 
 
-Pseudocode for \texttt{solveCNF()}:
+And going back to our \textit{solve()} code, even if we mark the same clause as satisfied 
+or the same variable as unit twice, it doesn't matter because when we backtrack, we simply 
+restore it back to its state of unsatisfied or Unassigned, respectively. What's important is 
+that we don't mark the same clause or variable twice \textit{across decision levels} because 
+then, and only then, would our backtracking code become a problem because we wouldn't be 
+correctly restoring the state of the equation back to what it was before the decision level 
+was entered. But since we can't mark the same variable or clause twice \textbf{until}
+we backtrack, there's nothing to worry about.
 
-\begin{lstlisting}
-bool solveCNF()
-{
-    var[1..numVars] assignment;
+Before we end this section, you may also be wondering: can we use the \textit{satisfied}
+array in our \textit{evaluate()} method to skip clauses we know we've already satisfied?
+And the answer is yes, and I would encourage you to do so in your implementations.
 
-    for (i = 1 up to numVars)
-    {
-        assignment[i] = Unassigned;
-    }
+\subsection{Better Unit Propagation - Results}
+So after implementing better unit propagation, this took 868ms to solve all 1000 
+satisfiable equations. The first time I implemented this version of unit propagation,
+it actually took 2363ms, so this is somehow over twice as fast. And because it's so 
+fast, just like the first time I implemented this, we will be now testing our solver on 
+unsatisfiable equations as well.
 
-    numAssigned = 0;
+Our second testing set comes from the same database as before.
+\footnote{\url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}, in case you needed a reminder.}
+And our next testing set is called "UUF50.218.1000." In other words, it's full of equations that 
+have 50 variables, 218 clauses, and there are 1000 such equations in the set. In order to solve 
+all 1000 equations, it took 140,411ms (~2.34 minutes). That's also much faster than the first time 
+I implemented this algorithm. The first time I did, it took 646,228ms (~10.77 minutes). Honestly,
+with this much speedup, I don't know if I was just bad at implementing these algorithms the first time,
+\footnote{Highly likely}
+or if downgrading my operating system (and subsequently wiping my harddrive clean)
+\footnote{I HATED MacOS Tahoe. Sequoia is where it's at.}
+just has that much of an effect on execution speed.
+\footnote{Also likely, depending on how much RAM and swap is being used to begin with.}
 
-    return solve(assignment);
-}
-\end{lstlisting}
-
-Next in \texttt{solve()}:
-
-\begin{lstlisting}
-bool solve(var[] assignment)
-{
-    if (numAssigned == numVars)
-    {
-        return evaluate(assignment);
-    }
-
-    append(assignment, True);
-    numAssigned = numAssigned + 1;
-
-    if (solve(assignment) == true)
-    {
-        return true;
-    }
-
-    truncate(assignment, 1);
-    numAssigned = numAssigned - 1;
-
-    append(assignment, False);
-    numAssigned = numAssigned + 1;
-
-    if (solve(assignment) == true)
-    {
-        return true;
-    }
-
-    truncate(assignment, 1);
-    numAssigned = numAssigned - 1;
-
-    return false;
-}
-\end{lstlisting}
+Why didn't we test our previous versions out on unsatisfiable equations? That's a good question.
+For brute forcers, since there is no satisfiable assignment, it needs to check every single 
+one to conclude that it's unsatisfiable, which would take a lot of time. Likewise with our 
+recursive backtracking solver. And since our (my) implementation of textbook unit propagation 
+was \textit{worse} than brute force,
+\footnote{A difficult feat.}
+obviously we wouldn't want to test it on something that will take more time than a satisfiable 
+equation. Also because the asymptotic runtime is \textit{still} exponential, having a much 
+larger equation would take a much, much larger amount of time, even if they were satisfiable.
 
 \section{Pure Literal Elimination}
 \section{Optimizing Our Current Approach}
