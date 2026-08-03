@@ -1751,7 +1751,195 @@ equation. Also because the asymptotic runtime is \textit{still} exponential, hav
 larger equation would take a much, much larger amount of time, even if they were satisfiable.
 
 \section{Pure Literal Elimination}
-\section{Optimizing Our Current Approach}
+
+Suppose I gave you the following CNF equation:
+
+\begin{center}
+    \begin{BVerbatim}
+        1 2 -3 0
+        1 -4 5 0
+        1 -2 5 0
+    \end{BVerbatim}
+\end{center}
+
+Do you notice anything odd about it? Perhaps ``odd" is not the correct word here, do you notice 
+an easy way to satisfy this equation? You probably noticed that the variable $1$ shows up in every 
+clause and is always in the positive. So, if you just assign $1 = T$, then it doesn't matter what 
+the rest of the variables are assigned, because $1 = T$ satisfies every clause! This is idea behind 
+\textbf{Pure Literal Elimination}. Essentially, every now and then, we scan our equation for ``pure 
+literals'', which are variables that only show up in the positive or negative (but never both), and
+then give them whatever assignment is necessary to have their literals evaluate to True. 
+
+Now, suppose I give you this equation:
+\begin{center}
+    \begin{BVerbatim}
+        1 0
+        -1 -2 -3 0
+        1 2 0
+        -2 3 0
+    \end{BVerbatim}
+\end{center}
+
+I have a question for you dear reader: is $-2$ a pure literal? You might be inclined to say ``no"
+because $-2$ and $2$ are both present in the equation. However, despite that, the answer is ``yes.''
+Why? Well notice in the first clause that $1$ is a unit variable, so $1 = T$ is forced by pure literal 
+elimination. Then the third clause, $1 2 0$, because it's already satisfied, the variable $2$
+doesn't matter anymore. The other two clauses, which are unsatisfied, are the ones that matter. 
+They both contain $-2$, and because they're unsatisfied, we can force $2 = F$ to satisfy them,
+thus making the assignment of $3$ irrelevant. 
+
+Okay, that makes sense, sort of. How come we're allowed to do that? Like, how do we know that 
+forcing $2 = F$ wouldn't screw up the equation elsewhere (if it were larger)? And the answer is:
+because it doesn't hurt the other clauses. In the third clause, once it's satisfied, the only thing 
+that can make it unsatisfied is the backtracking, but since $1$ is unit, there shouldn't be any 
+backtracking that would suddenly make its satisfiability rest on the assignment of $2$. Likewise, 
+for the other two clauses, no matter what value $3$ takes, $2 = F$ must be true to satisfy the 
+other clause (try it out for yourself!), so we can go straight ahead and assign $2 = F$ and skip 
+deciding. 
+
+Okay, sure, but there are 8 total assignments that we can get. How do we know that forcing 
+$2 = F$ would lead to a satisfiable assignment? As in, how do we know we're not prematurely 
+boxing ourselves in? That's another great question! The reason why we're not boxing ourselves 
+in prematurely is because, again, it only helps the satisfiability of the whole equation, 
+and because we're not doing anything detrimental, we can make that decision.
+\footnote{I know I'm probably not explaining it the best, but basically, you can think of it 
+as making the solution ``more correct'' by forcing the pure literal.}
+
+\subsection{Implementing Pure Literal Elimination}
+
+Now that we (sort of) understand why it works, how do we implement it?
+We need some form of efficient tracking for things we've already encountered, perhaps 
+something like a map or a set. Then, we just need to make sure we've only encountered 
+one version of a literal, and if we have, then we know it's pure. Then we just need 
+to gather our pure literals and the satisfied clauses, and then return them. 
+
+\begin{lstlisting}
+    (int[] var, int[] clauses) pureElim(int[] assignment) {
+        map<int, int[]> var_to_clause
+        int[] pure
+        int[] satisfied
+
+        for (i = 0 up to numClauses) {
+            if (satisfied[i]) {
+                continue
+            }
+
+            clause = clause[i]
+            for each (var in clause) {
+                append(var_to_clause[var], i)
+            }
+        }
+        
+        for each ([var, clauses] in var_to_clause) {
+            idx = abs(var)
+
+            if (contains(var_to_clause, -var) or assignment[idx] != Unassigned) {
+                continue
+            }
+
+            if (var > 0) {
+                assignment[idx] = True
+            } else {
+                assignment[idx] = False
+            }
+
+            for (i = 0 up to clauses.size) {
+                satisfied[clauses[i]] = true
+                append(satisfied, clauses[i])
+            }
+
+            append(pure, var)
+        }
+
+        return (pure, satisfied)
+    }
+\end{lstlisting}
+
+So this is a single pass version of pure literal elimination. It is possible that 
+after finding some pure literals, and marking some clauses satisfied, a second pass could 
+find new pure literals. So why are we implementing a single pass version? Besides 
+it not being a technique used in modern SAT solvers, in my experience, which isn't much 
+since I'm being honest, it doesn't make a big (positive) difference in solve time 
+efficiency. And besides, if we wanted a multi-pass version, we could wrap it in 
+\textit{while(true)} loop and break once we find no more new pure literals. 
+
+Now let's get into how the algorithm works. We first build a map from variables 
+to their clauses (in unsatisfied clauses). Next, afterwards, we then check 
+for each element in the map, that the map does not contain the negative variable 
+of the current entry, and if it doesn't, we then need to make sure that the current
+variable is Unassigned. If the current entry passes both those conditions (pure and 
+Unassigned), we assign it so it evaluates to True. Then, we mark each clause the 
+variable is found in as satisfied, and then we add the indices of the satisfied clauses 
+into the return values. 
+
+\subsection{Pure Literal Elimination - Results}
+
+So. I have some terrible news. After implementing pure literal elimination, our solving 
+time \textit{\textbf{increased}}. I know, I know. It's not supposed to happen, but it can 
+happen. There are many possible explanations for this. For instance, pure literal elimination
+takes a decent amount of work to perform. We have to scan all unsatisfied clauses, and since 
+there is no way to determine if a literal is impure until after everything is scanned
+(we could have used a hash set, but then we'd need to hash for every literal), we're 
+accruing memory and runtime costs. Second, even if pure literal elimination finds something,
+it usually isn't much (at least for the testing sets currently in use), so we're doing 
+so much work for so little in return. Third, it increases our backtracking cost because now 
+we need to undo unit propagation and the pure literal elimination. Fourth, my implementation
+isn't perfect. It is possible that forcing a pure literal may force another pure literal 
+in a different clause, so you would need multiple passes to do. However, our implementation 
+is just one pass (wrap it in a \textit{while} loop or something).
+\footnote{Modern SAT solvers don't tend to use pure literal elimination for reasons outside 
+the ``it wasn't very helpful'' aspect, and next chapter we'll see why.}
+
+However, no one cares \textit{why} something performed badly. People only care about 
+\textit{how} badly something performed. So here are the results:
+For uf20\_91: 1548ms, almost a 2x increase from just unit propagation.
+For UUF50\_218\_1000: 231,107ms (~3.85 minutes), about a 1.5 minute increase 
+from just unit propagation.
+
+\section{Watched Literals}
+
+Dear reader, I know that with the recent news that our SAT solver has gotten slower,
+you must be distraught and wondering how we can go on. Well, what if I told you that 
+there was a faster way to do unit propagation? Would that make you feel better? 
+It makes me feel better. So what am I talking about?
+
+Do you notice something wasteful about the way we propagate? If not for our 
+\textit{satisfied} marker array, we'd have to rescan the whole equation every 
+time we propagated, which is about twice per level. That's pretty wasteful.
+After all, why do have to scan every clause in their entirety every single time?
+Especially because, usually, clauses don't become unsatisfied very often. And 
+because they're not at risk of becoming unsatisfied very often, why do we need 
+to scan it? And besides, it's not like every single variable appears in every single 
+clause, so why not scan only the clauses we have to? I hope these questions are leading 
+you to think of other questions regarding inefficiencies in our current implementation.
+
+These questions were the driving force into the invention of the 
+\textit{Watched Literals} algorithm.
+
+\textbf{INSERT HISTORY, WHICH IS INTERESTING BTW, HERE}
+\footnote{\url{https://school.a4cp.org/summer2011/slides/Gent/SATCP3.pdf}}
+
+Let's learn how the Watched Literals algorithm works. Earlier, I made a comment 
+about how usually, each clause doesn't contain every single variable in the 
+equation. So when we force a variable's assignment, we don't need to check 
+every single clause, only at most the ones that contain the variable and its 
+negation. (Ie, if we force a variable, say $2 = T$, we only need to check the clauses 
+containing $2$ and the clauses containing $-2$). However, do we \textit{need} to 
+check the clauses containing $2$? Think about it. Those clauses are already 
+satisfied by $2 = T$, so there's nothing to propagate on, for those clauses. 
+The only clauses that have a \textit{chance} to produce a propagation are the 
+ones containing $-2$ because $-2 = F$, so if they have one Unassigned variable 
+and everything else is now False, we can propagate!
+
+Okay, okay, that sounds much more efficient than what we had before. Can we 
+make if more efficient? Yes! It turns out that we can perform \textbf{zero}
+cost backtracking. This requires a slightly different data structure other than 
+``variable to clause.''
+
+\subsection{Watched Literals - Results}
+
 \section{Iterative DPLL}
+
+\subsection{Iterative DPLL - Results}
 
 \end{document}
