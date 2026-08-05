@@ -17,7 +17,7 @@
 \contentsline {subsection}{\numberline {3.4.1}Implementing Pure Literal Elimination}{37}{subsection.3.4.1}%
 \contentsline {subsection}{\numberline {3.4.2}Pure Literal Elimination - Results}{38}{subsection.3.4.2}%
 \contentsline {section}{\numberline {3.5}Watched Literals}{39}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}Watched Literals - Results}{40}{subsection.3.5.1}%
-\contentsline {section}{\numberline {3.6}Iterative DPLL}{40}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{40}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.5.1}Watched Literals - Results}{48}{subsection.3.5.1}%
+\contentsline {section}{\numberline {3.6}Iterative DPLL}{49}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{49}{subsection.3.6.1}%
 \contentsfinish 

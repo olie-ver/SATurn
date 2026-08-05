@@ -23,10 +23,12 @@ namespace SATurn {
                 //literal 1 is watching clause i
                 watch_to_clause[clause[0]].push_back(i);
             } else {
-                //there are no literals to watch this clause with, so return false
+                //there are no literals to watch this clause with
+                //ie, it's an unsatisfiable clause, so return false
                 return false;
             }
         }
+
         return true;
     }
 }

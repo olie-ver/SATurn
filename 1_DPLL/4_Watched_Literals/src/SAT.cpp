@@ -1,151 +1,117 @@
 #include "SAT.hpp"
 
 #include <algorithm>
+#include <iostream>
+#include <cassert>
 
 namespace saturn {
     bool satsolver::solveCNF() {
-        std::vector<var> assignment;
-        assignment.resize(numVars);
-        satisfied.resize(numClauses);
+        vars.resize(numVars);
 
         for (size_t i = 0; i < numVars; i++) {
-            assignment[i] = UNASSIGNED;
+            vars[i] = UNASSIGNED;
         }
 
-        //when we propagate at the root level, everything that we've marked 
-        //  satisfied and found unit should NEVER be undone, so we don't 
-        //  need to deal with a return value
-        //and since there is no variable with label 0, passing it in just 
-        //  means "find all clauses with length 1 and propagate from there."
-        propagate(assignment, 0);
+        //if we can't create watched literals, this equation is unsatisfiable
+        if (!createWatched()) {
+            return false;
+        }
 
-        //After we propagate, we want to eliminate any pure literals
-        //  that may be left over
-        pureElim(assignment);
+        //if propagation failed at the root level, return false
+        //  because that means there's a root level contradiction
+        if (!propagate(0).has_value()) {
+            return false;
+        }
 
-        return solve(assignment, 0);
+        return solve(0);
     }
 
-    bool satsolver::solve(std::vector<var>& assignment, int level) {
-        if (level == numVars - 1) {
-            return evaluate(assignment);
-        }
-
-        //if this variable is learned, continue
-        if (assignment[level] != UNASSIGNED) {
-            return solve(assignment, level + 1);
-        }
-
-        assignment[level] = TRUE;
-
-        const std::pair<std::vector<int>, std::vector<int>>& prop_result = propagate(assignment, level);
-        const std::pair<std::vector<int>, std::vector<int>>& elim_result = pureElim(assignment);
-
-        //try solving after propagation
-        if (solve(assignment, level + 1)) {
+    bool satsolver::solve(int level) {
+        //because propagate() now does contradiction detection for us, 
+        //  satisfiability is equivalent to all variables being assigned
+        if (level == numVars) {
             return true;
         }
 
-        //backtrack
-        const std::vector<int>& foundUnit = prop_result.first;
-        const std::vector<int>& foundSatisfied = prop_result.second;
-
-        for (size_t i = 0; i < foundUnit.size(); i++) {
-            int var = foundUnit[i];
-            int idx = std::abs(var) - 1;
-
-            assignment[idx] = UNASSIGNED;
+        //if this variable is learned, continue onto the next level
+        if (vars[level] != UNASSIGNED) {
+            return solve(level + 1);
         }
 
-        for (size_t i = 0; i < foundSatisfied.size(); i++) {
-            satisfied[foundSatisfied[i]] = false;
-        }
+        int cur_var = level + 1;
 
-        const std::vector<int>& foundPure = elim_result.first;
-        const std::vector<int>& foundPureSatisfied = elim_result.second;
+        //start out with True
+        vars[level] = TRUE;
 
-        for (size_t i = 0; i < foundPure.size(); i++) {
-            int var = foundPure[i];
-            int idx = std::abs(var) - 1;
+        //propagate
+        const std::optional<std::vector<int>>& prop_result = propagate(cur_var);
 
-            assignment[idx] = UNASSIGNED;
-        }
+        //if there was a contradiction
+        if (!prop_result.has_value()) {
+            //try False
+            vars[level] = FALSE;
 
-        for (size_t i = 0; i < foundPureSatisfied.size(); i++) {
-            satisfied[foundPureSatisfied[i]] = false;
-        }
+            //propagate again, pass in -level because we're propagating on the negation
+            const std::optional<std::vector<int>>& new_prop_result = propagate(-cur_var);
 
-        //try to solve with False instead of True
-        assignment[level] = FALSE;
-
-        const std::pair<std::vector<int>, std::vector<int>>& new_prop_result = propagate(assignment, level);
-        const std::pair<std::vector<int>, std::vector<int>>& new_elim_result = pureElim(assignment);
-
-        if (solve(assignment, level + 1)) {
-            return true;
-        }
-
-        //backtrack
-        const std::vector<int>& new_foundUnit = new_prop_result.first;
-        const std::vector<int>& new_foundSatisfied = new_prop_result.second;
-
-         for (size_t i = 0; i < new_foundUnit.size(); i++) {
-            int var = new_foundUnit[i];
-            int idx = std::abs(var) - 1;
-
-            assignment[idx] = UNASSIGNED;
-        }
-
-        for (size_t i = 0; i < new_foundSatisfied.size(); i++) {
-            satisfied[new_foundSatisfied[i]] = false;
-        }
-
-        const std::vector<int>& new_foundPure = new_elim_result.first;
-        const std::vector<int>& new_foundPureSatisfied = new_elim_result.second;
-
-        for (size_t i = 0; i < new_foundPure.size(); i++) {
-            int var = new_foundPure[i];
-            int idx = std::abs(var) - 1;
-
-            assignment[idx] = UNASSIGNED;
-        }
-
-        for (size_t i = 0; i < new_foundPureSatisfied.size(); i++) {
-            satisfied[new_foundPureSatisfied[i]] = false;
-        }
-
-        //undo this decision entirely before returning
-        assignment[level] = UNASSIGNED;
-        return false;
-    }
-
-    bool satsolver::evaluate(const std::vector<var>& assignment) {
-        bool solved = true;
-        for (size_t j = 0; j < numClauses; j++) {
-            if (satisfied[j]) {
-                continue;
+            //if there was another contradiction, go back up,
+            //no need to undo anything because there's nothing to undo from the 
+            //first propagation
+            if (!new_prop_result.has_value()) {
+                return false;
             }
-            const std::vector<int>& clause = clauses[j];
 
-            bool satisfied_clause = false;
-            for (size_t k = 0; k < clause.size(); k++) {
-                int var = clause[k];
-
-                int idx = std::abs(var) - 1;
-
-                if (var > 0) {
-                    satisfied_clause |= assignment[idx] == TRUE;
-                } else {
-                    satisfied_clause |= assignment[idx] == FALSE;
-                }
+            //if we can satisfy the equation, return true
+            if (solve(level + 1)) {
+                return true;
             }
-            solved &= satisfied_clause;
-        }
 
-        if (solved) {
-            vars = std::move(assignment);
+            //otherwise, undo the propagation and return false
+            const std::vector<int>& new_delta = *new_prop_result;
+
+            for (size_t i = 0; i < new_delta.size(); i++) {
+                vars[new_delta[i]] = UNASSIGNED;
+            }
+
+            return false;
+        } 
+
+        //if there was no contradiction, try solving at the next level
+        if (solve(level + 1)) {
             return true;
         }
+
+        //undo the first propagation
+        const std::vector<int>& delta = *prop_result;
+
+        for (size_t i = 0; i < delta.size(); i++) {
+            vars[delta[i]] = UNASSIGNED;
+        }
+
+        //now try again with False
+        vars[level] = FALSE;
+
+        //propagate again, pass in -level because we're propagating on the negation
+        const std::optional<std::vector<int>>& new_prop_result = propagate(-cur_var);
+
+        //if there was a contradiction, go back up
+        if (!new_prop_result.has_value()) {
+            return false;
+        }
+
+        //if there was no contradiction, try solving again
+        if (solve(level + 1)) {
+            return true;
+        }
+
+        //if we couldn't satisfy the equation, undo the second propagation
+        //  and return false
+        const std::vector<int>& new_delta = *new_prop_result;
+
+        for (size_t i = 0; i < new_delta.size(); i++) {
+            vars[new_delta[i]] = UNASSIGNED;
+        }
+
         return false;
     }
 }

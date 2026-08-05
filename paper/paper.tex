@@ -1898,17 +1898,51 @@ from just unit propagation.
 
 \section{Watched Literals}
 
-Dear reader, I know that with the recent news that our SAT solver has gotten slower,
-you must be distraught and wondering how we can go on. Well, what if I told you that 
-there was a faster way to do unit propagation? Would that make you feel better? 
-It makes me feel better. So what am I talking about?
+Before we get into the Watched Literal algorithm, I want to ease us into it.
+Why? Because it's so different from our current version of unit propgation. 
+For a moment (and for the rest of the book) let's forget about pure literal 
+elimination; it wasn't that great anyways. Unit propagation gave us a massive speedup 
+oppossed to recursive backtracking, taking runtimes down from minutes to seconds and 
+from half-hours to mere minutes. Despite all of that, it's really inefficient in the 
+sense that we're going so much work for so little in return.
 
-Do you notice something wasteful about the way we propagate? If not for our 
-\textit{satisfied} marker array, we'd have to rescan the whole equation every 
-time we propagated, which is about twice per level. That's pretty wasteful.
-After all, why do have to scan every clause in their entirety every single time?
-Especially because, usually, clauses don't become unsatisfied very often. And 
-because they're not at risk of becoming unsatisfied very often, why do we need 
+Let's define what a \textbf{contradiction} is, because we've been using that word 
+here and there, but beyond ``unsatisfiable,'' we haven't formally defined what it means.
+A \textbf{contradiction} is the result of a literal forcing a clause to evaluate to False,
+leading to the whole assignment to become unsatisfiable. You might remember how in the 
+brute force solver, we added an \textit{if()} statement at the end of evaluating a singular 
+clause that checked if that clause evaluated to False. If it did, we skipped that assignment 
+and moved onto the next one, but if it didn't, we continue our evaluation. 
+
+This led to a pretty significant speedup in the brute forcer because instead of evaluating everything 
+then deciding, we did it incrementally, allowing us to quickly leave when something was bad. 
+At the moment, our original idea for unit propagation follows that first idea of delaying 
+evaluation to the end. However, if you go back and look at the pseudocode, you'll notice that we 
+do something \textit{almost} the same as checking if a clause evaluates to False, at the moment,
+we check if everything except for one element evaluates to False, and that one element is Unassigned
+(since we made it so that unit propagation only operates on unsatisfied clauses). However, notice 
+that when a clause evaluates to False, rather than stopping our propagation and assignment, we 
+continue until we reach the evaluation phase? 
+
+Just like in brute force, the idea is the same: once a clause evaluates to False, no matter 
+where we are in our assignment, there's no point in continuing on because we've found out that 
+nothing will unfalsify that clause. As an exercise, I want you to try adding that into your 
+unit propagation code and seeing how fast it takes to run on our test sets. I would do it, but 
+I have a \underline{massive} headache from implementing this algorithm last night.
+\footnote{This headache was also induced by my lack of ability to fall asleep at all last night
+AND a really intense session at the gym. Computer science gives you headaches for sure, but not like 
+this one.}
+Once you're done, we'll discuss watched literals some more.
+
+So that early contradiction detection is one of the ideas behind watched literals. 
+It's not one the key ideas, but it is part of it. There are some other ideas behind 
+watched literals. For instance: zero cost backtracking. Not O(1) backtracking, $0$
+backtracking. Speaking of cost, do you notice something else wasteful about the 
+way we propagate? If not for our \textit{satisfied} marker array, we'd have to 
+rescan the whole equation every time we propagated, which is about twice per level. 
+That's pretty wasteful. After all, why do have to scan every clause in their entirety
+every single time? Especially because, usually, clauses don't become unsatisfied very 
+often. And because they're not at risk of becoming unsatisfied very often, why do we need 
 to scan it? And besides, it's not like every single variable appears in every single 
 clause, so why not scan only the clauses we have to? I hope these questions are leading 
 you to think of other questions regarding inefficiencies in our current implementation.
@@ -1931,14 +1965,425 @@ The only clauses that have a \textit{chance} to produce a propagation are the
 ones containing $-2$ because $-2 = F$, so if they have one Unassigned variable 
 and everything else is now False, we can propagate!
 
-Okay, okay, that sounds much more efficient than what we had before. Can we 
-make if more efficient? Yes! It turns out that we can perform \textbf{zero}
-cost backtracking. This requires a slightly different data structure other than 
-``variable to clause.''
+There are more details, but to be honest, even without this headache, I 
+would still have difficulty telling you without showing you the algorithm.
+So let's start out with changes to our interface.
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        void parse(string equation)
+        bool solve(var[] assignment, int level)
+        optional int[] delta propagate(var[] assignment)
+        bool createWatched()
+
+        int numVars
+        int numClauses
+
+        int[][] clauses
+        bool[] satisfied
+        queue<int> unitProp
+
+        optional<var>[] vars
+        map<int, int[]> var_to_clause
+        map<int, (int, int)> clause_to_vars
+\end{lstlisting}
+
+So firstly, there are some major differences. We removed the \textit{evaluate()} method. 
+This is because now that propagation checks for contradictions, having all variables 
+assigned is now \textbf{\textit{equivalent}} to finding a satisfactory assignment of 
+variables. So we don't need to evaluate our assignment anymore! That's significantly 
+less work than what we had before, which is what we want. Next, we added in a queue, 
+\textit{unitProp}, kind of like what we had for unit propagation before. This time,
+it's now a member of the solver object instead of a local object within the method.
+We will get back to that in a second. Lastly, we added in two maps, one from 
+variables to clauses, and the other from clauses to a pair of variables. 
+
+These data structures are used for fast lookup between variables to  
+\textbf{\textit{indices}} of clauses (for \textit{var\_to\_clause}), and 
+one from \textbf{\textit{indices}} of clauses to \textbf{\textit{indices}} of 
+watched literals. It's important that we remember we're using indices instead 
+of actual clauses because forgetting how we're using our mapping is going to create 
+a lot of bugs and we're gonna have a bad time. 
+
+We also added in a new method, called \textit{createWatched()} and what it does 
+is it creates our initial maps for var\_to\_clause and clause\_to\_vars. 
+Here is the pseudocode:
+
+\begin{lstlisting}
+    bool createWatched(int[] assignment) {
+        for (i = 0 up to numClauses) {
+            clause = clauses[i]
+
+            if (clause.size >= 2) {
+                append(var_to_clause[clause[0]], i)
+                append(var_to_clause[clause[1]], i)
+
+                clause_to_var[i] = {0, 1}
+            } else if (clause.size == 1) {
+                int var = clause[0]
+                int idx = abs(var)
+                append(var_to_clause[var], i)
+                clause_to_var[i] = {0, 0}
+
+                enqueue(unitProp, var)
+
+                if (var > 0) {
+                    assignment[var] = True
+                } else {
+                    assignment[var] = False
+                }
+            } else {
+                return False
+            }
+        }
+
+        return True
+    }
+\end{lstlisting}
+
+So here's how to read it: for each clause, it will fall into one of three cases:
+\begin{itemize}
+    \item It's size is greater than or equal to 2
+    \item It only has 1 variable
+    \item It's empty
+\end{itemize}
+
+In the first case, the two literals that will be watching that clause will be the 
+first two literals. So the index $i$ gets appended to their array of clause indices.
+Then, we record that clause $i$ is being watched by its first and second literal.
+
+In the second case, since there's only one literal, it gets watched by only that 
+literal (duh). We also record that clause $i$ is being watched by only its first literal.
+And lastly, we enqueue that literal to our unit propagation queue so we can do a root 
+level unit propagation before we start solving. We also want to immediately force the 
+assignment of the variable so that way we can use its value immediately in solving.
+
+In the last case, since there are no literals, this clause is automatically unsatisfiable, 
+so therefore this whole equation is unsatisfiable, so we return False so that when we call 
+this method, we know that we can't solve it. 
+
+Now let's look at our modified solving methods:
+
+\begin{lstlisting}
+    bool solveCNF() {
+        var[1..numVars] assignment
+
+        for each (var in assignment) {
+            var = Unassigned
+        }
+
+        if (createWatched(assignment) == False) {
+            return False
+        }
+
+        if (propagate(assignment, 0) returns nothing) {
+            return False
+        }
+
+        solve(assignment, 0)
+    }
+\end{lstlisting}
+
+There are some slight differences: we create our watched literals and make sure 
+that there isn't an unsatisfiable clause, and we make sure that \textit{propagate()}
+returns something. If both those things are successful, then we can start solving away.
+
+\begin{lstlisting}
+    bool solve(int[] assignment, int level) {
+        if (level == numVars) {
+            return True
+        }
+
+        if (assignment[level] != Unassigned) {
+            return solve(assignment, level + 1)
+        }
+
+        int cur_var = level + 1
+
+        assignment[level] = True 
+
+        optional int[] prop_result = propagate(assignment, cur_var)
+
+        if (prop_result is optional) {
+            assignment[level] = False
+
+            optional int[] new_prop_result = propagate(assignment, -cur_var)
+
+            if (new_prop_result is optional) {
+                return False
+            }
+
+            if (solve(assignment, level + 1)) {
+                return True
+            }
+
+            int[] new_delta = new_prop_result.value
+
+            for each (int var_idx in new_delta) {
+                assignment[var_idx] = Unassigned
+            }
+
+            return False
+        }
+
+        if (solve(assignment, level + 1)) {
+            return True
+        }
+
+        int[] delta = prop_result.value
+
+        for each (int var_idx in delta) {
+            assignment[var_idx] = Unassigned
+        }
+
+        assignment[level] = False
+
+        optional int[] new_prop_result = propagate(assignment, -cur_var)
+
+        if (new_prop_result is optional) {
+            return False
+        }
+
+        if (solve(assignment, level + 1)) {
+            return True
+        }
+
+        int[] new_delta = new_prop_result.value
+
+        for each (int var_idx in new_delta) {
+            assignment[var_idx] = Unassigned
+        }
+
+        return False
+    }
+\end{lstlisting}
+
+This is almost the same as our old unit propagation code, except for that we don't 
+keep track of which clauses are satisfied across levels, and the propagation method 
+returns an array of variable indices instead of the actual variables. The code 
+is also split up into multiple branches depending on whether or not propagation was 
+successful. Some parts of the code seem really similar to each other because of this. 
+I am sure that there may be a way to simplify the similar parts, but I like the way I 
+wrote it because I find it readable and the first time I wrote it, it was very nested.
+
+Now for the interesting part:
+\begin{lstlisting}
+    optional int[] propagate(int[] assignment, int decision) {
+        int[] delta
+
+        if (decision != 0) {
+            enqueue(unitProp, decision)
+
+            int idx = abs(decision)
+            append(delta, idx)
+        }
+
+        while (unitProp.size != 0) {
+            int prop = unitProp.pop()
+
+            if (contains(var_to_clause, -prop) == False) {
+                continue
+            }
+
+            int[] watched_clauses = var_to_clause[-prop]
+
+            for (i = 0 up to watched_clauses.size) {
+                clause_idx = watched_clauses[i]
+
+                int[] clause = clauses[clause_idx]
+                (int, int) watches = clause_to_var[clause_idx]
+
+                if (clause[watches.first] != -prop) {
+                    swap(watches.first, watches.second)
+                }
+
+                bool relocated = False
+                for (j = 0 up to clause.size) {
+                    if (j == watches.first or j == watches.second) {
+                        continue
+                    }
+
+                    int unwatched = clause[j]
+                    int unwatched_idx = abs(unwatched)
+
+                    bool evals_false = (unwatched > 0 and assignment[unwatched_idx] == False) or
+                                       (unwatched < 0 and assignment[unwatched_idx] == True)
+                    if (!evals_false) {
+                        append(var_to_clause[unwatched], clause_idx)
+                        erase_at(watched_clauses, i)
+                        watches.first = j
+                        relocated = True
+                        break
+                    }
+                }
+
+                if (relocated == False) {
+                    i = i + 1
+
+                    int other_watch = clause[watches.second];
+                    int idx = abs(other_watch)
+
+                    if (assignment[idx] == Unassigned) {
+                        if (other_watch > 0) {
+                            assignment[idx] = True
+                        } else {
+                            assignment[idx] = False
+                        }
+
+                        append(delta, idx)
+                        enqueue(unitProp, other_watch)
+                    } else {
+                        bool evals_false = (other_watch > 0 and assignment[idx] == False) or
+                                           (other_watch < 0 and assignment[idx] == True)
+
+                        if (evals_false == False) {
+                            continue
+                        }
+
+                        for (k = 0 up to delta.size) {
+                            assignment[delta[k]] = Unassigned
+                        }
+
+                        clear(unitProp)
+
+                        return null
+                    }
+                }
+            }
+        }
+
+        return delta
+    }
+\end{lstlisting}
+
+This is a huge method, so let's walkthrough it so we understand every aspect of it. 
+If we look back at our \textit{solve()} code, we pass in \textit{cur\_var} and 
+-\textit{cur\_var} as the \textit{decision} parameter into the propagation method. 
+And in the beginning of \textit{solveCNF()}, we pass in $0$, to signify propagation at the 
+root level. When that happens, we don't add anything into the queue, instead we just propagate 
+on the literals that were forced during the creation of the watched literals. 
+
+Like I said before, we only need to check the clauses containing the negative version of the 
+literal being propagated on because those are the clauses that the actual unit propagation could 
+be forced upon. However, we only need to actually check the clauses being watched by the negative 
+version of the literal being propagated on. 
+
+Next, we grab the indices of those clauses being watched and then for each one, we try 
+to relocate the index of the first watched literal to a new literal that doesn't evaluate 
+to False. Why only the first? Because swapping the two indices and operating on only the 
+first index is far easier than creating a second branch dedicated to the second index.
+If a literal doesn't evaluate to False, we first make that unwatched literal now watch 
+the current clause, we then make the current watched literal stop watching the current clause,
+and then we update the first index of the watched literals to be the index of the newly 
+watching literal. That means we have successfully relocated the watched literal and no 
+unit propagation needs to occur. Because we're modifying the array of clause indices, 
+we don't want to increment the index variable in our implementation.
+
+\textit{Aside:
+When you delete something in a dynamic array, in order to fill the blank space, every element to 
+the right of what you deleted has to shift over to the left by one unit. This takes O(n) time and 
+on large arrays can be very costly. Because the next element has shifted over to the left, its index 
+is now the current index, so you don't want to increment the index variable. 
+In the implementation, the relocation logic is implemented as a ``swap and pop'' in which we swap the 
+current element with the last one, then we delete the last element, which was the current element. 
+This leads to no shifting of elements, and is logically equivalent (for our use case), even if the 
+order of elements, relative to the deleted element, is no longer the same.
+}
+
+If we couldn't relocate the watched literal's index, we want to increment the index variable 
+so that on the next iteration it will point to a new element. In the case that we couldn't 
+relocate the watched literal, it means that every element in the clause, except for possibly the 
+element pointed to by the second watched literal, evaluates to False. If the element pointed to by 
+the second watched literal also evaluates to False, then we've encountered a contradiction in our 
+assignment. However, if the second watched literal evaluates to True, then the clause is already 
+satisfied and we need to do nothing except for move onto the next variable to propagate on. 
+And if the second watched literal evaluates to Unassigned, then we can assign it the value it 
+needs to evaluate to True and we then propagate on that newly assigned unit literal. 
+
+If we encounter a contradiction, we must undo all the propagation we've done, including 
+the initial decision before returning a null value to signify that the propagation failed. 
+However, if it has succeeded, then we return the array of the variable indices that we've 
+assigned.
+
+So one of the big aspects of watched literals is how we get away with doing so little 
+amount of work. And the answer is something called the ``watched literal invariant.''
+This invariant is that at all times, at least one of the watched literals doesn't 
+evaluate to False. I don't expect this to make everything click immediately, so let's 
+explain more. A clause is only a contradiction when everything evaluates to False.
+However, we don't want to check every single clause when we assign only one variable.
+And even checking the negative of the variable we assigned is too much. So instead, we 
+change which variables are watching which clauses every now and then. We pick at most 
+two variables to watch a singular clause with, and each one watches their respective clauses
+until they are assigned a value that makes them evaluate to False. In that case, there is 
+the possibility that the watched literal invariant may be violated (ie, there is a possibility
+that both watched literals may evaluate to False), but just to be sure, we try to change the 
+variable watching that same clause. 
+
+We scan the clause for any unwatched literal that is Unassigned or True, and if we find one, 
+we've restored the watched literal invariant, so we don't need to propagate or do anything 
+else for that matter. However, if we can't find one, then we're in serious danger of the 
+watched literal invariant being violated. So our only hope is for the second watched literal 
+to either already be True (we need to do nothing), or Unassigned (we assign it and propagate).
+
+Thanks to that invariant, we also don't need to do any undoing when we backtrack other 
+than undoing what we propagated. So long as the watched literal invariant holds true 
+when we undo our assignments, the watched literals don't need to move, which means 
+besides the undoing of what we propagated, we get zero cost backtracking.
+
+This now begs the question, why two watched literals? What is special about the number $2$?
+Why can't we have just one watched literal? Well, if we were to watch just one literal, 
+every time it becomes false, we need to scan the whole clause to determine if we can 
+either move it, propagate, or have a contradiction. Notice how that's exactly what we 
+were doing with the original unit propagation of scanning the entire clause? The 
+only major difference is that we've decreased the number of scans we would need to do
+with just one watched literal. But having two allows us to quickly determine whether 
+we have a contradiction, whether we can propagate and on what we're propagating on, and 
+still lets us determine if we can move the first watched literal efficiently. Truly amazing.
 
 \subsection{Watched Literals - Results}
 
+So after implementing watched literals, our runtime decreases dramatically. 
+For uf20\_91, solving all 1000 instances takes 349ms, as opposed to the 
+1548ms from pure literal elimination and the 868ms from normal unit propagation.
+And for UUF50.218.1000, it takes only 7130ms as opposed to the 231,107ms 
+from pure literal elimination and the 140,411ms from normal unit propagation.
+Watched literals took us down from minutes to seconds for the unsatisfiable 
+problems, which is amazing for us.
+
 \section{Iterative DPLL}
+
+Now that we've implemented DPLL to the best of our ability, it's time to 
+take it one step further. We will now implement it iteratively rather than 
+recursively. Why? Remember how I said in the beginning that DPLL is the foundation 
+for modern SAT solvers?
+\footnote{I can't remember if I actually said that}
+Well iterative DPLL is the foundation for the next chapter's algorithm: CDCL.
+Implementing iterative DPLL is imperative in order to create a modern SAT solver
+worth its salt.
+\footnote{Honestly, ``Salt'' is a better name than ``Saturn.'' I might change it.}
+
+As said in the beginning of the chapter, DPLL forces us to traverse the decision 
+tree as well, a tree. And that is still true, even in iterative DPLL. What changes 
+now is that instead of an implicit path, we now have an explicit one. Suppose we 
+are on the first decision level, so we decide variable $1 = T$, and that forces 
+$3 = F$, $5 = F$, and $6 = T$. In recursive DPLL, we assign these variables into 
+the \textit{assignment} or \textit{vars} field, but we don't really use them until 
+we get to the decision level that matches their index or the evaluation phase. 
+
+However, with iterative DPLL, there isn't such as thing as a decision level anymore,
+kind of. We do away with the recursive calls (obviously), and that leads us to 
+having a decision \textit{trail} rather than decision \textit{levels}.
 
 \subsection{Iterative DPLL - Results}
 

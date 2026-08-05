@@ -36,9 +36,8 @@ namespace SATurn {
 
                     if (!decision_level.tried_second_branch) {
                         TrailEntry& decision = trail.back();
-                        assignment[std::abs(decision.lit) - 1] = Unassigned;
                         decision.lit = -decision.lit;
-                        assignment[std::abs(decision.lit) - 1] = static_cast<lit>(decision.lit > 0);
+                        assignment[std::abs(decision.lit) - 1] = False;
 
                         //try the second branch
                         decision_level.tried_second_branch = true;
