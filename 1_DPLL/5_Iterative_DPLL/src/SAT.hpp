@@ -56,7 +56,7 @@ namespace saturn {
 
             void parse(std::string_view equation);
 
-            bool propagate();
+            bool propagate(size_t decisionLevel);
 
             bool createWatched();
 

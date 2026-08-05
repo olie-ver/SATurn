@@ -22,6 +22,15 @@ namespace SATurn {
 
                 //literal 1 is watching clause i
                 watch_to_clause[clause[0]].push_back(i);
+
+                trail.push_back({clause[0], &clause});
+
+                int idx = std::abs(clause[0]) - 1;
+                if (clause[0] > 0) {
+                    assignment[idx] = True;
+                } else {
+                    assignment[idx] = False;
+                }
             } else {
                 //there are no literals to watch this clause with, so return false
                 return false;

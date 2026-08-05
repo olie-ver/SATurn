@@ -5,9 +5,7 @@
 #include <iostream>
 
 namespace saturn {
-    bool satsolver::propagate() {
-        size_t decision_level = trail_starts.size() - 1;
-
+    bool satsolver::propagate(size_t decisionLevel) {
         while (qHead < trail.size()) {
             int prop = trail[qHead].lit;
             qHead++;
@@ -104,7 +102,7 @@ namespace saturn {
                         }
 
                         //push a trail entry
-                        trail.push_back({other_watch, decision_level, clause_idx});
+                        trail.push_back({other_watch, decisionLevel, clause_idx});
                     } else {
 
                         if (!evals_false(other_watch)) {
