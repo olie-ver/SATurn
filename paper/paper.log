@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  4 AUG 2026 21:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  5 AUG 2026 18:22
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -399,8 +399,16 @@ Overfull \hbox (28.22186pt too wide) in paragraph at lines 895--900
 
 [19
 
-] [20] [21] [22] [23] [24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35] [36] [37] [38] [39] [40] [41] [42] [43] [44] [45] [46] [47] [48] [49]
-runsystem(latexminted cleantemp  --timestamp 20260804212254 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
+] [20] [21] [22] [23] [24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35] [36] [37] [38] [39] [40] [41] [42] [43] [44] [45] [46] [47] [48] [49] [50] [51] [52] [53] [54] [55]
+Chapter 4.
+[56
+
+] [57]
+Chapter 5.
+[58
+
+]
+runsystem(latexminted cleantemp  --timestamp 20260805182210 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
 
  (./paper.aux)
  ***********
@@ -408,21 +416,21 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: 9C62F3AEE516F8B155864E09BD898417;3927.
+(rerunfilecheck)             Checksum: 8975FE2275DC0AEDDAFEAD7D997B7EB1;5140.
  ) 
 Here is how much of TeX's memory you used:
- 16829 strings out of 467525
- 318876 string characters out of 5418982
- 1524738 words of memory out of 5000000
- 44497 multiletter control sequences out of 15000+600000
+ 17016 strings out of 467525
+ 321671 string characters out of 5418982
+ 1531734 words of memory out of 5000000
+ 44506 multiletter control sequences out of 15000+600000
  636658 words of font info for 70 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  86i,8n,93p,520b,2029s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb>
-Output written on paper.pdf (50 pages, 434021 bytes).
+Output written on paper.pdf (59 pages, 463579 bytes).
 PDF statistics:
- 1693 PDF objects out of 1728 (max. 8388607)
- 1579 compressed objects within 16 object streams
- 1060 named destinations out of 1200 (max. 500000)
- 177 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1976 PDF objects out of 2073 (max. 8388607)
+ 1848 compressed objects within 19 object streams
+ 1238 named destinations out of 1440 (max. 500000)
+ 249 words of extra memory for PDF output out of 10000 (max. 10000000)
 

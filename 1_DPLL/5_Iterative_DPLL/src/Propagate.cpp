@@ -1,9 +1,5 @@
 #include "SAT.hpp"
 
-#include <cassert>
-#include <queue>
-#include <iostream>
-
 namespace saturn {
     bool satsolver::propagate(size_t decisionLevel) {
         while (qHead < trail.size()) {
@@ -35,11 +31,6 @@ namespace saturn {
 
                 //grab the clause's watched literal indices
                 std::pair<size_t, size_t>& watches = clause_to_var[clause_idx];
-
-                assert(
-                    clause[watches.first] == -prop ||
-                    clause[watches.second] == -prop
-                );
 
                 //if the variable at the first watch index isn't the negation of 
                 //  the variable we're propagating on, swap the indices

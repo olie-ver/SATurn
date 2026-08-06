@@ -19,5 +19,14 @@
 \contentsline {section}{\numberline {3.5}Watched Literals}{39}{section.3.5}%
 \contentsline {subsection}{\numberline {3.5.1}Watched Literals - Results}{48}{subsection.3.5.1}%
 \contentsline {section}{\numberline {3.6}Iterative DPLL}{49}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{49}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{55}{subsection.3.6.1}%
+\contentsline {chapter}{\numberline {4}CDCL}{56}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Clause Learning}{57}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{57}{section.4.2}%
+\contentsline {section}{\numberline {4.3}First UIP}{57}{section.4.3}%
+\contentsline {section}{\numberline {4.4}VSIDS}{57}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Clause Database Management}{57}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Restarts}{57}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Comparing to MiniSAT}{57}{section.4.7}%
+\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{58}{chapter.5}%
 \contentsfinish 

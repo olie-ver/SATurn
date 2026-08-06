@@ -2381,10 +2381,382 @@ $3 = F$, $5 = F$, and $6 = T$. In recursive DPLL, we assign these variables into
 the \textit{assignment} or \textit{vars} field, but we don't really use them until 
 we get to the decision level that matches their index or the evaluation phase. 
 
-However, with iterative DPLL, there isn't such as thing as a decision level anymore,
-kind of. We do away with the recursive calls (obviously), and that leads us to 
-having a decision \textit{trail} rather than decision \textit{levels}.
+With iterative DPLL, there are still decision levels, but the representation is 
+now very, very different bcause instead of a decision \textit{tree}, we now use a 
+decision \textit{trail}. The trail is reminiscent of a queue in the sense that 
+we only operate at the end of the data structure. It contains some information 
+that we need in order to continue mimicking the behavior of recursive DPLL. Each 
+trail entry contains the literal that was forced, the decision level it's a part of,
+and the clause that forced that decision. We append these trail entries every single 
+time we force a variable's assignment. The next question is how do we know which 
+variables were decided for and which variables were inferred from propagation?
+Well, for decisions, there is no reason clause because there was no reason to 
+begin with other than ``because I said so.'' Therefore, the variables that were 
+decided for don't get a reason clause, but the ones that were inferred do. This 
+is great because it makes it easy to tell where the beginning of one decision 
+starts and where it ends.
+
+However, it would be nice to have some way to keep track of where the decisions
+are in the trail other than scanning for entries without a reason clause. Because 
+of that, we will also keep another trail specifically for the decision markers.
+This is also helpful because then we can store whether or not we've ``tried the 
+other branch'' when we backtrack. 
+
+While on the topic of backtracking, it would be nice to discuss it some more as well. 
+Since we can't simply go up the call stack and undo variable assignments, we have to 
+do it in the iterative way. When we backtrack, we first backtrack up to the decision
+entry. This is done by popping off the trail and undoing the propagated assignments. 
+Once that's done, you then check if you've ``tried the other branch'', and if you 
+haven't, you flip the decision literal's assignment and then retry. If you have 
+already tried the other branch, you pop off the decision entry, and then repeat 
+this process to the next decision entry. This process continues until you either 
+find a decision that has not been switched yet, or you run out of decision 
+entries.
+
+With most of the exposition out of the way, I think it would be good to 
+look at the changes we will make to our interface and algorithms, starting 
+with our SAT solver.
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        TrailEntry {
+            int lit,
+            int level,
+            int clauseIdx
+        }
+
+        DecisionLevel {
+            int idx,
+            bool triedOtherBranch
+        }
+
+        void parse(string equation)
+        bool succeeded propagate(int decisionLevel)
+        bool createWatched()
+
+        int numVars
+        int numClauses
+        int trailHead
+
+        int[][] clauses
+        bool[] satisfied
+        
+        TrailEntry[] trail
+        DecisionLevel[] trailStarts
+
+        optional<var>[] vars
+        map<int, int[]> var_to_clause
+        map<int, (int, int)> clause_to_vars
+\end{lstlisting}
+
+The first notable change is that \textit{propagate()} now returns a boolean instead 
+of a delta. This is because it will no longer be responsible for undoing propagation 
+in response to a contradiction, thus achieving zero-cost backtracking. Next, 
+we now have a \textit{trail} and a \textit{trailHead}, which points to the last 
+made decision entry. \textit{trailStarts} keeps track of all the indices of the 
+decision entries. One last thing to note is that the \textit{TrailEntry} data 
+structure uses indices for clauses instead of the actual clause itself. 
+There's a very good reason for this, and I will reveal the answer in the next chapter,
+but until then, why do you think it might be that way? Hint: it's not because 
+indices are easy for accessing. 
+
+The next change we need to make is to our algorithm to create watched literals. 
+It's the same for basically $90\%$ of the algorithm, except for the unit clause 
+case, which I'll highlight.
+
+\begin{lstlisting}
+    bool createWatched(int[] assignment) {
+        for (i = 0 up to numClauses) {
+            clause = clauses[i]
+            ...
+            else if (clause.size == 1) {
+                int var = clause[0]
+                ...
+                append(trail, {var, 0, i})
+                ...
+            }
+            ...
+        }
+        return True
+    }
+\end{lstlisting}
+
+Rather than enqueuing the variable, we create a new trail entry for each unit 
+clause. These ones are all part of the \textbf{root} decision level, which we 
+reserve for the 0th decision level. If we backtrack up to this level (if it exists)
+or before it, we've encountered a root level contradiction, so the equation is 
+unsatisfiable. Because not every equation has unit clauses, it's important to 
+remember that this decision level may not always exist, and so we should be 
+keep that in mind for our solving algorithm. 
+
+The next algorithm we're going to change is the \textit{propagate()} algorithm 
+because the changes are also very minimal.
+
+\begin{lstlisting}
+    bool propagate(int[] assignment, int decisionLevel) {
+        while (trailHead < trail.size) {
+            int prop = trail[trailHead].lit
+            trailHead = trailHead + 1
+            ...
+            for (i = 0 up to watched_clauses.size) {
+                clause_idx = watched_clauses[i]
+                int[] clause = clauses[clause_idx]
+                (int, int) watches = clause_to_var[clause_idx]
+                ...
+                if (relocated == False) {
+                    ...
+                    int other_watch = clause[watches.second];
+                    int idx = abs(other_watch)
+                    if (assignment[idx] == Unassigned) {
+                        ...
+                        append(trail, {other_watch, decisionLevel, clause_idx})
+                    } else {
+                        return false
+                    }
+                }
+            }
+        }
+        return true
+    }
+\end{lstlisting}
+
+The main difference is that we just \textit{trailHead} to iterate through the trail, and 
+instead of enqueuing, we just append to the trail. We also return True/False depending on 
+whether or not propagation succeeded.
+
+Lastly, we look at our \textit{solve()} method, which has the most notable changes.
+There are two ways to implement this, depending on what makes sense to you. I call 
+them ``assignment before propagation'' and ``propagation before assignment.'' I
+call them these because that's what they are. Before showing the pseudocode, I 
+want to talk about the algorithm a bit more. The beginning is mostly the same:
+create our watched literals, check that it succeeded, return False if it didn't. 
+Otherwise, we do a root level propagation and then check if it succeeds as well.
+However, the main confusion comes from handling the case of when there is a 
+0th decision level and when there isn't. There are multiple ways to go about this.
+After the beginning, we enter the solving loop. 
+
+There are two main parts: assigning and backtracking, with a call to the propagate 
+method separating them. Assigning is now scanning for the first Unassigned variable,
+forcing it True, creating a new trail entry, and then updating the trail head. I'm 
+sure there's a better way to keep track of the next unassigned variable other than 
+scanning the entire assignment list on each loop iteration, however, for simplicity's 
+sake, we're implementing it the naive way. 
+
+Since we've already discussed backtracking, we will now get into the algorithm 
+itself:
+
+\begin{lstlisting}
+    bool solve() {
+        var[1..numVars] assignment
+
+        for each (var in assignment) {
+            var = Unassigned
+        }
+
+        if (createWatched(assignment) == False) {
+            return False
+        }
+
+        if (trail.size > 0) {
+            append(trailStarts, {0, true})
+
+            if (propagate(assignment, 0) == False) {
+                return False
+            }
+        }
+
+        while (True) {
+            int decisionLevel = max(trailStarts.size, 1)
+
+            bool succeeded = propagate(assignment, decisionLevel)
+
+            if (!succeeded) {
+                while (trailStarts.size > 0) {
+                    DecisionLevel decision = trailStarts.last
+
+                    while (trail.size > decision.idx + 1) {
+                        int lit = trail.last.lit
+                        assignment[abs(lit)] = Unassigned
+                        erase(trail, trail.last)
+                    }
+
+                    if (decision.triedFalse == False) {
+                        TrailEntry entry = trail.last
+
+                        entry.lit = -entry.lit
+                        assignment[abs(entry.lit)] = False
+                        decision.triedFalse = True
+
+                        trailHead = decision.idx
+                        break
+                    } else {
+                        int lit = trail.last.lit
+                        assignment[abs(lit)] = Unassigned
+                        erase(trail.last)
+                        erase(trailStarts.last)
+                    }
+                }
+
+                if (trailStarts.size == 0 or trail.last.level == 0) {
+                    return False
+                }
+
+                continue
+            }
+        }
+
+        //Assignment code
+        int firstUnassigned = -1
+        for (i = 1 up to numVars) {
+            if (assignment[i] == Unassigned) {
+                firstUnassigned = i
+                break
+            }
+        }
+
+        if (firstUnassigned == -1) {
+            return True
+        }
+
+        assignment[firstUnassigned] = True
+        append(trail, {firstUnassigned, decisionLevel, -1})
+        append(trailStarts, {trail.size - 1, False})
+        trailHead = trailStarts.last.idx
+    }
+\end{lstlisting}
+
+Here is the pseudocode for solving, written as ``propagate then assign." Quick question:
+when there's no 0th decision level and we propagate, how do we know that none of the 
+propagated variables will have the wrong decision level? Ie, how do we know that they'll 
+have a decision level of $0$ instead of $1$, since we haven't made any decisions yet?
+This is kind of a trick question, the answer is that if there is no 0th level,
+\textit{propagate()} will do nothing because the while-loop condition will immediately 
+return False, and so the method will terminate, assigning nothing! 
+
+Instead of showing you the code for ``assign then propagate'' (it is NOT just taking 
+the assigning code and moving it up before the call to \textit{propagate()}), let's 
+run through how this works. When there's a 0th level, we obviously want to mark it 
+in our \textit{trailStart}, but why do we want to mark that the ``other branch'' has 
+already been tried? Well that's because those assigned by the root level propagation 
+are forced into those values, so it doesn't make sense to swap their values to be 
+their opposites since it will immediately be an unsatisfiable assignment anyways. 
+
+Next, in the main solving loop, the backtracking code is just ``grab the last 
+decision index, undo until the root decision, if it's already tried False, undo 
+the decision entirely and repeat with the previous one, and if not, try False 
+and continue.''
+
+Lastly, let's talk about doing assign then propagation. Here's why it doesn't
+make total sense to start out with propagation:
+
+\begin{itemize}
+    \item we do a root level propagation if there needs to be one.
+    \item if there is no root level propagation to be done, it still
+            doesn't make sense to immediately propagate since there's 
+            nothing to propagate.
+    \item if there was a root level propagation, it doesn't make sense 
+            to do another one immediately since we've just completed one.
+\end{itemize}
+
+So if you wanted to do assign and then propagate, how would that be done? 
+Earlier, I said that it's not just taking the code for assigning and then 
+moving it before propagation, but why? Well, suppose we fail a propagation. 
+We backtrack, and then suppose we haven't tried the other branch for that 
+decision. We encounter a \textit{continue} statement and we go back to the 
+top. If we simply move the assigning code up to the top of the loop,
+what's the issue? Well remember, we just flipped a decision, so we should
+actually be \textbf{\textit{propagating}} instead of assigning. If we 
+assign immediately after flipping the decision, we now have two decisions 
+at the same time, and that's bad because what if they are contradictory to 
+one another, ie one would force a variable False and the other True? 
+Unfortunately, the propagation code wouldn't catch that because it assumes 
+everything in the trail is valid, but we just made the trail invalid. So 
+to the propagation code, instead of it catching that a variable is forced to be 
+False, but it's True, or vice versa, it may just ignore it because it focuses 
+mainly on Unassigned and False literals.
+
+So if we want to do assign then propagate, how do we make sure that 
+we don't accidentally push something onto the trail when we shouldn't have?
+We need to wrap the assigning code in a conditional statement that checks that 
+\textit{trailHead == trail.size}, if it doesn't, then that means that there's 
+something to be propagated on because we're not at the end of the trail, but 
+if it does, then we've reached the end, so we should check if we've assigned 
+everything and can be done, or if we need to assign something new.
 
 \subsection{Iterative DPLL - Results}
+Here are the results after this huge refactor:
+
+(Assignment before propagation)\\
+uf20.91: 328ms, down 21ms from 349ms by Watched Literals\\
+UUF50.218.1000: 6369ms, down 761ms from 7130 by Watched Literals
+
+(Propagation before assignment)\\
+uf20.91: 324ms\\
+UUF50.218.100: 6365ms
+
+Should you do propagation before assignment simply because it's faster? It 
+really doesn't matter, you do you.
+
+The speed gain on satisfiable problems is very miniscule, however, if you ever want 
+proof that iterative algorithms are faster than recursive ones, the unsatisfiable 
+problem time decrease is pretty good evidence.
+
+\chapter{CDCL}
+
+Conflict Driven Clause Learning (CDCL), is \textit{the} modern SAT solving 
+algorithm. It builds off of the ideas of DPLL and takes it to a whole new level.
+The ``conflict driven'' part of CDCL means that we analyze conflicts (contradictions)
+and see what we can learn from them. The ``clause learning'' part is exactly what it 
+sounds like, we add new clauses to our database. In other words, CDCL is about 
+analyzing why conflicts occur when we solve and using those conflicts to learn 
+new clauses that will help enforce new rules as to what values variables can take,
+essentially changing the CNF equation into one that's logically equivalent, but 
+easier to solve. I won't lie to you, I was not able to implement this algorithm the 
+first time I tried. I hope and pray that this time I will be successful, so that 
+\textit{we} will be successful together dear reader. 
+
+\textit{Aside: why have we been opting for indices so often? You see, although
+we live in the land of pseudocode or machine-agnosticism, implementations don't
+(duh). So in our previous chapter in DPLL, there were times where we used clause 
+indices instead of pointers to clauses (obviously using copies would be terrible 
+for performance and memory), but why did we use indices? Now that we're implementing 
+CDCL, we're going to be adding clauses to the database quite often, and that can 
+trigger a resize on the database. If we used pointers to clauses, after a resize 
+triggers, the memory address of each clause would change, thus making the pointers 
+invalid. We would need to add new code after the insertion of each clause to make 
+sure a resize didn't trigger, and if one did, we'd need to update each pointer for 
+each reason clause and watched literal, which would be very difficult because after 
+a resize, we now have no way to tell which clauses mapped to which reasons and watched 
+literals, because, well, the old mapping isn't valid and contains no information about 
+the new addresses for everything.
+}
+
+\section{Clause Learning}
+
+
+\section{Non-Chronological Backjumping}
+
+\section{First UIP}
+
+\section{VSIDS}
+
+\section{Clause Database Management}
+
+\section{Restarts}
+
+\section{Comparing to MiniSAT}
+
+\chapter{Experiments and Next Steps}
 
 \end{document}

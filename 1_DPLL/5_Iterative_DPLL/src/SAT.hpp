@@ -32,11 +32,6 @@ namespace saturn {
                 return var > 0 && vars[idx] == FALSE || var < 0 && vars[idx] == TRUE;
             };
 
-            constexpr bool evals_true(int var) {
-                int idx = std::abs(var) - 1;
-                return var > 0 && vars[idx] == TRUE || var < 0 && vars[idx] == FALSE;
-            }
-
             struct TrailEntry {
                 //the literal being assigned (eg, 5 or -5)
                 int lit;
