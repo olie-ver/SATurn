@@ -31,34 +31,34 @@ namespace saturn {
             //  must be at least 1
             size_t decisionLevel = std::max(trail_starts.size(), 1ul);
 
-            // if (qHead == trail.size()) {
-            //     std::optional<int> firstUnassigned;
-            //     for (size_t i = 0; i < numVars; i++) {
-            //         if (vars[i] == UNASSIGNED) {
-            //             //variable = idx + 1
-            //             firstUnassigned = i + 1;
-            //             break;
-            //         }
-            //     }
+            if (qHead == trail.size()) {
+                std::optional<int> firstUnassigned;
+                for (size_t i = 0; i < numVars; i++) {
+                    if (vars[i] == UNASSIGNED) {
+                        //variable = idx + 1
+                        firstUnassigned = i + 1;
+                        break;
+                    }
+                }
 
-            //     //if there is none => all assigned => satisfied
-            //     if (!firstUnassigned.has_value()) {
-            //         return true;
-            //     }
+                //if there is none => all assigned => satisfied
+                if (!firstUnassigned.has_value()) {
+                    return true;
+                }
 
-            //     //assign this variable to be True (okay because firstUnassigned must be positive => True)
-            //     vars[*firstUnassigned - 1] = TRUE;
+                //assign this variable to be True (okay because firstUnassigned must be positive => True)
+                vars[*firstUnassigned - 1] = TRUE;
 
-            //     //push back the first unassigned variable (assumed True), the decision level
-            //     //  and nullopt to show that this was a decision, not propagation/inference
-            //     trail.push_back({*firstUnassigned, decisionLevel, std::nullopt});
+                //push back the first unassigned variable (assumed True), the decision level
+                //  and nullopt to show that this was a decision, not propagation/inference
+                trail.push_back({*firstUnassigned, decisionLevel, std::nullopt});
 
-            //     //the newest decision level begins at the index of the last trail entry
-            //     trail_starts.push_back({trail.size() - 1, false});
+                //the newest decision level begins at the index of the last trail entry
+                trail_starts.push_back({trail.size() - 1, false});
 
-            //     //our propagation queue now starts at the latest decision
-            //     qHead = trail_starts.back().idx;
-            // }
+                //our propagation queue now starts at the latest decision
+                qHead = trail_starts.back().idx;
+            }
         
             bool succeeded = propagate(decisionLevel);
 
