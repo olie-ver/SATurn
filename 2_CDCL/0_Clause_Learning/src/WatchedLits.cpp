@@ -22,7 +22,7 @@ namespace saturn {
                 //  there are unit clauses
                 //so in our trail, we create a trail entry of the unit variable,
                 //  its level (0), and the reason clause index (i)
-                trail.push_back({var, 0, i});
+                trail.push_back({var, i});
                 
                 int idx = std::abs(var) - 1;
                 if (var > 0) {
@@ -103,12 +103,12 @@ namespace saturn {
             clause_to_var[index] = {firstIdx, firstIdx};
         }
 
-        if (numUnassigned == 1 && (numFalse + numUnassigned) == clause.size()) {
-            trail.push_back({clause[firstIdx], trail.back().level, index});
-            var_to_trail[std::abs(clause[firstIdx]) - 1] = trail.size() - 1;
-
+        if (numUnassigned == 1 && numTrue == 0) {
             int var = clause[firstIdx];
             int idx = std::abs(var) - 1;
+            trail.push_back({var, index});
+            var_to_trail[idx] = trail.size() - 1;
+
             if (var > 0) {
                 vars[idx] = TRUE;
             } else {

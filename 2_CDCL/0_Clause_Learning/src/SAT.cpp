@@ -24,16 +24,12 @@ namespace saturn {
             trail_starts.push_back({0, true});
 
             //propagate and if it failed, we can't do anything about it
-            if (!propagate(0)) {
+            if (!propagate()) {
                 return false;
             }
         }
 
         while (true) {
-            //since root propagation has a decision level of 0, this decision level 
-            //  must be at least 1
-            size_t decisionLevel = std::max(trail_starts.size(), 1ul);
-
             if (qHead == trail.size()) {
                 std::optional<int> firstUnassigned;
                 for (size_t i = 0; i < numVars; i++) {
@@ -54,7 +50,7 @@ namespace saturn {
 
                 //push back the first unassigned variable (assumed True), the decision level
                 //  and nullopt to show that this was a decision, not propagation/inference
-                trail.push_back({*firstUnassigned, decisionLevel, std::nullopt});
+                trail.push_back({*firstUnassigned, std::nullopt});
 
                 //Record the index in the trail where the first unassigned variable went
                 var_to_trail[*firstUnassigned - 1] = trail.size() - 1;
@@ -66,7 +62,7 @@ namespace saturn {
                 qHead = trail_starts.back().idx;
             }
 
-            const std::optional<std::vector<int>>& contradiction = propagate(decisionLevel);
+            const std::optional<std::vector<int>>& contradiction = propagate();
 
             //if there's a conflicting clause
             if (contradiction.has_value()) {
@@ -86,9 +82,9 @@ namespace saturn {
                         size_t pos = *var_to_trail[v_idx];
                         
                         //if the trail at the trail index for this variable was propagated
-                        if (trail[*var_to_trail[v_idx]].reasonIdx.has_value()) {
+                        if (trail[pos].reasonIdx.has_value()) {
                             propagated_found = true;
-                            idx = std::max(idx, static_cast<size_t>(*var_to_trail[v_idx]));
+                            idx = std::max(idx, static_cast<size_t>(pos));
                         }
                     }
 
@@ -161,13 +157,13 @@ namespace saturn {
 
                 //if we have no more decisions levels or we backtrack to the
                 //  root level (which MUST be True), then it's unsatisfiable
-                if (trail_starts.empty() || trail.back().level == 0) {
+                if (trail_starts.empty()) {
                     return false;
                 }
 
                 //at this point, we should now have a clause containing
                 //  only decision literals
-                clauses.push_back(conflict);
+                clauses.push_back(std::move(conflict));
 
                 //since all the propagation (on this decision level)
                 //  has been undone, we can now initialize watched literals

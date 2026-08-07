@@ -2432,7 +2432,6 @@ with our SAT solver.
 
         TrailEntry {
             int lit,
-            int level,
             int clauseIdx
         }
 
@@ -2442,7 +2441,7 @@ with our SAT solver.
         }
 
         void parse(string equation)
-        bool succeeded propagate(int decisionLevel)
+        bool succeeded propagate()
         bool createWatched()
 
         int numVars
@@ -2483,7 +2482,7 @@ case, which I'll highlight.
             else if (clause.size == 1) {
                 int var = clause[0]
                 ...
-                append(trail, {var, 0, i})
+                append(trail, {var, i})
                 ...
             }
             ...
@@ -2494,7 +2493,7 @@ case, which I'll highlight.
 
 Rather than enqueuing the variable, we create a new trail entry for each unit 
 clause. These ones are all part of the \textbf{root} decision level, which we 
-reserve for the 0th decision level. If we backtrack up to this level (if it exists)
+mentally reserve for the 0th decision level. If we backtrack up to this level (if it exists)
 or before it, we've encountered a root level contradiction, so the equation is 
 unsatisfiable. Because not every equation has unit clauses, it's important to 
 remember that this decision level may not always exist, and so we should be 
@@ -2504,7 +2503,7 @@ The next algorithm we're going to change is the \textit{propagate()} algorithm
 because the changes are also very minimal.
 
 \begin{lstlisting}
-    bool propagate(int[] assignment, int decisionLevel) {
+    bool propagate(int[] assignment) {
         while (trailHead < trail.size) {
             int prop = trail[trailHead].lit
             trailHead = trailHead + 1
@@ -2520,7 +2519,7 @@ because the changes are also very minimal.
                     int idx = abs(other_watch)
                     if (assignment[idx] == Unassigned) {
                         ...
-                        append(trail, {other_watch, decisionLevel, clause_idx})
+                        append(trail, {other_watch, clause_idx})
                     } else {
                         return false
                     }
@@ -2577,9 +2576,7 @@ itself:
         }
 
         while (True) {
-            int decisionLevel = max(trailStarts.size, 1)
-
-            bool succeeded = propagate(assignment, decisionLevel)
+            bool succeeded = propagate(assignment)
 
             if (!succeeded) {
                 while (trailStarts.size > 0) {
@@ -2608,7 +2605,7 @@ itself:
                     }
                 }
 
-                if (trailStarts.size == 0 or trail.last.level == 0) {
+                if (trailStarts.size == 0) {
                     return False
                 }
 
@@ -2630,7 +2627,7 @@ itself:
         }
 
         assignment[firstUnassigned] = True
-        append(trail, {firstUnassigned, decisionLevel, -1})
+        append(trail, {firstUnassigned, -1})
         append(trailStarts, {trail.size - 1, False})
         trailHead = trailStarts.last.idx
     }
@@ -2755,7 +2752,364 @@ so we don't need to do anything other than return the clause that's evaluating t
 The next step is to perform something called ``clause resolution'' over and over until 
 a certain stopping point is reached. Since we're not implementing backjumping nor 
 first UIPs yet, that stopping point is going to be when our learned clause contains 
-only decision literals
+only decision literals. Here is how clause resolution works: 
+
+Assuming we've set up storing reason clauses and contradiction clauses correctly, 
+We create a copy of the contradiction clause, find the most recently propagated 
+literal within it, take its reason clause, union it with the contradiction clause,
+remove the most recently propagated literal and its negation, remove all duplicate 
+literals, and repeat until there are no more propagated literals in the contradiction
+clause. Afterwards, we backtrack one level, add this clause to our database, and then 
+initialize its watched literals.
+
+So let's now understand the algorithmic portions. Because we want to be able to find 
+the most recently propagated literal in a clause at all times, it would be nice to have 
+a data structure that is a mapping from variables to their places in the decision trail.
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        TrailEntry {
+            int lit,
+            int clauseIdx
+        }
+
+        DecisionLevel {
+            int idx,
+            bool triedOtherBranch
+        }
+
+        void parse(string equation)
+        bool succeeded propagate()
+        bool createWatched()
+        bool createWatched(int idx)
+
+        int numVars
+        int numClauses
+        int trailHead
+
+        int[][] clauses
+        
+        TrailEntry[] trail
+        DecisionLevel[] trailStarts
+        int[] var_to_trail
+
+        optional<var>[] vars
+        map<int, int[]> var_to_clause
+        map<int, (int, int)> clause_to_vars
+\end{lstlisting}
+
+The \textit{var\_to\_trail} field is the only change we'll need to make, and it 
+is just a mapping from variable index to trail index. If you enforce the invariant 
+that each variable maps to exactly one place in the trail and no two variables 
+map to the same place in the trail at the same time, you don't need to initialize 
+these values to anything. 
+
+The next thing we'll look at is our \textit{propagate()} code since it needs very 
+minimal changes. The change we're making now is that instead of returning a boolean
+value to indicate whether or not propagation was successful, we're now going to return 
+a clause if we encounter a contradiction and nothing otherwise.
+
+\begin{lstlisting}
+    bool propagate(int[] assignment) {
+        while (trailHead < trail.size) {
+            int prop = trail[trailHead].lit
+            trailHead = trailHead + 1
+            ...
+            for (i = 0 up to watched_clauses.size) {
+                clause_idx = watched_clauses[i]
+                int[] clause = clauses[clause_idx]
+                (int, int) watches = clause_to_var[clause_idx]
+                ...
+                if (relocated == False) {
+                    ...
+                    int other_watch = clause[watches.second];
+                    int idx = abs(other_watch)
+                    if (assignment[idx] == Unassigned) {
+                        ...
+                        append(trail, {other_watch, clause_idx})
+                    } else {
+                        return clause
+                    }
+                }
+            }
+        }
+        return null
+    }
+\end{lstlisting}
+
+And before we look at changes to our solving method, we're going to create a new 
+overload for \textit{createWatched()} that takes in the index of a clause. Its 
+only purpose is to be called on newly learned clauses, which don't have the same 
+guarantees as the other overload. You see, the learned clause should hopefully 
+NEVER be unsatisfied when this method operates over it. It should ALWAYS return 
+True, so if it ever doesn't, it's a good debugging tool. Here's how it works:
+we traverse over the clause of the passed in index, counting the number of 
+True, False, and Unassigned literals it has. We will then search for two 
+indices that could be watched literals. Since the clause should never be 
+unsatisfied, we are guaranteed to always find one (if our implementation is correct).
+If we can't find another and our clause has more than one literal, we will initialize 
+the second watched literal to any arbitrary place in the clause (with the caveat 
+that it can't be the same index as our first watched literal). We will then check if the 
+clause is unit, and if it is, we will add it to our trail, assign the Unassigned variable,
+etc. Otherwise, we do nothing.
+
+\begin{lstlisting}
+    bool createWatched(int index) {
+        clause = clauses[index]
+        if (clause.size == 0) {
+            return False
+        }
+
+        bool foundFirst = False 
+        bool foundSecond = False 
+        int firstIdx = -1
+        int secondIdx = -1
+
+        int numUnassigned = 0
+        int numFalse = 0
+        int numTrue = 0
+
+        for (i = 1 up to clause.size) {
+            int idx = abs(clause[i])
+            if (assignment[idx] == Unassigned) {
+                numUnassigned = numUnassigned + 1
+                if (foundFirst == False) {
+                    foundFirst = True
+                    firstIdx = i
+                } else if (foundSecond == False) {
+                    foundSecond = True 
+                    secondIdx = i
+                }
+            } else if (evals_false(clause[i])) {
+                numFalse = numFalse + 1
+            } else {
+                numTrue = numTrue + 1
+
+                if (foundFirst == False) {
+                    foundFirst = True
+                    firstIdx = i
+                } else if (foundSecond == False) {
+                    foundSecond = True 
+                    secondIdx = i
+                }
+            }
+        }
+
+        if (clause.size >= 2) {
+            if (foundSecond == False) {
+                secondIdx = (firstIdx + 1) % clause.size
+            }
+
+            append(var_to_clause[clause[firstIdx]], index)
+            append(var_to_clause[clause[secondIdx]], index)
+            
+            clause_to_var[index] = {firstIdx, secondIdx}
+        } else {
+            append(var_to_clause[clause[firstIdx]])
+            clause_to_var[index] = {firstIdx, firstIdx}
+        }
+
+        if (numTrue == 0 && numUnassigned == 1) {
+            append(trail, {clause[firstIdx], index})
+            var_to_trail[abs(clause[firstIdx])] = trail.size() - 1
+
+            int var = clause[firstIdx]
+            int idx = abs(var)
+
+            if (var > 0) {
+                assignment[idx] = True
+            } else {
+                assignment[idx] = False
+            }
+        }
+
+        return True
+    }
+\end{lstlisting}
+
+Because we don't know anything about this clause, we need to gather as much 
+information as we can right away before we decide how watched literals are 
+spread out on the clause. When the clause has more than one literal, we 
+use ``secondIdx = (firstIdx + 1) \% clause.size" because that prevents us 
+from adding a watched literal past the end of the clause, if \textit{firstIdx}
+is already on the edge.
+
+The last method we need to discuss is our \textit{solve} loop. Clause 
+resolution happens after backtracking because it relies on the current 
+trail to understand
+\footnote{It follows a mathematical process to transform the conflict clause 
+into one that prevents that same conflict from ever occurring again. The 
+algorithm does not ``understand'' anything. Do not anthropomorphize computer 
+algorithms, especially artificial intelligence.}
+why a conflict occurred. If we were to undo propagations, then the resolution 
+operator would have no reference as to what ``most recently'' means, and 
+therefore, clause resolution wouldn't work.
+
+\begin{lstlisting}
+    bool solve() {
+        var[1..numVars] assignment
+
+        for each (var in assignment) {
+            var = Unassigned
+        }
+
+        if (createWatched(assignment) == False) {
+            return False
+        }
+
+        if (trail.size > 0) {
+            append(trailStarts, {0, true})
+
+            if (propagate(assignment, 0) == False) {
+                return False
+            }
+        }
+
+        while (True) {
+            optional int[] contradiction = propagate(assignment)
+
+            if (contradiction has a value) {
+                int[] conflict = contradiction.value
+
+                bool propagated_found = True
+                while (True) {
+                    propagated_found = False
+                    int idx = 0
+
+                    for (i = 1 up to conflict.size) {
+                        int var = conflict[i]
+                        int v_idx = abs(var)
+
+                        int t_idx = var_to_trail[v_idx]
+                        if (trail[t_idx].reasonIdx has a value) {
+                            propagated_found = True
+                            idx = max(idx, t_idx)
+                        }
+                    }
+
+                    if (propagated_found == False) {
+                        break
+                    }
+
+                    int lit = trail[idx].lit
+                    int[] reason = clauses[trail[idx].reasonIdx]
+
+                    append(conflict, reason)
+
+                    for (i = 0 up to conflict.size) {
+                        if (abs(conflict[i]) == abs(lit)) {
+                            swap(conflict[i], conflict.last)
+                            erase(conflict, conflict.last)
+                        } else {
+                            i = i + 1
+                        }
+                    }
+
+                    set<int> duplicates
+                    for (i = 0 up to conflict.size) {
+                        if (contains(duplicates, conflict[i])) {
+                            swap(conflict[i], conflict.last)
+                            erase(conflict, conflict.last)
+                        } else {
+                            insert(duplicates, conflict[i])
+                            i = i + 1
+                        }
+                    }
+                }
+
+                while (trailStarts.size > 0) {
+                    DecisionLevel decision = trailStarts.last
+
+                    while (trail.size > decision.idx + 1) {
+                        int lit = trail.last.lit
+                        assignment[abs(lit)] = Unassigned
+                        var_to_trail[abs(lit)] = -1
+                        erase(trail, trail.last)
+                    }
+
+                    if (decision.triedFalse == False) {
+                        TrailEntry entry = trail.last
+
+                        entry.lit = -entry.lit
+                        assignment[abs(entry.lit)] = False
+                        var_to_trail[abs(entry.lit)] = -1
+                        decision.triedFalse = True
+
+                        trailHead = decision.idx
+                        break
+                    } else {
+                        int lit = trail.last.lit
+                        assignment[abs(lit)] = Unassigned
+                        var_to_trail[abs(lit)] = -1
+                        erase(trail.last)
+                        erase(trailStarts.last)
+                    }
+                }
+
+                if (trailStarts.size == 0) {
+                    return False
+                }
+
+                append(clauses, conflict)
+                createWatched(clauses.size)
+
+                continue
+            }
+        }
+
+        //Assignment code
+        int firstUnassigned = -1
+        for (i = 1 up to numVars) {
+            if (assignment[i] == Unassigned) {
+                firstUnassigned = i
+                break
+            }
+        }
+
+        if (firstUnassigned == -1) {
+            return True
+        }
+
+        assignment[firstUnassigned] = True
+        append(trail, {firstUnassigned, -1})
+        append(trailStarts, {trail.size - 1, False})
+        trailHead = trailStarts.last.idx
+    }
+\end{lstlisting}
+
+And with that, we've finished clause learning.
+
+\subsection{Clause Learning - Results}
+
+Here are the results for Clause Learning:
+
+uf20.91: 425ms, up 98ms from Iterative DPLL 
+
+UUF50.218.1000: 9652ms, up 3287ms from Iterative DPLL
+
+Why did our runtime go up? Well, clause learning isn't easy, and the more 
+contradictions we encounter, the more expensive clause learning we're performing. 
+Another reason is that we're increasing the memory load every time we add in a new
+clause. Luckily, our testing sets are small, but on large problems, this would be a 
+much larger issue. So then why do modern solvers use clause learning? Because there 
+are ways to make it much faster. The first step would be to implement non-chronological 
+backjumping, where instead of moving up just one decision level in our trail, we move up 
+multiple at a time. The second step would be to implement First UIPs, which makes clause 
+learning a less expensive operation (doesn't fix the memory load though), and it
+combined with non chronological backjumping allows us to instantly and fully use our 
+learned clause to its potential. Although we have taken a small step back, we will 
+see what leaps forward we will make in the next sections.
 
 \section{Non-Chronological Backjumping}
 
