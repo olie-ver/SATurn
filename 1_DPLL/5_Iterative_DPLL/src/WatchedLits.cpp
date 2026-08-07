@@ -21,8 +21,8 @@ namespace saturn {
                 //we want to be able to immediately perform unit propagation if
                 //  there are unit clauses
                 //so in our trail, we create a trail entry of the unit variable,
-                //  its level (0), and the reason clause index (i)
-                trail.push_back({var, 0, i});
+                //  and the reason clause index (i)
+                trail.push_back({var, i});
                 
                 int idx = std::abs(var) - 1;
                 if (var > 0) {

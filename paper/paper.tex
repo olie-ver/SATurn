@@ -2744,6 +2744,18 @@ the new addresses for everything.
 
 \section{Clause Learning}
 
+The first step into creating a CDCL solver is to learn and use new clauses. This is 
+easier said than done. The first thing we need to do is modify our unit propagation 
+code to return a clause when there is a conflict and nothing otherwise. What clause 
+do we return when there is a conflict? We return the clause that evaluates to False
+because that's where we have a contradiction in our assignment. And just as a reminder,
+the main solving loop now handles undoing the assignments of the literals in our trail,
+so we don't need to do anything other than return the clause that's evaluating to False.
+
+The next step is to perform something called ``clause resolution'' over and over until 
+a certain stopping point is reached. Since we're not implementing backjumping nor 
+first UIPs yet, that stopping point is going to be when our learned clause contains 
+only decision literals
 
 \section{Non-Chronological Backjumping}
 

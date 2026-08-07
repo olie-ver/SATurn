@@ -21,16 +21,12 @@ namespace saturn {
             trail_starts.push_back({0, true});
 
             //propagate and if it failed, we can't do anything about it
-            if (!propagate(0)) {
+            if (!propagate()) {
                 return false;
             }
         }
 
         while (true) {
-            //since root propagation has a decision level of 0, this decision level 
-            //  must be at least 1
-            size_t decisionLevel = std::max(trail_starts.size(), 1ul);
-
             if (qHead == trail.size()) {
                 std::optional<int> firstUnassigned;
                 for (size_t i = 0; i < numVars; i++) {
@@ -51,7 +47,7 @@ namespace saturn {
 
                 //push back the first unassigned variable (assumed True), the decision level
                 //  and nullopt to show that this was a decision, not propagation/inference
-                trail.push_back({*firstUnassigned, decisionLevel, std::nullopt});
+                trail.push_back({*firstUnassigned, std::nullopt});
 
                 //the newest decision level begins at the index of the last trail entry
                 trail_starts.push_back({trail.size() - 1, false});
@@ -60,7 +56,7 @@ namespace saturn {
                 qHead = trail_starts.back().idx;
             }
         
-            bool succeeded = propagate(decisionLevel);
+            bool succeeded = propagate();
 
             if (!succeeded) {
                 while (trail_starts.size() > 0) {
@@ -93,7 +89,7 @@ namespace saturn {
 
                 //if we have no more decisions levels or we backtrack to the
                 //  root level (which MUST be True), then it's unsatisfiable
-                if (trail_starts.empty() || trail.back().level == 0) {
+                if (trail_starts.empty()) {
                     return false;
                 }
 
@@ -121,7 +117,7 @@ namespace saturn {
 
             //push back the first unassigned variable (assumed True), the decision level
             //  and nullopt to show that this was a decision, not propagation/inference
-            trail.push_back({*firstUnassigned, decisionLevel, std::nullopt});
+            trail.push_back({*firstUnassigned, std::nullopt});
 
             //the newest decision level begins at the index of the last trail entry
             trail_starts.push_back({trail.size() - 1, false});

@@ -1,7 +1,7 @@
 #include "SAT.hpp"
 
 namespace saturn {
-    bool satsolver::propagate(size_t decisionLevel) {
+    bool satsolver::propagate() {
         while (qHead < trail.size()) {
             int prop = trail[qHead].lit;
             qHead++;
@@ -93,7 +93,7 @@ namespace saturn {
                         }
 
                         //push a trail entry
-                        trail.push_back({other_watch, decisionLevel, clause_idx});
+                        trail.push_back({other_watch, clause_idx});
                     } else {
 
                         if (!evals_false(other_watch)) {
