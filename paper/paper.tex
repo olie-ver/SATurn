@@ -3113,6 +3113,25 @@ see what leaps forward we will make in the next sections.
 
 \section{Non-Chronological Backjumping}
 
+
+\subsection{Non-Chronological Backjumping - Results}
+Okay so I know I said that we would make leaps forward in the next sections.
+I may have lied. Here are the results for Non-Chronological Backjumping"
+
+uf20.91: 380ms, down 45ms from Clause Learning.
+
+UUF50.218.1000: 11291ms, up 1639ms from Clause Learning.
+
+So why did our time to solve unsatisfiable equations go up? It partially has to do 
+with the added number of clauses to memory, however, it also has to do with the fact that 
+I may have bunked up the implementation of Clause Learning to begin with. But we're not going 
+to talk about that. You see, when you learn a clause, how can you tell if the equation will be 
+unsatisfiable? If the clause is empty of course, and that means going all the way back to the root 
+decision level. Essentially, even though we're implementing a (supposedly) better algorithm, 
+the amount of backjumping we have to do anyways isn't making huge gains, and in fact can hurt. 
+We will see how First UIPs can help us (hopefully).
+\footnote{This project is killing me why did I decide to do it?}
+
 \section{First UIP}
 
 \section{VSIDS}

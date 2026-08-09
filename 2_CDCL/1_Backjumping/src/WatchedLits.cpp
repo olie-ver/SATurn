@@ -2,19 +2,22 @@
 
 #include <algorithm>
 
+#include <cassert>
+#include <iostream>
+
 namespace saturn {
     bool satsolver::createWatched() {
         for (size_t i = 0; i < numClauses; i++) {
             const std::vector<int>& clause = clauses[i];
 
             if (clause.size() >= 2) {
-                var_to_clause[clause[0]].push_back(i);
-                var_to_clause[clause[1]].push_back(i);
+                var_to_clause[var_to_widx(clause[0])].push_back(i);
+                var_to_clause[var_to_widx(clause[1])].push_back(i);
                 
                 clause_to_var[i] = {0, 1};
             } else if (clause.size() == 1) {
                 int var = clause[0];
-                var_to_clause[var].push_back(i);
+                var_to_clause[var_to_widx(var)].push_back(i);
 
                 clause_to_var[i] = {0, 0};
 
@@ -22,7 +25,7 @@ namespace saturn {
                 //  there are unit clauses
                 //so in our trail, we create a trail entry of the unit variable,
                 //  its level (0), and the reason clause index (i)
-                trail.push_back({var, i});
+                trail.push_back({var, 0, i});
                 
                 int idx = std::abs(var) - 1;
                 if (var > 0) {
@@ -39,7 +42,7 @@ namespace saturn {
         return true;
     }
 
-    bool satsolver::createWatched(size_t index) {
+    bool satsolver::createWatched(size_t index, size_t decisionLevel) {
         const std::vector<int>& clause = clauses[index];
 
         //we need to check if the clause is unit
@@ -89,24 +92,28 @@ namespace saturn {
             }
         }
 
+        assert(foundFirst);
+
         if (clause.size() >= 2) {
             if (!foundSecond) {
                 secondIdx = (firstIdx + 1) % clause.size();
             }
 
-            var_to_clause[clause[firstIdx]].push_back(index);
-            var_to_clause[clause[secondIdx]].push_back(index);
+            var_to_clause[var_to_widx(clause[firstIdx])].push_back(index);
+            var_to_clause[var_to_widx(clause[secondIdx])].push_back(index);
             
             clause_to_var[index] = {firstIdx, secondIdx};
         } else { //clause.size() == 1 since we already checked for == 0 at the top
-            var_to_clause[clause[firstIdx]].push_back(index);
+            var_to_clause[var_to_widx(clause[firstIdx])].push_back(index);
             clause_to_var[index] = {firstIdx, firstIdx};
         }
+
+        assert(numUnassigned == 1 && numTrue == 0);
 
         if (numUnassigned == 1 && numTrue == 0) {
             int var = clause[firstIdx];
             int idx = std::abs(var) - 1;
-            trail.push_back({var, index});
+            trail.push_back({var, decisionLevel, index});
             var_to_trail[idx] = trail.size() - 1;
 
             if (var > 0) {

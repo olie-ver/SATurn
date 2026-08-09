@@ -1,6 +1,7 @@
 #include "SAT.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 namespace saturn {
     bool satsolver::createWatched() {

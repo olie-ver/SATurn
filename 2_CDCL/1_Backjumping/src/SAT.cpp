@@ -1,36 +1,37 @@
 #include "SAT.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <unordered_set>
 #include <cassert>
+#include <iostream>
 
 namespace saturn {
     bool satsolver::solveCNF() {
-        vars.resize(numVars);
-        var_to_trail.resize(numVars);
-
-        for (size_t i = 0; i < numVars; i++) {
-            vars[i] = UNASSIGNED;
-        }
-
         //if we can't create watched literals, this equation is unsatisfiable
         if (!createWatched()) {
             return false;
         }
 
+        size_t decisionLevel = 0;
+
+        //start a new decision level at the root
+        trail_starts.push_back({decisionLevel, true});
+
         //if createWatched found unit clauses, then they're on the trail
         if (trail.size() > 0) {
-            //start a new decision level at the root
-            trail_starts.push_back({0, true});
-
+            // //start a new decision level at the root
+            // trail_starts.push_back({decisionLevel, true});
             //propagate and if it failed, we can't do anything about it
-            if (!propagate()) {
+            if (propagate(decisionLevel).has_value()) {
                 return false;
             }
         }
 
         while (true) {
             if (qHead == trail.size()) {
+                decisionLevel++;
+
                 std::optional<int> firstUnassigned;
                 for (size_t i = 0; i < numVars; i++) {
                     if (vars[i] == UNASSIGNED) {
@@ -50,7 +51,7 @@ namespace saturn {
 
                 //push back the first unassigned variable (assumed True), the decision level
                 //  and nullopt to show that this was a decision, not propagation/inference
-                trail.push_back({*firstUnassigned, std::nullopt});
+                trail.push_back({*firstUnassigned, decisionLevel, std::nullopt});
 
                 //Record the index in the trail where the first unassigned variable went
                 var_to_trail[*firstUnassigned - 1] = trail.size() - 1;
@@ -62,10 +63,10 @@ namespace saturn {
                 qHead = trail_starts.back().idx;
             }
 
-            const std::optional<std::vector<int>>& contradiction = propagate();
+            const std::optional<std::vector<int>>& contradiction = propagate(decisionLevel);
 
             //if there's a conflicting clause
-            if (contradiction.has_value()) {
+            if (contradiction.has_value()) {    
                 //we want a copy instead of a reference since we'll be mutating the conflict 
                 //  clause into a learned clause
                 std::vector<int> conflict = *contradiction;
@@ -79,6 +80,7 @@ namespace saturn {
                         int var = conflict[i];
                         int v_idx = std::abs(var) - 1;
 
+                        assert(var_to_trail[v_idx].has_value());
                         size_t pos = *var_to_trail[v_idx];
                         
                         //if the trail at the trail index for this variable was propagated
@@ -95,6 +97,7 @@ namespace saturn {
                     //we're resolving on this lit
                     int lit = trail[idx].lit;
 
+                    assert(trail[idx].reasonIdx.has_value());
                     const std::vector<int>& reason = clauses[*trail[idx].reasonIdx];
 
                     //insert the reason clause into the end of conflict clause
@@ -124,36 +127,45 @@ namespace saturn {
                     }
                 }
 
-                //backtracking
-                while (trail_starts.size() > 0) {
-                    DecisionLevel& decision = trail_starts.back();
+                if (conflict.empty()) {
+                    return false;
+                }
 
-                    while (trail.size() > decision.idx + 1) {
-                        int lit = trail.back().lit;
-                        vars[std::abs(lit) - 1] = UNASSIGNED;
-                        var_to_trail[std::abs(lit) - 1] = std::nullopt;
-                        trail.pop_back();
-                    }
+                //find the maximum decision level
 
-                    if (!decision.triedFalse) {
-                        TrailEntry& entry = trail.back();
+                size_t idx = 0;
+                for (size_t i = 0; i < conflict.size(); i++) {
+                    assert(var_to_trail[std::abs(conflict[i]) - 1].has_value());
+                    idx = std::max(idx, trail[*var_to_trail[std::abs(conflict[i]) - 1]].decisionLevel);
+                }
 
-                        entry.lit = -entry.lit;
-                        vars[std::abs(entry.lit) - 1] = FALSE;
-
-                        //try the second branch
-                        decision.triedFalse = true;
-
-                        qHead = decision.idx;
-                        break;
-                    } else {
-                        int lit = trail.back().lit;
-                        vars[std::abs(lit) - 1] = UNASSIGNED;
-                        var_to_trail[std::abs(lit) - 1] = std::nullopt;
-                        trail.pop_back();
-                        trail_starts.pop_back();
+                //find the second largest decision level
+                size_t t_idx = 0;
+                for (size_t i = 0; i < conflict.size(); i++) {
+                    assert(var_to_trail[std::abs(conflict[i]) - 1].has_value());
+                    size_t decision = trail[*var_to_trail[std::abs(conflict[i]) - 1]].decisionLevel;
+                    if (decision != idx) {
+                        t_idx = std::max(t_idx, decision);
                     }
                 }
+
+                size_t backjumpTo = t_idx;
+
+                //backtracking
+                while (!trail.empty() && trail.back().decisionLevel > backjumpTo) {
+                    DecisionLevel& decision = trail_starts.back();
+
+                    while (trail.size() > decision.idx) {
+                        int lit = trail.back().lit;
+                        vars[std::abs(lit) - 1] = UNASSIGNED;
+                        var_to_trail[std::abs(lit) - 1] = std::nullopt;
+                        trail.pop_back();
+                    }
+
+                    trail_starts.pop_back();
+                }
+
+                decisionLevel = backjumpTo;
 
                 //if we have no more decisions levels or we backtrack to the
                 //  root level (which MUST be True), then it's unsatisfiable
@@ -161,14 +173,17 @@ namespace saturn {
                     return false;
                 }
 
+                qHead = trail_starts.back().idx;
+
                 //at this point, we should now have a clause containing
                 //  only decision literals
                 clauses.push_back(std::move(conflict));
+                clause_to_var.emplace_back();
 
                 //since all the propagation (on this decision level)
                 //  has been undone, we can now initialize watched literals
                 //  for this clause
-                assert(createWatched(clauses.size() - 1));
+                assert(createWatched(clauses.size() - 1, decisionLevel));
 
                 continue;
             }

@@ -7,6 +7,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <cassert>
+
 namespace saturn {
     satsolver::satsolver(std::string_view param) {
         if (std::filesystem::exists(param)) {
@@ -202,5 +204,16 @@ namespace saturn {
                 current_clause.clear();
             }
         }
+
+        vars.resize(numVars);
+
+        for (size_t i = 0; i < numVars; i++) {
+            vars[i] = UNASSIGNED;
+        }
+
+        var_to_trail.resize(numVars);
+
+        var_to_clause.resize(2 * numVars);
+        clause_to_var.resize(numClauses);
     }
 }

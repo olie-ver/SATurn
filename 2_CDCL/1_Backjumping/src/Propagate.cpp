@@ -1,15 +1,16 @@
 #include "SAT.hpp"
 
 #include <cassert>
+#include <iostream>
 
 namespace saturn {
-    std::optional<std::vector<int>> satsolver::propagate() {
+    std::optional<std::vector<int>> satsolver::propagate(size_t decisionLevel) {
         while (qHead < trail.size()) {
             int prop = trail[qHead].lit;
             qHead++;
 
             //if this variable is watching nothing, do nothing
-            if (!var_to_clause.contains(-prop)) {
+            if (var_to_clause[var_to_widx(-prop)].empty()) {
                 continue;
             }
 
@@ -23,7 +24,7 @@ namespace saturn {
             //  we always want to grab the clauses being watched by -prop
             //eg, -4 = T => 4 = F => watched_clauses = var_to_clause[-(-4)]
             //    4 = T => -4 = F => watched_clauses = var_to_clause[-(4)]
-            std::vector<size_t>& watched_clauses = var_to_clause[-prop];
+            std::vector<size_t>& watched_clauses = var_to_clause[var_to_widx(-prop)];
 
             for (size_t i = 0; i < watched_clauses.size();) {
                 size_t clause_idx = watched_clauses[i];
@@ -57,7 +58,7 @@ namespace saturn {
                     if (!evals_false(unwatched)) {
                         //the unwatched variable will now watch this clause in addition to 
                         //  any other clauses it may be watching
-                        var_to_clause[unwatched].push_back(clause_idx);
+                        var_to_clause[var_to_widx(unwatched)].push_back(clause_idx);
 
                         //the variable that is at the index of the first watched literal
                         //  will no longer watch this clause
@@ -97,7 +98,7 @@ namespace saturn {
                         }
 
                         //push a trail entry
-                        trail.push_back({other_watch, clause_idx});
+                        trail.push_back({other_watch, decisionLevel, clause_idx});
 
                         //record where the assigned variable goes in the trail
                         var_to_trail[idx] = trail.size() - 1;

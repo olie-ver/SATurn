@@ -18,7 +18,7 @@ TEST(satisfiable, uf20_91) {
         ASSERT_TRUE(solved);
     }
 
-    // saturn::satsolver solver("test_sets/uf20-91/uf20-0343.cnf");
+    // saturn::satsolver solver("test_sets/uf20-91/uf20-0793.cnf");
     // bool solved = solver.solveCNF();
     // ASSERT_TRUE(solved);
 }

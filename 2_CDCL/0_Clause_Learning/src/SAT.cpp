@@ -24,7 +24,7 @@ namespace saturn {
             trail_starts.push_back({0, true});
 
             //propagate and if it failed, we can't do anything about it
-            if (!propagate()) {
+            if (propagate().has_value()) {
                 return false;
             }
         }
