@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 AUG 2026 19:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 AUG 2026 22:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -408,7 +408,7 @@ Chapter 5.
 [66
 
 ]
-runsystem(latexminted cleantemp  --timestamp 20260808193153 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
+runsystem(latexminted cleantemp  --timestamp 20260808225918 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
 
  (./paper.aux)
  ***********
@@ -419,18 +419,18 @@ Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: B6CC4B7CFD252F7CA18FD20CF1BABFC3;5602.
  ) 
 Here is how much of TeX's memory you used:
- 17296 strings out of 467525
- 326069 string characters out of 5418982
+ 17297 strings out of 467525
+ 326081 string characters out of 5418982
  1717740 words of memory out of 5000000
  44508 multiletter control sequences out of 15000+600000
  636658 words of font info for 70 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  86i,8n,93p,520b,2029s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb>
-Output written on paper.pdf (67 pages, 489151 bytes).
+Output written on paper.pdf (67 pages, 489787 bytes).
 PDF statistics:
- 2352 PDF objects out of 2487 (max. 8388607)
- 2212 compressed objects within 23 object streams
- 1516 named destinations out of 1728 (max. 500000)
+ 2356 PDF objects out of 2487 (max. 8388607)
+ 2216 compressed objects within 23 object streams
+ 1517 named destinations out of 1728 (max. 500000)
  265 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -37,4 +37,7 @@ TEST(unsatisfiable, UUF50_218_1000) {
         bool solved = solver.solveCNF();
         ASSERT_FALSE(solved);
     }
+    // saturn::satsolver solver("test_sets/UUF50.218.1000/uuf50-0410.cnf");
+    // bool solved = solver.solveCNF();
+    // ASSERT_FALSE(solved);
 }

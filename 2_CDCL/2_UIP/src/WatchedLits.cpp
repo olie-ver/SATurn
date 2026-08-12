@@ -92,6 +92,10 @@ namespace saturn {
             }
         }
 
+        if (!foundFirst) {
+            return false;
+        }
+
         assert(foundFirst);
 
         if (clause.size() >= 2) {

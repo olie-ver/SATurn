@@ -20,8 +20,6 @@ namespace saturn {
 
         //if createWatched found unit clauses, then they're on the trail
         if (trail.size() > 0) {
-            // //start a new decision level at the root
-            // trail_starts.push_back({decisionLevel, true});
             //propagate and if it failed, we can't do anything about it
             if (propagate(decisionLevel).has_value()) {
                 return false;
@@ -69,43 +67,53 @@ namespace saturn {
             if (contradiction.has_value()) {    
                 //we want a copy instead of a reference since we'll be mutating the conflict 
                 //  clause into a learned clause
-                std::vector<int> conflict = *contradiction;
+                std::vector<int> conflict = *contradiction;  
 
-                bool propagated_found = true;
-                while (true) {   
-                    propagated_found = false;
-                    size_t idx = 0;
-                    //find the most recently propagated literal in the clause
-                    for (size_t i = 0; i < conflict.size(); i++) {
-                        int var = conflict[i];
-                        int v_idx = std::abs(var) - 1;
+                //Two passes: pass 1 gathers the trail index of the least recently
+                //  propagated variable 
+                //Pass 2 will resolve on the other propagated variables until 
+                //  the pointer or however I'm keeping track of each propagated variable
+                //  reaches the pointer of the first propagated variable
 
-                        assert(var_to_trail[v_idx].has_value());
-                        size_t pos = *var_to_trail[v_idx];
-                        
-                        //if the trail at the trail index for this variable was propagated
-                        if (trail[pos].reasonIdx.has_value()) {
-                            propagated_found = true;
-                            idx = std::max(idx, static_cast<size_t>(pos));
+                size_t end = trail.size();
+                size_t begin = 0;
+                int resolve_var = 0;
+
+                for (size_t i = 0; i < conflict.size(); i++) {
+                    int var = conflict[i];
+                    int idx = std::abs(var) - 1;
+                    size_t t_idx = *var_to_trail[idx];
+
+                    //get the index of the least recently propagated literal
+                    //  by checking if its decision level is the current one
+                    //  and that it has a reason clause
+                    //  then taking the minimum of the current trail end
+                    //  and the trail index of that literal
+                    //get the index of the most recently propagated literal
+                    //  in the trail by getting the maximum trail index
+                    //  of current decision level propagated literals
+                    if (trail[t_idx].decisionLevel == decisionLevel)
+                    {
+                        end = std::min(end, t_idx);
+                        begin = std::max(begin, t_idx);
+                        if (trail[t_idx].reasonIdx.has_value()) {
+                            resolve_var = trail[t_idx].lit;
                         }
                     }
+                }
 
-                    if (!propagated_found) {
-                        break;
-                    }
+                //we continue resolving on literals until the begin pointer
+                //  equals the end pointer (that's when we've encountered the 
+                //      last propagated literal)
+                while (begin != end) {
+                    assert(resolve_var != 0);
+                    size_t v_idx = *var_to_trail[std::abs(resolve_var) - 1];
 
-                    //we're resolving on this lit
-                    int lit = trail[idx].lit;
-
-                    assert(trail[idx].reasonIdx.has_value());
-                    const std::vector<int>& reason = clauses[*trail[idx].reasonIdx];
-
-                    //insert the reason clause into the end of conflict clause
+                    const std::vector<int>& reason = clauses[*trail[v_idx].reasonIdx];
                     conflict.insert(conflict.end(), reason.begin(), reason.end());
-
                     //remove the lit we're resolving on
                     for (size_t i = 0; i < conflict.size();) {
-                        if (std::abs(conflict[i]) == std::abs(lit)) {
+                        if (std::abs(conflict[i]) == std::abs(resolve_var)) {
                             std::swap(conflict[i], conflict.back());
                             conflict.pop_back();
                         } else {
@@ -123,6 +131,28 @@ namespace saturn {
                         } else {
                             duplicates.insert(conflict[i]);
                             i++;
+                        }
+                    }
+
+                    //since begin is the max, we need to reset it before 
+                    //  we recompute it
+                    //since end is the min, reset it as well
+                    end = ULONG_MAX;
+                    begin = 0;
+
+                    for (size_t i = 0; i < conflict.size(); i++) {
+                        int var = conflict[i];
+                        int idx = std::abs(var) - 1;
+                        size_t t_idx = *var_to_trail[idx];
+
+                        if (trail[t_idx].decisionLevel == decisionLevel)
+                        {
+                            end = std::min(end, t_idx);
+                            begin = std::max(begin, t_idx);
+
+                            if (trail[t_idx].reasonIdx.has_value()) {
+                                resolve_var = trail[t_idx].lit;
+                            }
                         }
                     }
                 }
@@ -150,6 +180,7 @@ namespace saturn {
                 }
 
                 size_t backjumpTo = t_idx;
+                // std::cout << "backjumping to: " << backjumpTo << std::endl;
 
                 //backtracking
                 while (!trail.empty() && trail.back().decisionLevel > backjumpTo) {
@@ -175,15 +206,17 @@ namespace saturn {
 
                 qHead = trail_starts.back().idx;
 
-                //at this point, we should now have a clause containing
-                //  only decision literals
                 clauses.push_back(std::move(conflict));
                 clause_to_var.emplace_back();
 
                 //since all the propagation (on this decision level)
                 //  has been undone, we can now initialize watched literals
                 //  for this clause
-                assert(createWatched(clauses.size() - 1, decisionLevel));
+                // assert(createWatched(clauses.size() - 1, decisionLevel));
+                if (!createWatched(clauses.size() - 1, decisionLevel)) {
+                    assert(decisionLevel == 0);
+                    return false;
+                }
 
                 continue;
             }
