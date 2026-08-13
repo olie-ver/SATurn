@@ -3567,9 +3567,11 @@ all three decision literals \textbf{cannot} all be False (ie, at least one of th
 
 Here are the results for Clause Learning:
 
-uf20.91: 425ms, up 98ms from Iterative DPLL 
+\noindent
+uf20.91: \textbf{425ms}, up 98ms from Iterative DPLL 
 
-UUF50.218.1000: 9652ms, up 3287ms from Iterative DPLL
+\noindent
+UUF50.218.1000: \textbf{9652ms}, up 3287ms from Iterative DPLL
 
 Why did our runtime go up? Well, clause learning isn't easy, and the more 
 contradictions we encounter, the more expensive clause learning we're performing. 
@@ -3595,29 +3597,198 @@ were propagated/assigned those values in the first place doesn't hold anymore. B
 pure literal elimination wasn't that helpful to begin with and with all these reasons as to why it 
 wouldn't easily work under CDCL, it would just be much better to not have it at all.}
 
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Clause Learning:           425ms (~0.43 seconds).
+Iterative DPLL (AbP):      328ms (~0.33 seconds).
+Iterative DPLL (PbA):      324ms (~0.32 seconds).
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Clause Learning:          9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):     6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):     6,365ms (~6.37 seconds).
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
+
 \section{Non-Chronological Backjumping}
 
+An issue I mentioned earlier with our initial clause learning algorithm is that we backtrack 
+only one level per contradiction. Not one level at a time, just one level. The reason why this 
+is an issue is that we generally never get to use what we learned from conflict resolution to 
+flip certain assignments, which is why we still relied on the DPLL notion of ``trying the other 
+branch.'' Non-chronological backtracking, or ``backjumping'' is the new technique we'll use 
+to fully exploit the learned clause. 
 
+We only need to make a very minimal interface change. Now that we won't use a ``triedFalse''
+variable for our trail starts, our trail starts array can now just be an integer array 
+where each element is just the index in the trail where a new decision level starts.
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        ...
+        int[] trailStarts
+        ...
+\end{lstlisting}
+
+Next, since we're only changing the backtracking logic, we can keep 
+everything else the same in our algorithm. Before we move onto code, answer this:
+what decision level should be backjump to after we learn a clause? Suppose we learn 
+this clause: 
+
+$$ (1 \vee 2 \vee \neg 4) $$
+
+And each literal's decision level is its index (1 was assigned on decision level 1, 
+2 was assigned on decision level 2, 4 was assigned on level 4). What decision level 
+should be backjump to? Should we backjump to 1? 2? Stay on 4? We want to backjump to 
+decision level 2 because that way, every literal in the clause other than $4$ will 
+be False, and $4$ will be Unassigned. That way, we can propagate immediately on the 
+learned clause! So the rule for backjumping after learning a new clause is to backjump 
+to the second largest decision level present in the clause. Here's how we'll do it:
+
+\begin{lstlisting}
+bool solve() {
+        var[1..numVars] assignment
+
+        for each (var in assignment) {
+            var = Unassigned
+        }
+
+        if (createWatched(assignment) == False) {
+            return False
+        }
+
+        int decisionLevel = 0
+
+        if (trail.size > 0) {
+            append(trailStarts, {0, true})
+
+            if (propagate(assignment, decisionLevel) == False) {
+                return False
+            }
+        }
+
+        while (True) {
+            if (trailHead == trail.size) {
+                //Perform an assignment
+                ...
+            }
+
+            optional int[] contradiction = propagate(assignment)
+
+            if (contradiction has a value) {
+                //resolve conflict
+                ...
+
+                if (conflict.size == 0) {
+                    return False
+                }
+
+                int maxLevel = decisionLevel
+                int secondLargest = -1
+                for (i = 0 up to conflict.size) {
+                    int idx = abs(conflict[i])
+                    int decisionLvl = trail[var_to_trail[idx]].decisionLevel;
+                    if (decisionLvl != maxLevel) {
+                        secondLargest = max(secondLargest, decisionLvl)
+                    }
+                }
+
+                int backjumpTo = secondLargest
+
+                while (trail.size > 0 && trail.last.decisionLevel > backjumpTo) {
+                    int decision_start = trailStarts.last
+                    while (trail.size > decision_start) {
+                        int lit = trail.last.lit
+                        int idx = abs(lit)
+                        assignment[idx] = Unassigned
+                        var_to_trail[idx] = -1
+                        erase(trail, trail.last)
+                    }
+                    erase(trailStarts, trailStarts.last)
+                }
+
+                if (trailStarts.size == 0) {
+                    return False
+                }
+
+                decisionLevel = backjumpTo
+
+                trailHead = trailStarts.last
+
+                append(clauses, conflict)
+                createWatched(clauses.size)
+
+                continue
+            }
+        }
+    }
+\end{lstlisting}
+
+The code remains largely the same. However, we now want to check that the learned clause isn't empty
+so we can avoid doing large amounts of work. When can the learned clause become empty? To answer 
+that question, let's answer this other question: ``what does an empty clause mean?'' From our 
+section on Watched Literals, an empty clause means that the equation is unsatisfiable because 
+no variable assignment can satisfy that clause. So if we learn an empty clause, that means that 
+we're now learning that there is no satisfactory assignment of variables, thus our equation is 
+unsatisfiable.
 
 \subsection{Non-Chronological Backjumping - Results}
 Okay so I know I said that we would make leaps forward in the next sections.
-I may have lied. Here are the results for Non-Chronological Backjumping"
+I may have lied. Here are the results for Non-Chronological Backjumping:
 
-uf20.91: 380ms, down 45ms from Clause Learning.
+\noindent
+uf20.91: \textbf{380ms}, down 45ms from Clause Learning.
 
-UUF50.218.1000: 11291ms, up 1639ms from Clause Learning.
+\noindent
+UUF50.218.1000: \textbf{11291ms}, up 1639ms from Clause Learning.
 
-So why did our time to solve unsatisfiable equations go up? It partially has to do 
-with the added number of clauses to memory, however, it also has to do with the fact that 
-I may have bunked up the implementation of Clause Learning to begin with. But we're not going 
-to talk about that. You see, when you learn a clause, how can you tell if the equation will be 
-unsatisfiable? If the clause is empty of course, and that means going all the way back to the root 
-decision level. Essentially, even though we're implementing a (supposedly) better algorithm, 
-the amount of backjumping we have to do anyways isn't making huge gains, and in fact can hurt. 
-We will see how First UIPs can help us (hopefully).
-\footnote{This project is killing me why did I decide to do it?}
+Why did our time to solve unsatisfiable equations go up so significantly? It has to do 
+with the fact of how we're learning. We're not trying every assignment like brute force, but 
+we are slowly learning that no matter what the assignment is, our equation is unsatisfiable. 
+This takes a lot of backtracking and memory to learn, possibly attributing to our time increase.
+It's hard to say for certain.
 
-\section{First UIP}
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Backjumping:               380ms (0.38 seconds).
+Clause Learning:           425ms (~0.43 seconds).
+Iterative DPLL (AbP):      328ms (~0.33 seconds).
+Iterative DPLL (PbA):      324ms (~0.32 seconds).
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Backjumping:              11,291ms (~11.29 seconds).
+Clause Learning:          9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):     6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):     6,365ms (~6.37 seconds).
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
+
+\section{First UIPs}
 
 \section{VSIDS}
 
