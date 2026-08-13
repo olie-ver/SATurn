@@ -36,6 +36,8 @@ namespace saturn {
                 //the literal being assigned (eg, 5 or -5)
                 int lit;
 
+                size_t decisionLevel;
+
                 //the index of the clause for why it was assigned that way
                 //reasonIdx.hasValue() == False => decision, else => propagation
                 std::optional<size_t> reasonIdx;
@@ -48,11 +50,11 @@ namespace saturn {
 
             void parse(std::string_view equation);
 
-            std::optional<std::vector<int>> propagate();
+            std::optional<std::vector<int>> propagate(size_t decisionLevel);
 
             bool createWatched();
 
-            bool createWatched(size_t index);
+            bool createWatched(size_t index, size_t decisionLevel);
 
             int numVars;
             int numClauses;

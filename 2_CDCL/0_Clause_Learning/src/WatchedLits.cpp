@@ -23,7 +23,7 @@ namespace saturn {
                 //  there are unit clauses
                 //so in our trail, we create a trail entry of the unit variable,
                 //  its level (0), and the reason clause index (i)
-                trail.push_back({var, i});
+                trail.push_back({var, 0, i});
                 
                 int idx = std::abs(var) - 1;
                 if (var > 0) {
@@ -40,7 +40,7 @@ namespace saturn {
         return true;
     }
 
-    bool satsolver::createWatched(size_t index) {
+    bool satsolver::createWatched(size_t index, size_t decisionLevel) {
         const std::vector<int>& clause = clauses[index];
 
         //we need to check if the clause is unit
@@ -107,7 +107,7 @@ namespace saturn {
         if (numUnassigned == 1 && numTrue == 0) {
             int var = clause[firstIdx];
             int idx = std::abs(var) - 1;
-            trail.push_back({var, index});
+            trail.push_back({var, decisionLevel, index});
             var_to_trail[idx] = trail.size() - 1;
 
             if (var > 0) {

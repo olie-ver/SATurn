@@ -12,7 +12,7 @@ TEST(satisfiable, uf20_91) {
         //     break;
         // }
         // idx++;
-        // std::cout << path.path() << '\n';
+        std::cout << path.path() << '\n';
         saturn::satsolver solver(path.path().c_str());
         bool solved = solver.solveCNF();
         ASSERT_TRUE(solved);
@@ -32,7 +32,7 @@ TEST(unsatisfiable, UUF50_218_1000) {
         //     break;
         // }
         // idx++;
-        // std::cout << path.path() << '\n';
+        std::cout << path.path() << '\n';
         saturn::satsolver solver(path.path().c_str());
         bool solved = solver.solveCNF();
         ASSERT_FALSE(solved);

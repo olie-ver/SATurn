@@ -8,6 +8,7 @@
 
 \usepackage{forest}
 \usepackage{tikz-qtree}
+\usetikzlibrary{positioning, arrows.meta}
 
 \usepackage{stix}
 
@@ -2659,7 +2660,7 @@ with our SAT solver.
         }
 
         void parse(string equation)
-        bool succeeded propagate()
+        bool propagate()
         bool createWatched()
 
         int numVars
@@ -2943,7 +2944,9 @@ Unit Propagation:         140,041ms (~2.34 minutes).
 \end{FVerbatim}
 
 Should you do propagation before assignment simply because it's faster? It 
-really doesn't matter, you do you.
+really doesn't matter, you do you. However, for the rest of this book, we will be 
+using assignment before propagation because it's easier for me to understand, and it 
+follows online pseudocode examples better than propagate before assignment.
 
 The speed gain on satisfiable problems is very miniscule, however, if you ever want 
 proof that iterative algorithms are faster than recursive ones, the unsatisfiable 
@@ -2984,30 +2987,39 @@ the new addresses for everything.
 
 \section{Clause Learning}
 
-The first step into creating a CDCL solver is to learn and use new clauses. This is 
-easier said than done. The first thing we need to do is modify our unit propagation 
-code to return a clause when there is a conflict and nothing otherwise. What clause 
-do we return when there is a conflict? We return the clause that evaluates to False
-because that's where we have a contradiction in our assignment. And just as a reminder,
-the main solving loop now handles undoing the assignments of the literals in our trail,
-so we don't need to do anything other than return the clause that's evaluating to False.
+The first step in creating a CDCL solver is to learn and use new clauses. There are 
+many versions involving different ways of backtracking, variable assigning, and even 
+how we learn new clauses, but for now, we will keep our implementation as close to 
+our iterative DPLL version and work our way up to the more advanced and widely used 
+versions of the algorithm. 
 
-The next step is to perform something called ``clause resolution'' over and over until 
-a certain stopping point is reached. Since we're not implementing backjumping nor 
-first UIPs yet, that stopping point is going to be when our learned clause contains 
-only decision literals. Here is how clause resolution works: 
+In order to learn a new clause, we first need to understand the learning process. 
+The big idea is that we will encounter conflicts and contradictions while assigning 
+and propagating new literals, and we want to learn from those conflicts and contradictions 
+in a way that would ideally prevent us from making the same mistake again. Our unit 
+propagation method is the perfect tool for this because it already analyzes our clauses 
+for us and can detect when a contradiction has occurred. Rather than returning True or 
+False to indicate a successful or unsuccessful propagation respectively, when we 
+encounter a contradiction, we want to return the clause that is unsatisfied. You may know that
+when we propagate, there could be more than one clause that is unsatisfied, but just not 
+yet evaluated to be unsatisfied. Even though there could be many conflicting clauses at
+once, we just want to return the first one that we find. You may wonder why not learn from 
+all of them, and the answer is that by resolving the bad decision/propagation we made, 
+we will (hopefully) prevent ourselves from doing more propagations that lead to those 
+extra unsatisfied clauses.
 
-Assuming we've set up storing reason clauses and contradiction clauses correctly, 
-We create a copy of the contradiction clause, find the most recently propagated 
-literal within it, take its reason clause, union it with the contradiction clause,
-remove the most recently propagated literal and its negation, remove all duplicate 
-literals, and repeat until there are no more propagated literals in the contradiction
-clause. Afterwards, we backtrack one level, add this clause to our database, and then 
-initialize its watched literals.
+After we return the conflicting clause to the main solving method, we then want to 
+perform ``clause resolution.'' As stated in the beginning, there are many versions of 
+clause resolution, mainly differing in when they/how they stop resolving. For our basic 
+CDCL implementation, we will resolve the conflicting clause until it contains no more 
+propagated literals, ie, it's a clause of only decisions. The reason why this is a good 
+stopping point is because we made all decisions, and because of that, clause learning 
+will essentially allow us to learn which decisions we can't make together. 
 
-So let's now understand the algorithmic portions. Because we want to be able to find 
-the most recently propagated literal in a clause at all times, it would be nice to have 
-a data structure that is a mapping from variables to their places in the decision trail.
+Lastly, after we resolve on the learned clause, we want to add it to the database,
+and we want to initialize its watched literals so that we can use it as if it were 
+part of our initial CNF equation. Before we discuss how clause resolution works at 
+a theory level, let's first discuss a few implementation changes we'll need to make.
 
 \begin{lstlisting}
     public interface:
@@ -3024,6 +3036,7 @@ a data structure that is a mapping from variables to their places in the decisio
 
         TrailEntry {
             int lit,
+            int decisionLevel,
             int clauseIdx
         }
 
@@ -3033,9 +3046,9 @@ a data structure that is a mapping from variables to their places in the decisio
         }
 
         void parse(string equation)
-        bool succeeded propagate()
+        bool propagate(int[] decisionLevel, int decisionLevel)
         bool createWatched()
-        bool createWatched(int idx)
+        bool createWatched(int idx, int decisionLevel)
 
         int numVars
         int numClauses
@@ -3047,7 +3060,7 @@ a data structure that is a mapping from variables to their places in the decisio
         DecisionLevel[] trailStarts
         int[] var_to_trail
 
-        optional<var>[] vars
+        optional var[] vars
         map<int, int[]> var_to_clause
         map<int, (int, int)> clause_to_vars
 \end{lstlisting}
@@ -3064,7 +3077,7 @@ value to indicate whether or not propagation was successful, we're now going to 
 a clause if we encounter a contradiction and nothing otherwise.
 
 \begin{lstlisting}
-    bool propagate(int[] assignment) {
+    bool propagate(int[] assignment, int decisionLevel) {
         while (trailHead < trail.size) {
             int prop = trail[trailHead].lit
             trailHead = trailHead + 1
@@ -3080,7 +3093,7 @@ a clause if we encounter a contradiction and nothing otherwise.
                     int idx = abs(other_watch)
                     if (assignment[idx] == Unassigned) {
                         ...
-                        append(trail, {other_watch, clause_idx})
+                        append(trail, {other_watch, decisionLevel, clause_idx})
                     } else {
                         return clause
                     }
@@ -3108,7 +3121,7 @@ clause is unit, and if it is, we will add it to our trail, assign the Unassigned
 etc. Otherwise, we do nothing.
 
 \begin{lstlisting}
-    bool createWatched(int index) {
+    bool createWatched(int index, int decisionLevel) {
         clause = clauses[index]
         if (clause.size == 0) {
             return False
@@ -3164,7 +3177,7 @@ etc. Otherwise, we do nothing.
         }
 
         if (numTrue == 0 && numUnassigned == 1) {
-            append(trail, {clause[firstIdx], index})
+            append(trail, {clause[firstIdx], decisionLevel, index})
             var_to_trail[abs(clause[firstIdx])] = trail.size() - 1
 
             int var = clause[firstIdx]
@@ -3211,15 +3224,37 @@ therefore, clause resolution wouldn't work.
             return False
         }
 
+        int decisionLevel = 0
+
         if (trail.size > 0) {
             append(trailStarts, {0, true})
 
-            if (propagate(assignment, 0) == False) {
+            if (propagate(assignment, decisionLevel) == False) {
                 return False
             }
         }
 
         while (True) {
+            if (trailHead == trail.size) {
+                //Assignment code
+                int firstUnassigned = -1
+                for (i = 1 up to numVars) {
+                    if (assignment[i] == Unassigned) {
+                        firstUnassigned = i
+                        break
+                    }
+                }
+
+                if (firstUnassigned == -1) {
+                    return True
+                }
+
+                assignment[firstUnassigned] = True
+                append(trail, {firstUnassigned, -1})
+                append(trailStarts, {trail.size - 1, False})
+                trailHead = trailStarts.last.idx
+            }
+
             optional int[] contradiction = propagate(assignment)
 
             if (contradiction has a value) {
@@ -3310,28 +3345,223 @@ therefore, clause resolution wouldn't work.
                 continue
             }
         }
-
-        //Assignment code
-        int firstUnassigned = -1
-        for (i = 1 up to numVars) {
-            if (assignment[i] == Unassigned) {
-                firstUnassigned = i
-                break
-            }
-        }
-
-        if (firstUnassigned == -1) {
-            return True
-        }
-
-        assignment[firstUnassigned] = True
-        append(trail, {firstUnassigned, -1})
-        append(trailStarts, {trail.size - 1, False})
-        trailHead = trailStarts.last.idx
     }
 \end{lstlisting}
 
-And with that, we've finished clause learning.
+I want to point out that this isn't nevessarily CDCL yet. This is more like DPLL, but with 
+adding clauses to our database. The reason as to why this is, is because whenever we recover 
+from a contradiction, we only go back one level. You see, CDCL does away with the idea of a
+``tried other branch" flag and relies on the learned clauses to guide what variable assignments
+are possible and which ones are contradictory. However, because we only backtrack one level, there 
+is nothing to actually force new variable assignments in cases where the learned clause isn't a unit 
+clause. It can happen, but it doesn't always happen, so we still need to try the other assignment 
+since for the most part, the learned clause isn't used.
+
+\subsection{Clause Resolution}
+
+Although we've already seen the pseudocode for clause resolution, it's not discussed very 
+much, and I want us to understand how it works better. As we make decisions and propagations, 
+we form this thing called an \textbf{implication graph}. In a DPLL style solver, our assignments 
+and propagations form a directed acyclic graph (I will not be proving this), and by traversing the
+implication graph, we can find out what decisions led to the contradiction.
+
+To learn more about implication graphs, let's look at one and discuss what it means.
+We will use the implication graphs from here (Figures 4.1 and 4.2): 
+\begin{center}
+    \small{\url{https://www3.cs.stonybrook.edu/~cram/cse505/Fall20/Resources/cdcl.pdf}}
+\end{center}
+
+We will start with Figure 4.1:
+
+\fbox{
+    \begin{tikzpicture}[
+        >=Stealth,
+        every node/.style={font=\large},
+        implication/.style={->, thick}
+    ]
+
+    % Nodes
+    \node (x31) {$x_{31}=0\ @\ 3$};
+    \node (x2)  [below right=0.8cm and 1.8cm of x31] {$x_2=0\ @\ 5$};
+    \node (x1)  [below left=0.8cm and 1.8cm of x2] {$x_1=0\ @\ 5$};
+    \node (x3)  [below right=0.8cm and 1.8cm of x1] {$x_3=0\ @\ 5$};
+    \node (x4)  [above right=0.8cm and 1.8cm of x3] {$x_4=1\ @\ 5$};
+
+    % Edges
+    \draw[implication] (x31) -- node[above left] {$\omega_1$} (x2);
+    \draw[implication] (x1)  -- node[above left] {$\omega_1$} (x2);
+    \draw[implication] (x1)  -- node[below left] {$\omega_2$} (x3);
+    \draw[implication] (x2)  -- node[above right] {$\omega_3$} (x4);
+    \draw[implication] (x3)  -- node[below right] {$\omega_3$} (x4);
+
+    \end{tikzpicture}
+}
+
+It corresponds to the following CNF equation: 
+$$ (\omega_1) \wedge (\omega_2) \wedge (\omega_3) =
+(x_1 \vee x_{31} \vee \neg x_2) \wedge (x_1 \vee \neg x_3) \wedge (x_2 \vee x_3 \vee x_4)$$
+
+Each node of the graph follows this form: $x_i = v @ d$, but what does it mean?
+
+\begin{center}
+    This is the notation for assignment of a variable at a certain decision level:
+    $$x_i = v@d$$
+    where $i$ denotes the index of the variable being assigned, $v \in \{0, 1\}$
+    (alternatively, $v \in \{F, T\}$), and $d$ is the decision level for which that 
+    assignment was executed.
+\end{center}
+
+So in our graph, $x_{31} = 0 @ 3$ means variable 31 was assigned 0 (or False) at
+decision level 3. What about the edges? The edges are clauses, and they connect
+variables to each other, but what's the relationship? Let's go left to right in our 
+implication graph. Variables 31 and 1 are assigned False at decision levels 3 and 5
+respectively, and through clause 1, they both have an edge to variable 2, which is also 
+assigned False at decision level 5. If we look at the original CNF equation, we see that 
+in clause 1, $x_1$ and $x_{31}$ are not negated, so they are False literals. That leaves 
+$x_2$ Unassigned, so we propagate in order to satisfy the clause. We assign $x_2 = F$ 
+because it's negated, so its literal will evaluate to True. Likewise, $x_1$ has another 
+edge of clause 2 ($\omega_2$) to $x_3$. If we look at clause 2, we see that $x_1 = F$ 
+forces $\neg x_3 = T \equiv x_3 = F$. Lastly, we see that $x_2$ and $x_3$ have an edge 
+to $x_4$ through $\omega_3$, forcing its assignment to be $x_4 = T$.
+
+That was pretty easy to understand, so now let's look at an implication graph with 
+contradictions. From Figure 4.2:
+
+\noindent
+\fbox{
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    >=Stealth,
+    every node/.style={font=\large},
+    implication/.style={->, thick}
+]
+
+% Left side
+\node (x31) {$x_{31}=0\ @\ 3$};
+
+\node (x2)
+    [below right=0.8cm and 1.8cm of x31]
+    {$x_2=0\ @\ 5$};
+
+\node (x1)
+    [below left=0.8cm and 1.8cm of x2]
+    {$x_1=0\ @\ 5$};
+
+\node (x3)
+    [below right=0.8cm and 1.8cm of x1]
+    {$x_3=0\ @\ 5$};
+
+\node (x4)
+    [above right=0.8cm and 1.8cm of x3]
+    {$x_4=1\ @\ 5$};
+
+% Right side
+\node (x5)
+    [above right=0.8cm and 2.5cm of x4]
+    {$x_5=0\ @\ 5$};
+
+\node (x6)
+    [below right=0.8cm and 2.5cm of x4]
+    {$x_6=0\ @\ 5$};
+
+\node (x21)
+    [below left=1.0cm and 1.8cm of x6]
+    {$x_{21}=0\ @\ 2$};
+
+\node (kappa)
+    [right=2.5cm of x6]
+    {$\kappa$};
+
+% Left implication graph
+\draw[implication]
+    (x31) -- node[above left] {$\omega_1$} (x2);
+
+\draw[implication]
+    (x1) -- node[above left] {$\omega_1$} (x2);
+
+\draw[implication]
+    (x1) -- node[below left] {$\omega_2$} (x3);
+
+\draw[implication]
+    (x2) -- node[above right] {$\omega_3$} (x4);
+
+\draw[implication]
+    (x3) -- node[below right] {$\omega_3$} (x4);
+
+% Right implication graph
+\draw[implication]
+    (x4) -- node[above left] {$\omega_4$} (x5);
+
+\draw[implication]
+    (x4) -- node[below left] {$\omega_5$} (x6);
+
+\draw[implication]
+    (x21) -- node[below right] {$\omega_5$} (x6);
+
+\draw[implication]
+    (x5) -- node[above right] {$\omega_6$} (kappa);
+
+\draw[implication]
+    (x6) -- node[below right] {$\omega_6$} (kappa);
+
+\end{tikzpicture}
+}
+}
+
+\noindent
+This graph corresponds to the CNF equation: 
+$$ (\omega_1) \wedge (\omega_2) \wedge (\omega_3) \wedge (\omega_4) \wedge (\omega_5) \wedge (\omega_6) 
+=
+(x_1 \vee x_{31} \vee \neg x_2)_1 \wedge (x_1 \vee \neg x_3)_2 \wedge (x_2 \vee x_3 \vee x_4)_3
+$$
+$$
+\wedge (\neg x_4 \vee \neg x_5)_4 \wedge (x_{21} \vee \neg x_4 \vee \neg x_6)_5 \wedge (x_5 \vee x_6)_6
+$$
+
+Up until $x_4 = 1 @ 5$, this graph is the same as the one from above. After that,
+we have some more decisions and propagations, that I bet you can read by now, up until 
+we reach this symbol: $\kappa$, which has two edges via $\omega_6$. This node, $\kappa$,
+corresponds to a contradiction within clause $\omega_6$ because its literals are all False.
+
+\noindent
+When we resolve this conflict, we first start with the clause 
+$$(x_5 \vee x_6)$$
+as that is the clause in which our conflict occurred. Next, we find the most recently propagated literal, 
+which we will assume to be $x_6$ (the most recently propagated literal depends on our implementation 
+of propagation, so for simplicity's sake, we will assume numerical order to settle ties in 
+implication orderings on the same level). $x_6$ was propagated because of the clause
+$$(x_{21} \vee \neg x_4 \vee \neg x_6)$$
+Combining this with the current conflict clause yields:
+$$(x_5 \vee x_6 \vee x_{21} \vee \neg x_4 \vee \neg x_6)$$
+which we process to remove all instances of the conflicting variable, leading to a resolution 
+clause of: 
+$$(x_5 \vee x_{21} \vee \neg x_4)$$
+In this clause, the most recently propagated literal is $x_5$, so we grab its reason clause ($\omega_4$)
+and combine once again to get: 
+$$(\neg x_4 \vee \neg x_5 \vee x_5 \vee x_{21} \vee \neg x_4)$$
+
+\noindent
+Simplifying that clause gives us: $$(\neg x_4 \vee x_{21})$$
+The only propagated literal in the 
+clause is $x_4$, so we grab its reason clause ($\omega_3$) and combine again into:
+$$(x_2 \vee x_3 \vee x_4 \vee \neg x_4 \vee x_{21})$$
+This simplifies down into:
+$$(x_2 \vee x_3 \vee x_{21})$$
+Our most recently propagated literal is now $x_3$. Repeating 
+the process again, we get an unsimplified resolution clause of: 
+$$(x_2 \vee x_3 \vee x_{21} \vee x_1 \vee \neg x_3)$$ 
+Simplifying it down, we now get:
+$$(x_2 \vee x_{21} \vee x_1)$$
+Our last propagated literal in the clause is $x_2$. We 
+combine our incomplete resolution clause with $\omega_1$ to get:
+$$(x_2 \vee x_{21} \vee x_1 \vee x_1 \vee x_{31} \vee \neg x_2)$$
+This transforms into 
+$$(x_1 \vee x_{21} \vee x_{31})$$
+which contains only decision literals.
+
+What does this new clause, which we'll call $\omega_7$, tell us? It tells us that 
+all three decision literals \textbf{cannot} all be False (ie, at least one of them 
+\textbf{must} be True).
 
 \subsection{Clause Learning - Results}
 
@@ -3354,7 +3584,19 @@ combined with non chronological backjumping allows us to instantly and fully use
 learned clause to its potential. Although we have taken a small step back, we will 
 see what leaps forward we will make in the next sections.
 
+\textit{Aside: Why did we get rid of pure literal elimination? The problem with pure literal 
+elimination is that once we start learning clauses, previously pure literals may no longer 
+be pure anymore once we add in a new clause. Because pure literals aren't born from decisions/
+assignments, they aren't as ``concrete'' in their status. (Ie, propagation \textbf{forces} new 
+literal assignments, pure literal elimination is more of a ``rule of thumb''). If we had a pure 
+literal, say $5$, and we added in a clause containing $-5$, unfortunately, $5$ is no longer pure, 
+and anything propagated because of $5$ also would need to be undone because the reason why they 
+were propagated/assigned those values in the first place doesn't hold anymore. Because we saw that 
+pure literal elimination wasn't that helpful to begin with and with all these reasons as to why it 
+wouldn't easily work under CDCL, it would just be much better to not have it at all.}
+
 \section{Non-Chronological Backjumping}
+
 
 
 \subsection{Non-Chronological Backjumping - Results}

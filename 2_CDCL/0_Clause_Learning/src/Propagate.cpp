@@ -3,7 +3,7 @@
 #include <cassert>
 
 namespace saturn {
-    std::optional<std::vector<int>> satsolver::propagate() {
+    std::optional<std::vector<int>> satsolver::propagate(size_t decisionLevel) {
         while (qHead < trail.size()) {
             int prop = trail[qHead].lit;
             qHead++;
@@ -97,7 +97,7 @@ namespace saturn {
                         }
 
                         //push a trail entry
-                        trail.push_back({other_watch, clause_idx});
+                        trail.push_back({other_watch, decisionLevel, clause_idx});
 
                         //record where the assigned variable goes in the trail
                         var_to_trail[idx] = trail.size() - 1;

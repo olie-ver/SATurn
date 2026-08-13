@@ -26,13 +26,14 @@
 \contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{59}{subsection.3.6.1}%
 \contentsline {chapter}{\numberline {4}CDCL}{61}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Clause Learning}{62}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}Clause Learning - Results}{68}{subsection.4.1.1}%
-\contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{69}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Non-Chronological Backjumping - Results}{69}{subsection.4.2.1}%
-\contentsline {section}{\numberline {4.3}First UIP}{69}{section.4.3}%
-\contentsline {section}{\numberline {4.4}VSIDS}{69}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Clause Database Management}{69}{section.4.5}%
-\contentsline {section}{\numberline {4.6}Restarts}{69}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Comparing to MiniSAT}{69}{section.4.7}%
-\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{70}{chapter.5}%
+\contentsline {subsection}{\numberline {4.1.1}Clause Resolution}{69}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Clause Learning - Results}{72}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{72}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Non-Chronological Backjumping - Results}{72}{subsection.4.2.1}%
+\contentsline {section}{\numberline {4.3}First UIP}{73}{section.4.3}%
+\contentsline {section}{\numberline {4.4}VSIDS}{73}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Clause Database Management}{73}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Restarts}{73}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Comparing to MiniSAT}{73}{section.4.7}%
+\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{74}{chapter.5}%
 \contentsfinish 
