@@ -6,6 +6,24 @@
 \usepackage{listings}
 \usepackage{xcolor}
 
+\usepackage{forest}
+\usepackage{tikz-qtree}
+
+\usepackage{stix}
+
+\usepackage[normalem]{ulem}
+
+\newsavebox{\FVerbBox}
+\newenvironment{FVerbatim}
+ {\VerbatimEnvironment
+  \begin{center}
+  \begin{lrbox}{\FVerbBox}
+  \begin{BVerbatim}}
+ {\end{BVerbatim}
+  \end{lrbox}
+  \fbox{\usebox{\FVerbBox}}
+  \end{center}}
+
 \lstset{
   upquote=true,
   basicstyle=\fontencoding{T1}\ttfamily\small,
@@ -63,7 +81,10 @@ I hope to become a little less of ``not an expert'' in those fields.
 The aim of this book isn't to improve or revolutionize SAT solving algorithms. 
 Rather, it is to make the methods and reasoning more accessible to the lay undergraduate 
 (I am open to the possibility that I myself may be the lay undergraduate, and you are 
-simply smarter than me).
+simply smarter than me). And for the record, to cover myself in the future, if you are a student 
+tasked with creating a SAT solver, DO NOT USE THIS BOOK OR ANY OF THE ONLINE CODE TO CHEAT!!!
+This book and the online code is meant to help you learn how these algorithms are implemented,
+not for you to copy.
 
 Throughout this book we will build our own modern SAT solver from scratch, 
 complete with all the bells and whistles. We will begin with the most basic 
@@ -105,7 +126,10 @@ technology of the modern day. They are used in both software and hardware verifi
  \footnote{\url{https://www.cs.utexas.edu/~isil/cs389L/lecture4-6up.pdf}}
 
 In a more computer science-focused world, they have applications in 
-NP-Completeness. Since (nearly) every problem has a reduction to a 
+NP-Completeness. Since (nearly)
+\footnote{Before anyone comes after me, the Halting Problem doesn't have a reduction to 
+a boolean satisfiability problem, so take that.}
+every problem has a reduction to a 
 Boolean SAT problem, creating one really really good SAT solver lets us 
 solve all those problems in a ``fast'' manner. So they are important everywhere
 despite the vast majority of us never really thinking about their existence.
@@ -124,11 +148,15 @@ language agnostic (it doesn't carry artifacts of any real programming language (
 this idea is poorly executed when it comes to formatting. My algorithms professor will 
 probably scream at me for this, but I'm making the executive decision that we will
 follow a general C-based syntax for readability purposes. That is, 
-we will use braces \{\} for block scope, parentheses () for grouping, \verb|=| 
-for assignment, \verb|==| for equality, and \verb|<=|, \verb|>=|, etc.\ for their 
+we will use braces ``\{\}" for block scope, parentheses ``()" for grouping, ``\verb|=|"
+for assignment, ``\verb|==|" for equality, and ``\verb|<=|", ``\verb|>=|", etc.\ for their 
 respective uses. Everything that can be inferred visually will be used. Another thing to note is that we will 
-pretend our arrays can dynamically resize, so we won't pre-allocate space, and we will also assume 1-based 
-indexing for an easier map from variables to indices, as you will see later.
+pretend our arrays can dynamically resize, so we won't pre-allocate space,
+\footnote{If you are implementing this in real code, this tiny detail of no pre-allocation of memory
+will come back to bite you later, so if you are encountering segfaults, this \textit{should} be one of the 
+first things you should check!}
+and we will also assume 1-based  indexing for an easier map from variables to indices,
+as you will see later.
 
 \section{What Do SAT Solvers Even Solve?}
 
@@ -171,6 +199,34 @@ Some examples that are \textbf{not} CNF:
     \footnote{DNF (Disjunctive Normal Form) is a ``disjunction of conjunctions,'' 
     i.e., clauses of ands combined by ors. Solving these is trivially easy, 
     as we just need to find one clause where no element evaluates to false.}
+\end{itemize}
+
+\section{Our Environment}
+
+Before we begin, we should talk about the environment that this book uses. 
+\begin{itemize}
+    \item Hardware: an Apple M1 MacBook Air, running MacOS Sequoia  15.7.8
+            with 8GB RAM and 512GB of storage space.
+    \item Programming Language: C++20 compiled by Apple clang version 17.0.0 (clang-1700.6.4.2)
+            targetted for arm64-apple-darwin24.6.0
+    \item IDE: Visual Studio Code version 1.132.1
+    \item Testing and Benchmarking: Testing and benchmarking is done by Test++, a C++ 
+            unit testing program I wrote (and is open source in case you want to try it out).
+            \footnote{Not a shameless plug because it's awesome.}
+            At the time of writing, it does not optimize the compiled code. It is also 
+            not technically a benchmarking program. The way tests are set up is that 
+            each category of test/testing-set is given its own Test++ test which is run 
+            to completion. The resulting time to complete that Test++ test is used as the 
+            benchmark time. Differences in benchmarking frameworks and the way tests are set up 
+            may affect the result, but our testing workflow is as follows:
+        \begin{enumerate}
+            \item Create a Test++ testing function
+            \item Read in the testing file(s) from the given file path/directory
+            \item Create an instance of our SAT solver
+            \item Solve the equation
+            \item Check that the result is correct
+            \item Repeat steps 3-5 until no more testing files need to be processed
+        \end{enumerate}
 \end{itemize}
 
 \section{CNF Encoding}
@@ -337,23 +393,23 @@ There are some things about this syntax to be wary of:
 For a quick example, here is a simple way to format a DIMACS CNF equation:
 
 \begin{center}
-  \begin{BVerbatim}
-    p cnf 4 2
-    1 2 -3 0
-    -1 4 0
-  \end{BVerbatim}
+  \begin{FVerbatim}
+p cnf 4 2
+1 2 -3 0
+-1 4 0
+  \end{FVerbatim}
 \end{center}
 
 And one with comments:
 
 \begin{center}
-  \begin{BVerbatim}
-    c this is a comment
-    p cnf 4 2
-    c this is another comment
-    1 2 -3 0
-    -1 4 0
-  \end{BVerbatim}
+  \begin{FVerbatim}
+c this is a comment
+p cnf 4 2
+c this is another comment
+1 2 -3 0
+-1 4 0
+  \end{FVerbatim}
 \end{center}
 
 In order to increase the compatibility of our SAT solver, we will be bending
@@ -386,48 +442,38 @@ variables must be between $1$ and $N$.
 
 Thus, valid input can take on many forms:
 
-\begin{center}
-  \begin{BVerbatim}
-    p cnf 4 2
-    1 2 -3 0
-    -1 4 0
-  \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+p cnf 4 2
+1 2 -3 0
+-1 4 0
+\end{FVerbatim}
 
-\begin{center}
-  \begin{BVerbatim}
-    4 2
-    1 2 -3 0
-    -1 4 0
-  \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+4 2
+1 2 -3 0
+-1 4 0
+\end{FVerbatim}
 
-\begin{center}
-  \begin{BVerbatim}
-    p cnf 4 2
-    c this comment doesn't have to be at the top
-    1 2 -3 0
-    -1 4 0
-  \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+p cnf 4 2
+c this comment doesn't have to be at the top
+1 2 -3 0
+-1 4 0
+\end{FVerbatim}
 
-\begin{center}
-  \begin{BVerbatim}
-      p cnf 4 2
-      c this comment doesn't have to be at the top
-      1 2 -3 0
-      -1 4
-      c the first two numbers are still the number
-      c of variables and the number of clauses
-  \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+p cnf 4 2
+c this comment doesn't have to be at the top
+1 2 -3 0
+-1 4
+c the first two numbers are still the number
+c of variables and the number of clauses
+\end{FVerbatim}
 
-\begin{center}
-  \begin{BVerbatim}
-    p cnf 4 2 1 2 -3 0
-    -1 4 0
-  \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+p cnf 4 2 1 2 -3 0
+-1 4 0
+\end{FVerbatim}
 
 More information can be found here.\footnote{\url{https://people.sc.fsu.edu/~jburkardt/data/cnf/cnf.html}}
 
@@ -469,7 +515,7 @@ SATSolver(string input)
 {
     vars = no-value
 
-    if (input is file)
+    if (input is a file)
     {
         string content = readFile(input)
         parse(content)
@@ -572,35 +618,34 @@ parse(equation)
 \end{lstlisting}
 
 This code will be implemented slightly differently in the example code, as I
-am using C++. There is also a big bug, which is that the code assumes that
+am using C\verb|++|. There is also a big bug, which is that the code assumes that
 because ``p cnf'' appears in the file, there is a header. This is not always true
 because it does not consider whether or not the header is on the same line as a
 comment, so this will break it:
 
-\begin{center} 
-  \begin{BVerbatim}
-      c p cnf
-      1 2 -3 0
-      -1 4 0
-  \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+c p cnf
+1 2 -3 0
+-1 4 0
+\end{FVerbatim}
 
 Because it assumes that there is a header when in fact there is not. I will
 leave fixing this bug as an exercise to both the reader and the writer, however,
 I will not be implementing this fix because if you're purposely trying to break
-the constructor, you're not trying to solve a CNF equation anyways. The fix,
-in case you're wondering, would be to just scan the lines and for each line that
-doesn't start with ``c,'' check that it starts with ``p cnf,'' and if it does, then you
-know for certain that there is a header. Now the real exercise is to determine
-whether or not there's a header in just one pass instead of two.
+the constructor, you're not trying to solve a CNF equation anyways. In case you're 
+wondering, the fix is to first find ``p cnf'' then scan backwards until you reach 
+either the start of the file, or the end of the previous line. If you don't encounter 
+a ``c'' then you know that this header is actually a header.
 
 \chapter{Brute Force}
 
 Since the dawn of man, whenever encountered with a difficult problem, we have
 decided ``eh, let's do it in the hardest way possible because I can't think of a
 better solution.'' The history of brute forcing things goes all the way back to
-our ancestors discovering fire,\footnote{This is probably not true.} all the way
-to our current solution to climate change.\footnote{It's doing nothing and hoping
+our ancestors discovering fire,
+\footnote{This is probably not true.} 
+all the way to our current solution to climate change.
+\footnote{Which is doing nothing and hoping
 everything sorts itself out, which is really disappointing.}
 
 The idea of brute forcing something is really as simple as it gets. We have $n$
@@ -662,18 +707,18 @@ Unfortunately, the formatting across the page kind of sucks, but let's try to
 explain it anyways.
 
 First, we create an array to hold each boolean value, and then next we start
-our loop from $0$ all the way to ``1 << numVars.'' If you are unfamiliar with
-what the left bit shift operator (`<<`) is, essentially, it is a fast way of
+our loop from $0$ all the way to ``1 \verb|<<| numVars.'' If you are unfamiliar with
+what the left bit shift operator (\verb|<<|) is, essentially, it is a fast way of
 computing some number times $2$ times the number of places to shift. That is
 all the explanation I am going to give because that's not the point. But by
-computing `1 << numVars`, we are computing $1 \rightarrow 2^n$, which
+computing ``1 \verb|<<| numVars'', we are computing $1 \rightarrow 2^n$, which
 happens to be the total number of possible variable combinations (from all
 False to all True).
 
 Then in the first inner for loop, we put the current variable combination into
-the `Assignment` array. The index variable `i` holds the current variable
-combination, and we isolate the $j$th variable using `1 << j` and put it into
-the $j$th spot in the `Assignment` array.
+the `Assignment` array. The index variable `i' holds the current variable
+combination, and we isolate the $j$th variable using ``1 \verb|<<| j'' and put it into
+the $j$th spot in the ``Assignment'' array.
 
 Next, we evaluate the CNF equation against the current assignment. We first
 assume that the equation is solved (innocent until proven guilty), and then we
@@ -684,10 +729,10 @@ if we don't). Then, we ``and'' the ``clause satisfied'' evaluation with the
 ``equation solved'' condition.
 
 At the end of the evaluation loop, we check if we found a satisfiable
-assignment. If we have, we then make our `vars` field, which holds the solution
+assignment. If we have, we then make our $vars$ field, which holds the solution
 if there is one, the assignment, and then we return True to indicate that we
 have found a satisfiable assignment. If each possible assignment is not
-satisfiable, then we return False, and `vars` will hold nothing.
+satisfiable, then we return False, and $vars$ will hold nothing.
 
 Since it's trivially easy to see why the code works, we will move onto something
 more interesting: optimizing brute force.
@@ -774,7 +819,7 @@ for each (clause in clauses)
 \end{lstlisting}
 
 The next algorithm optimization we can make is removing the loop where we
-move the current assignment into the `Assignment` array. Rather than doing it
+move the current assignment into the ``Assignment'' array. Rather than doing it
 upon every iteration, why don't we do it once we find a satisfiable assignment?
 
 \begin{lstlisting}
@@ -849,7 +894,7 @@ algorithm? And once you've figured that out, can you program it in a way
 where once one thread finds a satisfactory assignment, it terminates all other
 threads immediately instead of waiting for the others to finish?
 
-\section{Brute Force -- Results}
+\section{Brute Force - Results}
 
 To see how well our current algorithm does, running some tests would be a
 good idea. Why run tests when we have already proven that our algorithm
@@ -859,15 +904,15 @@ To test its speed (and as we add more features, to ensure correctness is
 kept), we use a database of problems from here:
 
 \begin{center}
-\url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}
+    \url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}
 \end{center}
 
 We gave our current implementation 1000 SAT instances (uf20-91), each
 with 20 variables and 91 clauses each, all satisfiable. It took this baseline
-brute force algorithm 2,119,301 milliseconds, which is roughly 35.32
+brute force algorithm \textbf{2,119,301 milliseconds}, which is roughly 35.32
 minutes. This result is actually from the first time I wrote a brute force 
 algorithm. The brute force result you can find on GitHub, it actually took 
-1,770,851 milliseconds, which is about 29.51 minutes. I have no idea what I 
+\textbf{1,770,851 milliseconds}, which is about 29.51 minutes. I have no idea what I 
 did in the rewrite that shaved off 4 minutes. I won't even lie to you reader,
 I am a busy undergraduate student, so I didn't even do the "best practice" for 
 testing, which would be to quit all other processes and then benchmark it. However,
@@ -879,33 +924,38 @@ data accuracy. But you must understand that I don't want to give up an hour
 and a half of my life to an algorithm that we're going to be improving upon
 anyways.
 
-For fun, I will benchmark the short-circuit and parallel versions as well.
-Short-Circuited (Basic): 49874ms (~50 seconds)
+Here are the results for all brute force algorithms, including the short-circuited 
+and parallel versions:
 
-Parallel: 10589ms (~10.5 seconds)
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+\end{FVerbatim}
 
 For the parallel version, the implementation isn't perfect. I believe that 
 we don't prevent false sharing amongst cache lines (ie we get more cache swaps between 
 threads leading to more cache misses), which could explain why on my M1 MacBook Air, 
 we don't get close to a ~8 times speedup. Since this was for fun, I'm not going to perfect 
-the parallelized version, that can an exercise to the reader :)
+the parallelized version, that can an exercise to the reader :\verb|)|
 
 \chapter{DPLL}
 
 The Davis-Putnam-Logemann-Loveland (DPLL) algorithm is a complete
-backtracking-based search algorithm for finding satisfiable assignments for SAT
+backtracking based search algorithm for finding satisfiable assignments for SAT
 problems. It is, dare I say, the foundational algorithm for modern SAT solvers,
 as the state-of-the-art algorithm used by basically every SAT solver builds upon
 the foundations that DPLL provides, as we will see later on.
 
-It consists of three components:
+\noindent It consists of three components:
 
 \begin{itemize}
     \item Recursive backtracking
     \item Unit propagation
     \item Pure literal elimination
 \end{itemize}
-
 How does it work?
 
 Imagine a binary tree of variables, each with two branches representing their
@@ -915,35 +965,49 @@ any value, and we don't know how each assignment helps us in finding out
 whether or not the equation is satisfiable. How can we figure out if we can
 satisfy the equation without just brute forcing it?
 
-The answer is making an ass out of you and me to make assumptions.
+The answer is \sout{making an ass out of you and me} to make assumptions.
 
 \begin{figure}[H]
     \centering
-    % TODO: Recreate DPLL decision tree figure.
-    % Placeholder until the original figure is reconstructed.
-    \fbox{\parbox[c][2.8in][c]{4.5in}{\centering
-    DPLL Decision Tree}}
+    \begin{tikzpicture}
+        \tikzset{edge from parent/.style={draw,edge from parent 
+            path={(\tikzparentnode.south)-- +(0,-8pt)-| (\tikzchildnode)}}}
+        \Tree [.a
+                    [.b
+                        [.c
+                            [.SAT ]
+                            [.UNSAT ]
+                        ]
+                        [.c
+                            [.SAT ]
+                            [.UNSAT ]
+                        ] 
+                    ]
+                    [.b
+                        [.c
+                            [.SAT ]
+                            [.SAT ]
+                        ]
+                        [.c
+                            [.UNSAT ]
+                            [.UNSAT ] 
+                        ] 
+                    ] 
+                ]
+    \end{tikzpicture}
     \caption{Example DPLL decision tree (the outcomes may not correspond to an
     actual CNF instance, sue me).}
 \end{figure}
 
 Going back to our hypothetical, we don't know anything about anything. We
 could have a giant decision tree to explore with an exponential number of leaves
-to evaluate.
+to evaluate. How does making assumptions help us? Do we just run a random number generator 
+and if it returns 1, we go ``okay, it's satisfiable,'' and false otherwise?
 
-How does making assumptions help us?
-
-Do we just run a random number generator and if it returns 1, we go ``okay,
-it's satisfiable,'' and false otherwise?
-
-No.
-
-We make assumptions about our literal assignments.
-
-Unlike brute forcing where we try every possible combination of variable
-assignments at once, in DPLL we start with a literal, we'll call it $A$. There is
-nothing in the equation that indicates whether or not $A$ should be true or
-false; either could be valid.
+No. We make assumptions about our literal assignments.Unlike brute forcing where we try 
+every possible combination of variable assignments at once, in DPLL we start with a literal, 
+we'll call it $A$. Suppose there is nothing in the equation that indicates whether or not 
+$A$ should be true or false; either could be valid.
 
 So to tackle our problem, initially we will assume $A$ is true and see where
 that leads us. We propagate that value throughout our clauses, and suppose
@@ -951,9 +1015,7 @@ there is a clause that can't be satisfied. That's a contradiction, because if th
 equation was satisfiable then $A = True$ couldn't have led us there.
 
 So we've figured out that at the very least $A = True$ leads to a
-contradiction.
-
-We've now eliminated half of the search space immediately and only need to
+contradiction. We've now eliminated half of the search space immediately and only need to
 consider the cases where $A = False$.
 
 This may not make total sense immediately, so instead of giving one explanation
@@ -977,11 +1039,6 @@ This means our SAT solver becomes like so:
 \begin{lstlisting}
 public interface:
     SATSolver(string input)
-    int getNumVars()
-    int getNumClauses()
-    int[][] getClauses()
-    optional<bool>[] getSolution()
-    void printSolution()
     bool solveCNF()
 
 private interface:
@@ -991,23 +1048,19 @@ private interface:
     int numVars
     int numClauses
     int[][] clauses
-    optional<bool>[] lits
+    optional bool[] lits
 \end{lstlisting}
 
 The flow essentially becomes like this: \textit{solveCNF()} calls
 \textit{solve()}, which calls itself over and over and returns whatever solution
 it finds back up to \textit{solveCNF()}, who will handle any sort of cleanup.
 
-Why can't we just make \textit{solveCNF()} call itself recursively?
-
-Good question.
-
+Why can't we just make \textit{solveCNF()} call itself recursively? Good question.
 That's because \textit{solveCNF()} will handle any setup that
 \textit{solve()} will need in order to function properly, and it will handle any
 cleanup that \textit{solve()} may create.
 
 Let's now discuss how \textit{solve()} will work.
-
 It will be passed in a \textit{bool[]} for the current assignment of literals.
 When the size of our assignment is equal to the number of variables, we will
 then evaluate the satisfiability of the assignment, and if it's satisfiable we
@@ -1119,9 +1172,7 @@ our last value for false and try \textit{solve()} again. And if that ends up
 working out, we return true, but if it doesn't then we remove the last value
 and return false.
 
-So how do we know that it will guarantee termination for an unsatisfiable
-problem?
-
+So how do we know that it will guarantee termination for an unsatisfiable problem?
 Notice how when assigning the current variable true or false and it doesn't
 work, we just remove the last one and go up the call stack by one? Well
 suppose we're at the top of the call stack (we've assigned the first variable)
@@ -1131,7 +1182,6 @@ we return false. So our assignment array is empty, and we've returned to
 \textit{solveCNF()}. Thus, \textit{solve()} will terminate eventually.
 
 And how do we know that we'll try every single assignment?
-
 Well for the very last variable, it's easy to see, if it being true doesn't satisfy
 the equation, we assign it false, and if that doesn't work, we remove it and go
 up the call stack. Then for the previous variable, if it was true, we assign it
@@ -1161,7 +1211,6 @@ and holds nothing if not, we don't need to do anything else in
 
 You may wonder though, why not pass in \textit{lits} to \textit{solve()} or
 have no setup and make \textit{solveCNF()} purely recursive?
-
 Those are very valid questions to ask.
 
 This has to do with the differences between pseudocode and actual
@@ -1182,31 +1231,36 @@ written down here.
 \subsection{Recursive Backtracking -- Results}
 
 Running this code on the same 1000 instances (uf20-91), it took
-1,846,644ms, which is roughly 30.78 minutes. This is actually a pretty big
+\textbf{1,846,644ms}, which is roughly 30.78 minutes. This is actually a pretty big
 improvement from our 35.32 minutes via brute forcing. Although this seems
 like a big gain in speed, it should be noted that at this point the algorithm is
 still just a fancier brute forcing algorithm. The next time I rewrote this algorithm,
-it took 1,540,613ms, which is about 25.68 minutes. So once again, that's about a 
+it took \textbf{1,540,613ms}, which is about 25.68 minutes. So once again, that's about a 
 ~5 minute speedup just from rewriting it. Perhaps we should rewrite every piece of 
 software in the world to make it run 5 minutes faster. 
 
 Here's a question for you, why might assigning our variables true instead of
-false first lead to an increase in speed?
+false first lead to an increase in speed? \textbf{Hint: Look at the number of negations 
+present in the testing set.}
 
-Hint: Look at the number of negations present in the testing set.
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+\end{FVerbatim}
 
 \section{Unit Propagation}
 
 Unit propagation is the next step in implementing DPLL, and it introduces the
-idea of implication.
+idea of implication. Imagine a clause with two variables: $A$ and $Z$,
+and we know that $A = False$. What can we say about $Z$? Well, if our equation is satisfiable, 
+then the clause must be satisfiable, therefore $Z = True$ because if it didn't, 
+that would be a contradiction.
 
-Imagine clause: $A \rightarrow Z$, and we know that $A = False$. What
-can we say about $Z$?
-
-Well, if our equation is satisfiable, then the clause must be satisfiable,
-therefore $Z = True$ because if it didn't, that would be a contradiction.
-
-So instead of assigning variables $B$, $C$, \ldots, $X$, then assigning $Z$,
+So instead of assigning variables $B$, $C$, \ldots, $Y$, then assigning $Z$,
 why don't we just do it now, and use that knowledge in other clauses
 containing $Z$ or $\neg Z$?
 
@@ -1214,15 +1268,13 @@ That is essentially the idea behind unit propagation: the decisions we make
 imply other assignments, and so we should force them now instead of waiting
 until later.
 
-However, this introduces a light hiccup into our implementation.
-
-You see, our initial invariant about assigning variables is that they are
+However, this introduces a light hiccup into our implementation. You see, 
+our initial invariant about assigning variables is that they are
 assigned in numerical order instead of (possibly) out of order.
 
 ``Not a problem! We'll just make the assignment array have space for every
-variable so we can index it anywhere,'' I hear you think.
-
-Unfortunately that interferes with our base case because it relies on the size
+variable so we can index it anywhere,'' I hear you think. Unfortunately that interferes with
+our base case because it relies on the size
 of the assignment array. If it is initially at a fixed size of
 \textit{numVars}, then our base case will always fire because our assignment
 array always has a size of \textit{numVars}. So we would either need to
@@ -1233,19 +1285,14 @@ variable (positive or negative), and then as we traverse down the call stack,
 we just check if a variable is already learned, and if so, we give it its learned
 value?
 
-That would 100\% work.
-
-In fact, the first time I implemented DPLL, that is exactly what I used.
-
-However, it has the disadvantage of being annoying to maintain.
-
-Instead, why don't we create a new data type called something like
+That would 100\% work. In fact, the first time I implemented DPLL,
+that is exactly what I used. However, it has the disadvantage of being annoying 
+to maintain. Instead, why don't we create a new data type called something like
 \textit{var} that represents the state of each variable: \textit{True},
 \textit{False}, and \textit{Unassigned}.
 
 Then we can just maintain a simple counter of how many are not
 \textit{Unassigned}, and then that keeps our base case nice and neat.
-
 Yes dear reader, we are going to do that, however, if you'd like to use the
 learned set, reading about how we do it without a learned set will help you
 and offer clues on how to implement it your way.
@@ -1255,12 +1302,6 @@ and offer clues on how to implement it your way.
 \begin{lstlisting}
     public interface:
         SATSolver(string input)
-        int getNumVars()
-        int getNumClauses()
-        int[][] getClauses()
-        optional<bool>[] getSolution()
-        optional<var>[] getSolution()
-        void printSolution()
         bool solveCNF()
 
     private interface:
@@ -1272,9 +1313,7 @@ and offer clues on how to implement it your way.
         }
 
         void parse(string equation)
-        bool solve(bool[] assignment)
         bool solve(var[] assignment, int level)
-        bool evaluate(bool[] assignment)
         bool evaluate(var[] assignment)
         void propagate()
 
@@ -1284,8 +1323,7 @@ and offer clues on how to implement it your way.
 
         int[][] clauses
 
-        optional<bool>[] lits
-        optional<var>[] vars
+        optional var[] vars
 \end{lstlisting}
 
 Here we just add in a new enum for the states that a variable can be, and
@@ -1369,6 +1407,7 @@ If it's currently Unassigned, we need to assign it then propagate, but if it's b
 assigned before we assign it, then we know that it's the result of propagation, so we 
 can continue onto the next level. Other than that, it's practically the same as our recursive 
 backtracking code, except now we need to have a ``backup'' of our clauses and our assignment. 
+
 Why? Because \textit{propagate()} \textbf{mutates} the clauses and the assignment in a way 
 that breaks the assumption that our literals are assigned in ``numeric'' order. Since it 
 returns nothing, we don't have a way to undo that easily, so instead, for readability, 
@@ -1398,7 +1437,9 @@ Now let's look at how we perform textbook unit propagation:
                     if (Assignment[idx] == Unassigned) {
                         numUnassigned = numUnassigned + 1
                         unassignedIdx = j
-                    } else if (var > 0 && clause[j] == True || var < 0 && clause[j] == False) {
+                    } else if (var > 0 && clause[j] == True 
+                        || var < 0 && clause[j] == False)
+                    {
                         isUnit = false
                     }
                 }
@@ -1427,7 +1468,9 @@ Now let's look at how we perform textbook unit propagation:
                         remove(clause, -var)
                     }
 
-                    if (contains(unitVar, var) && contains(unitClause, clauseIdx)) {
+                    if (contains(unitVar, var) 
+                        && contains(unitClause, clauseIdx))
+                    {
                         remove(clauses, clause)
                     }
                 }
@@ -1500,6 +1543,7 @@ would be nice if we had a data structure where we put in our decided variables, 
 it slowly shrinks as we iterate through. Ie, we propagate one on variable at a time and 
 never again. This sounds like we need a \textit{queue}.
 \footnote{That wasn't shoehorned in at all!}
+
 Lastly, instead of copying our assignment, and constantly reiterating through the 
 \textit{entire} clause database, what if we just marked which variables we assigned,
 and which clauses we've satisfied? That way when we need to undo, we just mark those 
@@ -1512,12 +1556,6 @@ Let's change our interface:
 \begin{lstlisting}
     public interface:
         SATSolver(string input)
-        int getNumVars()
-        int getNumClauses()
-        int[][] getClauses()
-        optional<bool>[] getSolution()
-        optional<var>[] getSolution()
-        void printSolution()
         bool solveCNF()
 
     private interface:
@@ -1540,8 +1578,7 @@ Let's change our interface:
         int[][] clauses
         bool[] satisfied
 
-        optional<bool>[] lits
-        optional<var>[] vars
+        optional var[] vars
 \end{lstlisting}
 
 We need to make some minimal changes to \textit{solveCNF()}:
@@ -1580,7 +1617,8 @@ Since we don't need to change \textit{solveCNF()}, we can go straight to \textit
         }
 
         Assignment[level] = True
-        (int[] unitVars, int[] satisfiedClauses) = propagate(Assignment, level)
+        (int[] unitVars, int[] satisfiedClauses) 
+            = propagate(Assignment, level)
 
         if (solve(Assignment, level + 1) == True) {
             return True
@@ -1596,7 +1634,8 @@ Since we don't need to change \textit{solveCNF()}, we can go straight to \textit
         }
 
         Assignment[level] = False
-        (int new_unitVars, int new_satisfiedClauses) = propagate(Assignment, level)
+        (int new_unitVars, int new_satisfiedClauses) 
+            = propagate(Assignment, level)
 
          if (solve(Assignment, level + 1) == True) {
             return True
@@ -1655,7 +1694,9 @@ What's more interesting is our shiny new \textit{propagate()} method:
                     if (Assignment[idx] == Unassigned) {
                         numUnassigned = numUnassigned + 1
                         unassignedIdx = j
-                    } else if (var > 0 && clause[j] == True || var < 0 && clause[j] == False) {
+                    } else if (var > 0 && clause[j] == True 
+                        || var < 0 && clause[j] == False)
+                    {
                         isUnit = false
 
                         satisfied[i] = true
@@ -1721,17 +1762,17 @@ array in our \textit{evaluate()} method to skip clauses we know we've already sa
 And the answer is yes, and I would encourage you to do so in your implementations.
 
 \subsection{Better Unit Propagation - Results}
-So after implementing better unit propagation, this took 868ms to solve all 1000 
+So after implementing better unit propagation, this took \textbf{868ms} to solve all 1000 
 satisfiable equations. The first time I implemented this version of unit propagation,
-it actually took 2363ms, so this is somehow over twice as fast. And because it's so 
+it actually took \textbf{2363ms}, so this is somehow over twice as fast. And because it's so 
 fast, just like the first time I implemented this, we will be now testing our solver on 
 unsatisfiable equations as well.
 
 Our second testing set comes from the same database as before.
 \footnote{\url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}, in case you needed a reminder.}
-And our next testing set is called "UUF50.218.1000." In other words, it's full of equations that 
+And our next testing set is called ``UUF50.218.1000." In other words, it's full of equations that 
 have 50 variables, 218 clauses, and there are 1000 such equations in the set. In order to solve 
-all 1000 equations, it took 140,411ms (~2.34 minutes). That's also much faster than the first time 
+all 1000 equations, it took \textbf{140,411ms} (~2.34 minutes). That's also much faster than the first time 
 I implemented this algorithm. The first time I did, it took 646,228ms (~10.77 minutes). Honestly,
 with this much speedup, I don't know if I was just bad at implementing these algorithms the first time,
 \footnote{Highly likely}
@@ -1750,17 +1791,31 @@ obviously we wouldn't want to test it on something that will take more time than
 equation. Also because the asymptotic runtime is \textit{still} exponential, having a much 
 larger equation would take a much, much larger amount of time, even if they were satisfiable.
 
+\begin{FVerbatim}
+Results so far:
+
+On all 1000 equations in uf20-91:
+
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Unit Propagation: 140,041ms (~2.34 minutes).
+\end{FVerbatim}
+
 \section{Pure Literal Elimination}
 
 Suppose I gave you the following CNF equation:
 
-\begin{center}
-    \begin{BVerbatim}
-        1 2 -3 0
-        1 -4 5 0
-        1 -2 5 0
-    \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+1 2 -3 0
+1 -4 5 0
+1 -2 5 0
+\end{FVerbatim}
 
 Do you notice anything odd about it? Perhaps ``odd" is not the correct word here, do you notice 
 an easy way to satisfy this equation? You probably noticed that the variable $1$ shows up in every 
@@ -1771,14 +1826,12 @@ literals'', which are variables that only show up in the positive or negative (b
 then give them whatever assignment is necessary to have their literals evaluate to True. 
 
 Now, suppose I give you this equation:
-\begin{center}
-    \begin{BVerbatim}
-        1 0
-        -1 -2 -3 0
-        1 2 0
-        -2 3 0
-    \end{BVerbatim}
-\end{center}
+\begin{FVerbatim}
+1 0
+-1 -2 -3 0
+1 2 0
+-2 3 0
+\end{FVerbatim}
 
 I have a question for you dear reader: is $-2$ a pure literal? You might be inclined to say ``no"
 because $-2$ and $2$ are both present in the equation. However, despite that, the answer is ``yes.''
@@ -1802,8 +1855,8 @@ $2 = F$ would lead to a satisfiable assignment? As in, how do we know we're not 
 boxing ourselves in? That's another great question! The reason why we're not boxing ourselves 
 in prematurely is because, again, it only helps the satisfiability of the whole equation, 
 and because we're not doing anything detrimental, we can make that decision.
-\footnote{I know I'm probably not explaining it the best, but basically, you can think of it 
-as making the solution ``more correct'' by forcing the pure literal.}
+\footnote{Essentially, think of it as making the solution ``more correct'' 
+by forcing the pure literal.}
 
 \subsection{Implementing Pure Literal Elimination}
 
@@ -1814,45 +1867,45 @@ one version of a literal, and if we have, then we know it's pure. Then we just n
 to gather our pure literals and the satisfied clauses, and then return them. 
 
 \begin{lstlisting}
-    (int[] var, int[] clauses) pureElim(int[] assignment) {
-        map<int, int[]> var_to_clause
-        int[] pure
-        int[] satisfied
+(int[] var, int[] clauses) pureElim(int[] assignment) {
+    map<int, int[]> var_to_clause
+    int[] pure
+    int[] satisfied
 
-        for (i = 0 up to numClauses) {
-            if (satisfied[i]) {
-                continue
-            }
-
-            clause = clause[i]
-            for each (var in clause) {
-                append(var_to_clause[var], i)
-            }
-        }
-        
-        for each ([var, clauses] in var_to_clause) {
-            idx = abs(var)
-
-            if (contains(var_to_clause, -var) or assignment[idx] != Unassigned) {
-                continue
-            }
-
-            if (var > 0) {
-                assignment[idx] = True
-            } else {
-                assignment[idx] = False
-            }
-
-            for (i = 0 up to clauses.size) {
-                satisfied[clauses[i]] = true
-                append(satisfied, clauses[i])
-            }
-
-            append(pure, var)
+    for (i = 0 up to numClauses) {
+        if (satisfied[i]) {
+            continue
         }
 
-        return (pure, satisfied)
+        clause = clause[i]
+        for each (var in clause) {
+            append(var_to_clause[var], i)
+        }
     }
+    
+    for each ([var, clauses] in var_to_clause) {
+        idx = abs(var)
+
+        if (contains(var_to_clause, -var) or assignment[idx] != Unassigned) {
+            continue
+        }
+
+        if (var > 0) {
+            assignment[idx] = True
+        } else {
+            assignment[idx] = False
+        }
+
+        for (i = 0 up to clauses.size) {
+            satisfied[clauses[i]] = true
+            append(satisfied, clauses[i])
+        }
+
+        append(pure, var)
+    }
+
+    return (pure, satisfied)
+}
 \end{lstlisting}
 
 So this is a single pass version of pure literal elimination. It is possible that 
@@ -1892,9 +1945,30 @@ the ``it wasn't very helpful'' aspect, and next chapter we'll see why.}
 
 However, no one cares \textit{why} something performed badly. People only care about 
 \textit{how} badly something performed. So here are the results:
-For uf20\_91: 1548ms, almost a 2x increase from just unit propagation.
-For UUF50\_218\_1000: 231,107ms (~3.85 minutes), about a 1.5 minute increase 
+For uf20.91: 1548ms, almost a 2x increase from just unit propagation.
+For UUF50.218.1000: 231,107ms (~3.85 minutes), about a 1.5 minute increase 
 from just unit propagation.
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
+
+Pure Literal Elimination had about a \textbf{2x} increase (which is bad) in solving time
+when compared to just Unit Propagation on uf20.91, which is the test set of satisfiable
+problems. It also had about a \textbf{1.6x} increase in solving time on UUF50.218.1000,
+which is the set of unsatisfiable problems.
 
 \section{Watched Literals}
 
@@ -1965,38 +2039,103 @@ The only clauses that have a \textit{chance} to produce a propagation are the
 ones containing $-2$ because $-2 = F$, so if they have one Unassigned variable 
 and everything else is now False, we can propagate!
 
-There are more details, but to be honest, even without this headache, I 
-would still have difficulty telling you without showing you the algorithm.
-So let's start out with changes to our interface.
+\subsection{A Visual Example of Watched Literals}
+Let's view a visual example. Suppose we had a clause with 5 literals 
+(doesn't matter what they are). The first two literals are watched
+\begin{center}
+    \[ \blackinwhitesquare \blackinwhitesquare \square \square \square \]
+    \[ U U U U U \]
+\end{center}
+Suppose the first literal now evaluates to False. We now scan the clause for 
+another literal that doesn't evaluate to False. We will find it at the third literal.
+\begin{center}
+    \[ \square \blackinwhitesquare \blackinwhitesquare \square \square \]
+    \[ F U U U U \]
+\end{center}
+Now suppose the fifth literal becomes False. We do nothing because we're not watching 
+the fifth literal.
+\begin{center}
+    \[ \square \blackinwhitesquare \blackinwhitesquare \square \square \]
+    \[ F U U U F \]
+\end{center}
+Now the third literal becomes False. We scan again for another not-False literal.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F U F U F \]
+\end{center}
+Now the second literal becomes False. Other than the second watched literal (the fourth),
+there are no more not-False literals. We don't relocate the watch.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F U F \]
+\end{center}
+However, now the second watched literal knows it's the last Unassigned literal in the clause.
+It will now evaluate to True!
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F T F \]
+\end{center}
+Our clause is now satisfied. Suppose instead, when we were here:
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F U F \]
+\end{center}
+That the fourth literal also became False.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F F F \]
+\end{center}
+We've now encountered a \textit{contradiction}, meaning that whatever assignment we have
+is impossible to satisfy the equation. Suppose we backtrack, and that restores us to a 
+state where two literals in this same clause are now Unassigned. What happens to the 
+watched literals?
+\begin{center}
+    \[ \square \square \square \square \square \]
+    \[ U U F F F \]
+\end{center}
+The answer is that they stay where they are.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ U U F F F \]
+\end{center}
+This is because one watched literal is Unassigned, so everything is okay. Although 
+this last diagram isn't accurate to what a real restored state would look like, we can
+suspend our disbelief for the sake of simplicitly. The reason why watched literals work is 
+because of the \textbf{Watched Literal Invariant}, which is that at any given point in time,
+at least one of the watched literals is either True or Unassigned. This invariant is what
+allowed us to propagate the clause when there was only one Unassigned literal left, and we 
+will see further how it helps.
 
+
+\subsection{Algorithmic Changes}
 \begin{lstlisting}
-    public interface:
-        SATSolver(string input)
-        bool solveCNF()
+public interface:
+    SATSolver(string input)
+    bool solveCNF()
 
-    private interface:
-        enum var
-        {
-            False
-            True
-            Unassigned
-        }
+private interface:
+    enum var
+    {
+        False
+        True
+        Unassigned
+    }
 
-        void parse(string equation)
-        bool solve(var[] assignment, int level)
-        optional int[] delta propagate(var[] assignment)
-        bool createWatched()
+    void parse(string equation)
+    bool solve(var[] assignment, int level)
+    optional int[] delta propagate(var[] assignment)
+    bool createWatched()
 
-        int numVars
-        int numClauses
+    int numVars
+    int numClauses
 
-        int[][] clauses
-        bool[] satisfied
-        queue<int> unitProp
+    int[][] clauses
+    bool[] satisfied
+    queue<int> unitProp
 
-        optional<var>[] vars
-        map<int, int[]> var_to_clause
-        map<int, (int, int)> clause_to_vars
+    optional var[] vars
+    map<int, int[]> var_to_clause
+    map<int, (int, int)> clause_to_vars
 \end{lstlisting}
 
 So firstly, there are some major differences. We removed the \textit{evaluate()} method. 
@@ -2052,12 +2191,12 @@ Here is the pseudocode:
     }
 \end{lstlisting}
 
-So here's how to read it: for each clause, it will fall into one of three cases:
-\begin{itemize}
+\noindent So here's how to read it: for each clause, it will fall into one of three cases:
+\begin{enumerate}
     \item It's size is greater than or equal to 2
     \item It only has 1 variable
     \item It's empty
-\end{itemize}
+\end{enumerate}
 
 In the first case, the two literals that will be watching that clause will be the 
 first two literals. So the index $i$ gets appended to their array of clause indices.
@@ -2118,7 +2257,8 @@ returns something. If both those things are successful, then we can start solvin
         if (prop_result is optional) {
             assignment[level] = False
 
-            optional int[] new_prop_result = propagate(assignment, -cur_var)
+            optional int[] new_prop_result 
+                = propagate(assignment, -cur_var)
 
             if (new_prop_result is optional) {
                 return False
@@ -2149,7 +2289,8 @@ returns something. If both those things are successful, then we can start solvin
 
         assignment[level] = False
 
-        optional int[] new_prop_result = propagate(assignment, -cur_var)
+        optional int[] new_prop_result 
+            = propagate(assignment, -cur_var)
 
         if (new_prop_result is optional) {
             return False
@@ -2217,8 +2358,12 @@ Now for the interesting part:
                     int unwatched = clause[j]
                     int unwatched_idx = abs(unwatched)
 
-                    bool evals_false = (unwatched > 0 and assignment[unwatched_idx] == False) or
-                                       (unwatched < 0 and assignment[unwatched_idx] == True)
+                    bool evals_false = 
+                        (unwatched > 0 and assignment[unwatched_idx]
+                            == False)
+                        or
+                        (unwatched < 0 and assignment[unwatched_idx] 
+                            == True)
                     if (!evals_false) {
                         append(var_to_clause[unwatched], clause_idx)
                         erase_at(watched_clauses, i)
@@ -2244,8 +2389,12 @@ Now for the interesting part:
                         append(delta, idx)
                         enqueue(unitProp, other_watch)
                     } else {
-                        bool evals_false = (other_watch > 0 and assignment[idx] == False) or
-                                           (other_watch < 0 and assignment[idx] == True)
+                        bool evals_false =
+                            (other_watch > 0 and assignment[idx] 
+                                == False) 
+                            or
+                            (other_watch < 0 and assignment[idx] 
+                                == True)
 
                         if (evals_false == False) {
                             continue
@@ -2262,7 +2411,6 @@ Now for the interesting part:
                 }
             }
         }
-
         return delta
     }
 \end{lstlisting}
@@ -2341,25 +2489,95 @@ than undoing what we propagated. So long as the watched literal invariant holds 
 when we undo our assignments, the watched literals don't need to move, which means 
 besides the undoing of what we propagated, we get zero cost backtracking.
 
+\subsection{Why Two Watches?}
 This now begs the question, why two watched literals? What is special about the number $2$?
-Why can't we have just one watched literal? Well, if we were to watch just one literal, 
-every time it becomes false, we need to scan the whole clause to determine if we can 
-either move it, propagate, or have a contradiction. Notice how that's exactly what we 
-were doing with the original unit propagation of scanning the entire clause? The 
-only major difference is that we've decreased the number of scans we would need to do
-with just one watched literal. But having two allows us to quickly determine whether 
-we have a contradiction, whether we can propagate and on what we're propagating on, and 
-still lets us determine if we can move the first watched literal efficiently. Truly amazing.
+Why can't we have just one watched literal? In order to answer this question, we need to ask 
+ourselves: ``what can we do with two watched literals that we can't do with one?'' 
+When we have two watched literals, we can efficiently check for whether or not we can 
+propagate. How so?
+
+After we try propagating on a literal, we scan the whole clause except for the indices 
+of the first and second watched literals. Next, if everything in the clause evaluates to 
+False, our only hope to propagate is on the second watched literal. So if that evaluates to 
+False as well, we have found a contradiction, and if it doesn't we have found a literal we 
+can propagate on.
+
+But why is that more efficient that just one watched literal? Let's think of the worst case 
+scenario for if we just had one watched literal. What does that look like? Suppose we were 
+watching the first literal in the clause and every other literal in the clause evaluated 
+to False. Ie, we need to propagate on this watched literal. How would it know it needs to 
+propagate when it was never alerted by anything becoming False? It would have no idea 
+it needs to do anything until that watched literal was falsified, and by that point,
+everything in the clause would evaluate to False, so the clause would be unsatisfied,
+only then would we backtrack, but when we backtrack, we'd still have no way of knowing if 
+the clause is unit. 
+
+So with only one watched literal, in the worst case scenario, which is that the literal
+we're watching is the last literal in the clause to be falsified, we'd be doing the same 
+amount of work as normal unit propagation, perhaps even more. 
+
+Visually speaking, this is what I'm talking about:
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U U U \]
+\end{center}
+The last literal becomes False, but we're not watching it so nothing moves.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U U F \]
+\end{center}
+Next the second literal becomes False, but we're not watching it so nothing happens.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U F F \]
+\end{center}
+Although we should perform unit propagation, our watched literal is completely blind 
+to the fact that it is the last Unassigned literal in the clause, so it remains as is.
+If luck has it, it could become True and all would be well, but this is reality, so more 
+likely than not, it will also become False.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ F F F \]
+\end{center}
+Now we scan the clause, and we see that we can't relocate the watched literal, so we 
+backtrack on our assignment.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U F F \]
+\end{center}
+Since the watched literal was never aware if both of the other literals became False 
+in one pass of the algorithm or if it was across multiple decisions, it still doesn't 
+know that it's the last Unassigned literal. It has to scan the clause each time to know 
+whether or not it's the last Unassigned literal, which is no better than regular unit
+propagation.
 
 \subsection{Watched Literals - Results}
 
-So after implementing watched literals, our runtime decreases dramatically. 
-For uf20\_91, solving all 1000 instances takes 349ms, as opposed to the 
-1548ms from pure literal elimination and the 868ms from normal unit propagation.
-And for UUF50.218.1000, it takes only 7130ms as opposed to the 231,107ms 
-from pure literal elimination and the 140,411ms from normal unit propagation.
+After implementing watched literals, our runtime decreases dramatically. 
+For uf20.91, solving all 1000 instances takes \textbf{349ms}, as opposed to the 
+\textbf{1548ms} from pure literal elimination and the \textbf{868ms} from normal unit propagation.
+And for UUF50.218.1000, it takes only \textbf{7130ms} as opposed to the \textbf{231,107ms} 
+from pure literal elimination and the \textbf{140,411ms} from normal unit propagation.
 Watched literals took us down from minutes to seconds for the unsatisfiable 
 problems, which is amazing for us.
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
 
 \section{Iterative DPLL}
 
@@ -2454,7 +2672,7 @@ with our SAT solver.
         TrailEntry[] trail
         DecisionLevel[] trailStarts
 
-        optional<var>[] vars
+        optional var[] vars
         map<int, int[]> var_to_clause
         map<int, (int, int)> clause_to_vars
 \end{lstlisting}
@@ -2695,12 +2913,34 @@ everything and can be done, or if we need to assign something new.
 Here are the results after this huge refactor:
 
 (Assignment before propagation)\\
-uf20.91: 328ms, down 21ms from 349ms by Watched Literals\\
-UUF50.218.1000: 6369ms, down 761ms from 7130 by Watched Literals
+uf20.91: \textbf{328ms}, down 21ms from \textbf{349ms} by Watched Literals\\
+UUF50.218.1000: \textbf{6369ms}, down 761ms from \textbf{7130ms} by Watched Literals
 
 (Propagation before assignment)\\
-uf20.91: 324ms\\
-UUF50.218.100: 6365ms
+uf20.91: \textbf{324ms}\\
+UUF50.218.100: \textbf{6365ms}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Iterative DPLL (AbP):      328ms (~0.33 seconds).
+Iterative DPLL (PbA):      324ms (~0.32 seconds).
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Iterative DPLL (AbP):     6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):     6,365ms (~6.37 seconds).
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
 
 Should you do propagation before assignment simply because it's faster? It 
 really doesn't matter, you do you.
