@@ -211,6 +211,8 @@ namespace saturn {
             vars[i] = UNASSIGNED;
         }
 
+        seen.resize(numVars);
+
         var_to_trail.resize(numVars);
 
         var_to_clause.resize(2 * numVars);

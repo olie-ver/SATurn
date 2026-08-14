@@ -34,9 +34,11 @@
 \contentsline {subsection}{\numberline {4.3.1}Implementing First UIPs}{77}{subsection.4.3.1}%
 \contentsline {subsection}{\numberline {4.3.2}First UIPs - Results}{80}{subsection.4.3.2}%
 \contentsline {section}{\numberline {4.4}A Second Round of Improvements}{80}{section.4.4}%
-\contentsline {section}{\numberline {4.5}VSIDS}{81}{section.4.5}%
-\contentsline {section}{\numberline {4.6}Clause Database Management}{81}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Restarts}{81}{section.4.7}%
-\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{81}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{82}{chapter.5}%
+\contentsline {subsection}{\numberline {4.4.1}Removing Hashing}{81}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Fixing Clause Resolution}{82}{subsection.4.4.2}%
+\contentsline {section}{\numberline {4.5}VSIDS}{83}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Clause Database Management}{83}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Restarts}{83}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{83}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{84}{chapter.5}%
 \contentsfinish 

@@ -4064,6 +4064,130 @@ like Jesus and crucify me,
 I knew and deep down you knew that the way we were implementing was not optimal
 to begin with. So in a small way, this is your fault too. 
 
+\subsection{Removing Hashing}
+
+The first thing we're going to do is remove the maps and instead use arrays 
+instead so we don't have to deal with hashing. Our interface becomes like so:
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        ...
+        int[][] var_to_clause
+        (int, int)[] clause_to_var
+\end{lstlisting}
+
+In case you need a reminder as it has been a while, these are the data structures 
+used to make watched literals happen. Before they were maps where the keys were variables 
+or clause indices, but now, each index in the arrays are the keys and the values at those 
+indices are, well, the values. There is a small implementation detail concerning 
+\textit{clause\_to\_var}, which is that now that the number of clauses are not fixed, 
+everytime we add in a new clause, we need to add in a new entry to \textit{clause\_to\_var}
+before we let our \textit{createWatched(int, int)} overload handle assigning the values 
+to that entry. Basically, to avoid going out of bounds for the data structure, we need to 
+change the bounds before we access the new boundary. While we could let 
+\textit{createWatched(int, int)} handle the allocation as well, it would make it less 
+versatile as it would have to only operate on the last clause in the database instead of 
+any clause in the database.
+
+The second point to mention is that now our propagation logic doesn't work because we 
+need to create a mapping from literals (positive and negative) to indices (nonnegative).
+We use the following mapping:
+$$ 2 * abs(lit) + (lit < 0) $$
+This is how the mapping works out (left column is literal value, right column is index):
+\begin{FVerbatim}
+ 1 → 0
+-1 → 1
+ 2 → 2
+-2 → 3
+ 3 → 4
+-3 → 5
+  ...
+\end{FVerbatim}
+
+The last step is to remove the duplicates set we use in clause resolution.
+We're going to add in an array of booleans to our SAT solver where index $i$ 
+is whether or not we've seen that variable during our clause resolution.
+However, since our (my) implementation of first UIP clause resolution is 
+such a big fixer-upper, it deserves its own subsection.
+
+\subsection{Fixing Clause Resolution}
+
+Here is our current clause resolution code:
+\begin{lstlisting}
+if (contradiction has a value) {
+    int curLevel = decisionLevel
+    int[] conflict = contradiction.value
+    int end = trail.size
+    int begin = 0
+    int resolveOn = 0
+
+    for (i = 0 up to conflict.size) {
+        int idx = abs(conflict[i])
+        int trail_idx = var_to_trail[idx]
+
+        if (trail[trail_idx].decisionLevel == curLevel) {
+            end = min(end, trail_idx)
+            begin = max(begin, trail_idx)
+            if (trail[trail_idx].reasonIdx is not optional) {
+                resolveOn = trail[trail_idx].lit
+            }
+        }
+    }
+
+    while (begin != end) {
+        int trail_idx = var_to_trail[abs(resolveOn)]
+        int[] reason = clauses[trail[trail_idx].reasonIdx]
+        append(conflict, reason)
+        for (i = 0 up to conflict.size) {
+            if (abs(conflict[i]) == abs(resolveOn)) {
+                erase(conflict, conflict[i])
+            } else {
+                i = i + 1
+            }
+        }
+
+        set<int> duplicates;
+        for (i = 0 up to conflict.size) {
+            if (contains(duplicates, conflict[i])) {
+                erase(conflict, conflict[i])
+            } else {
+                duplicates.insert(conflict[i]);
+                i = i + 1
+            }
+        }
+
+        end = INTEGER_MAX;
+        begin = 0;
+
+        for (i = 0 up to conflict.size) {
+            int var = conflict[i];
+            int idx = abs(var)
+            int trail_idx = var_to_trail[idx];
+
+            if (trail[trail_idx].decisionLevel 
+                == decisionLevel)
+            {
+                end = min(end, trail_idx);
+                begin = max(begin, trail_idx);
+
+                if (trail[trail_idx].reasonIdx 
+                    is not optional)
+                {
+                    resolve_var = trail[trail_idx].lit;
+                }
+            }
+        }
+    } 
+}
+\end{lstlisting}
+
+It's pretty long and inefficient. This was written before we understood implication
+graphs fully. Now we do understand implication graphs, so let's exploit that structure.
+
 \section{VSIDS}
 
 \section{Clause Database Management}

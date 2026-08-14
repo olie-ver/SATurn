@@ -71,6 +71,9 @@ namespace saturn {
             std::vector<std::vector<int>> clauses;
             std::vector<var> vars;
 
+            //index i is whether or not we've seen variable i + 1 in clause resolution
+            std::vector<bool> seen;
+
             //holds information about our decision trail
             std::vector<TrailEntry> trail;
 

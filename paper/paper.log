@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  13 AUG 2026 21:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  14 AUG 2026 09:52
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -833,7 +833,7 @@ File: ls2stixtt.fd 2015/04/17 v1.1.2-latex STIX typewriter LS2 font definitions
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.37 ...}{\numberline {4.5}VSIDS}{81}{section.4.5}
+l.37 ....1}Removing Hashing}{81}{subsection.4.4.1}
                                                   % [1
 
 ])
@@ -879,12 +879,12 @@ Overfull \hbox (11.81499pt too wide) in paragraph at lines 3808--3890
 []
  []
 
-[77] [78] [79] [80] [81]
+[77] [78] [79] [80] [81] [82] [83]
 Chapter 5.
-[82
+[84
 
 ]
-runsystem(latexminted cleantemp  --timestamp 20260813212959 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
+runsystem(latexminted cleantemp  --timestamp 20260814095248 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
 
  (./paper.aux)
  ***********
@@ -892,21 +892,21 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: BEA260FF5B13F1C05A3421CAB943B4F1;7023.
+(rerunfilecheck)             Checksum: BB9CA0EF91504F31D7F3FF24704ABAEB;7356.
  ) 
 Here is how much of TeX's memory you used:
- 41011 strings out of 467525
- 885570 string characters out of 5418982
- 2171251 words of memory out of 5000000
- 67672 multiletter control sequences out of 15000+600000
+ 41093 strings out of 467525
+ 886852 string characters out of 5418982
+ 2171254 words of memory out of 5000000
+ 67675 multiletter control sequences out of 15000+600000
  724369 words of font info for 149 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,11n,108p,1651b,2015s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-BoldItalic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathcal.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathscr.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathsf.pfb>
-Output written on paper.pdf (83 pages, 558708 bytes).
+Output written on paper.pdf (85 pages, 566839 bytes).
 PDF statistics:
- 2676 PDF objects out of 2984 (max. 8388607)
- 2533 compressed objects within 26 object streams
- 1736 named destinations out of 2073 (max. 500000)
- 341 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 2786 PDF objects out of 2984 (max. 8388607)
+ 2640 compressed objects within 27 object streams
+ 1815 named destinations out of 2073 (max. 500000)
+ 357 words of extra memory for PDF output out of 10000 (max. 10000000)
 
