@@ -3967,12 +3967,15 @@ bool solve() {
                     int idx = abs(var)
                     int trail_idx = var_to_trail[idx];
 
-                    if (trail[trail_idx].decisionLevel == decisionLevel)
+                    if (trail[trail_idx].decisionLevel 
+                        == decisionLevel)
                     {
                         end = min(end, trail_idx);
                         begin = max(begin, trail_idx);
 
-                        if (trail[trail_idx].reasonIdx is not optional) {
+                        if (trail[trail_idx].reasonIdx 
+                            is not optional)
+                        {
                             resolve_var = trail[trail_idx].lit;
                         }
                     }
@@ -4053,6 +4056,13 @@ Unit Propagation:         140,041ms (~2.34 minutes).
 \end{FVerbatim}
 
 \section{A Second Round of Improvements}
+
+Ever since we started CDCL, I have been promising massive speedups over DPLL 
+and yet our SAT solver has gotten slower each iteration. Before you treat me 
+like Jesus and crucify me,
+\footnote{My friends told me that it was too funny not to include so it stays.}
+I knew and deep down you knew that the way we were implementing was not optimal
+to begin with. So in a small way, this is your fault too. 
 
 \section{VSIDS}
 
