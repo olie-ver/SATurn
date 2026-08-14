@@ -56,11 +56,6 @@ namespace saturn {
                 std::optional<size_t> reasonIdx;
             };
 
-            struct DecisionLevel {
-                size_t idx;
-                bool triedFalse;
-            };
-
             void parse(std::string_view equation);
 
             std::optional<std::vector<int>> propagate(size_t decisionLevel);
@@ -80,7 +75,7 @@ namespace saturn {
             std::vector<TrailEntry> trail;
 
             //each element is an index into trail where a new decision level starts
-            std::vector<DecisionLevel> trail_starts;
+            std::vector<size_t> trail_starts;
 
             //This is a map where var_data[i] = the index in the trail that variable i 
             //  appears in

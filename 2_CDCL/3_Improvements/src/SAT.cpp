@@ -16,7 +16,7 @@ namespace saturn {
         size_t decisionLevel = 0;
 
         //start a new decision level at the root
-        trail_starts.push_back({decisionLevel, true});
+        trail_starts.push_back(0);
 
         //if createWatched found unit clauses, then they're on the trail
         if (trail.size() > 0) {
@@ -55,10 +55,10 @@ namespace saturn {
                 var_to_trail[*firstUnassigned - 1] = trail.size() - 1;
 
                 //the newest decision level begins at the index of the last trail entry
-                trail_starts.push_back({trail.size() - 1, false});
+                trail_starts.push_back(trail.size() - 1);
 
                 //our propagation queue now starts at the latest decision
-                qHead = trail_starts.back().idx;
+                qHead = trail_starts.back();
             }
 
             const std::optional<std::vector<int>>& contradiction = propagate(decisionLevel);
@@ -184,9 +184,9 @@ namespace saturn {
 
                 //backtracking
                 while (!trail.empty() && trail.back().decisionLevel > backjumpTo) {
-                    DecisionLevel& decision = trail_starts.back();
+                    size_t decision_level = trail_starts.back();
 
-                    while (trail.size() > decision.idx) {
+                    while (trail.size() > decision_level) {
                         int lit = trail.back().lit;
                         vars[std::abs(lit) - 1] = UNASSIGNED;
                         var_to_trail[std::abs(lit) - 1] = std::nullopt;
@@ -204,7 +204,7 @@ namespace saturn {
                     return false;
                 }
 
-                qHead = trail_starts.back().idx;
+                qHead = trail_starts.back();
 
                 clauses.push_back(std::move(conflict));
                 clause_to_var.emplace_back();

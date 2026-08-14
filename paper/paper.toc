@@ -30,10 +30,13 @@
 \contentsline {subsection}{\numberline {4.1.2}Clause Learning - Results}{72}{subsection.4.1.2}%
 \contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{73}{section.4.2}%
 \contentsline {subsection}{\numberline {4.2.1}Non-Chronological Backjumping - Results}{76}{subsection.4.2.1}%
-\contentsline {section}{\numberline {4.3}First UIPs}{77}{section.4.3}%
-\contentsline {section}{\numberline {4.4}VSIDS}{77}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Clause Database Management}{77}{section.4.5}%
-\contentsline {section}{\numberline {4.6}Restarts}{77}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Comparing to MiniSAT}{77}{section.4.7}%
-\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{78}{chapter.5}%
+\contentsline {section}{\numberline {4.3}First UIPs}{76}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Implementing First UIPs}{77}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}First UIPs - Results}{79}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}A Second Round of Improvements}{80}{section.4.4}%
+\contentsline {section}{\numberline {4.5}VSIDS}{80}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Clause Database Management}{80}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Restarts}{80}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{80}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{81}{chapter.5}%
 \contentsfinish 
