@@ -74,6 +74,12 @@ namespace saturn {
             //index i is whether or not we've seen variable i + 1 in clause resolution
             std::vector<bool> seen;
 
+            //index i is an index into seen
+            std::vector<size_t> seenIdx;
+
+            //index i is the position of an index in seenIdx
+            std::vector<size_t> seenPos;
+
             //holds information about our decision trail
             std::vector<TrailEntry> trail;
 

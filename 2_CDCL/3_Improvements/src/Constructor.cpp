@@ -212,6 +212,8 @@ namespace saturn {
         }
 
         seen.resize(numVars);
+        seenIdx.reserve(numVars);
+        seenPos.resize(numVars);
 
         var_to_trail.resize(numVars);
 

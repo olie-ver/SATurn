@@ -4184,9 +4184,277 @@ if (contradiction has a value) {
     } 
 }
 \end{lstlisting}
-
+\noindent
 It's pretty long and inefficient. This was written before we understood implication
 graphs fully. Now we do understand implication graphs, so let's exploit that structure.
+
+The idea is this: instead of rescanning over and over to make sure our resolution clause
+has just one current level variable, we'll keep track of which variables we've seen as 
+well as which ones are from this decision level. Then, as we perform clause resolution, 
+we'll update the seen and count variables to reflect the current state of the resolution 
+clause, then once we've encountered our stopping condition, we'll use which variables 
+we've kept marked as seen to construct our learned clause directly. This is very different 
+from the way we've been performing clause resolution, which involved repeatedly scanning the 
+resolution clause and recomputing how far along we are in the UIP process. 
+
+How are we using the implication graph in our new method? Well since the implication 
+graph is an acyclic graph, that means we can use its structure for our UIP traversal. 
+There is a relationship between the implication graph and our trail, in that our trail 
+is just a compressed version of the implication graph, meaning it doesn't keep track of 
+which variable assignments led to which propagations. However, they both follow the same 
+structure in that the edge of our trail are the edges of our implication graphs and the 
+order of variables in the trail and graphs are the same. Because the implication graph 
+is acyclic, once we encounter a variable during clause resolution, we will never encounter 
+it again while we're resolving. Thanks to that property, we can traverse the trail backwards 
+without having to worry about going over the same parts of the trail/graph, which was 
+something that we were sort of doing in the old method when we rescanned the whole 
+conflict clause, whereas now, we are only concerned with the differences to the resolution
+clause made across each iteration. 
+
+Our resolution algorithm becomes as follows:
+\begin{lstlisting}
+if (contradiction has a value) {
+    int[] conflict = contradiction.value
+    int levelCount = 0
+    int curLevel = decisionLevel
+
+    for each (int var in conflict) {
+        if (!seen[abs(var)]) {
+            seen[abs(var)] = True 
+
+            if (trail[var_to_trail[abs(var)]].decisionLevel == curLevel) {
+                levelCount = levelCount + 1
+            }
+        }
+    }
+
+    for (i = trail.size down to 0) {
+        TrailEntry entry = trail[i]
+        idx = abs(entry.lit)
+
+        if (seen[idx]) {
+            int[] reason = clauses[trail[i].reasonIdx]
+
+            for each (int var in reason) {
+                if (!seen[abs(var)]) {
+                    seen[abs(var)] = True 
+
+                    int trailIdx = var_to_trail[abs(var)]
+
+                    if (trail[trailIdx].decisionLevel == curLevel) {
+                        levelCount = levelCount + 1
+                    }
+                }
+            }
+
+            seen[idx] = False
+            levelCount = levelCount - 1
+        }
+
+        if (levelCount == 1) {
+            break
+        }
+    }
+
+    int[] learned
+    for (i = 1 up to numVars) {
+        if (seen[i] == True) {
+            int lit = trail[var_to_trail[i]].lit
+            append(learned, -lit)
+            seen[i] = False
+        }
+    }
+}
+\end{lstlisting}
+\noindent
+Here's the rundown of what's going on. In the first block, we're marking which 
+variables we've seen and how many of them are from the current decision level from 
+the initial conflicting clause. Next, we start traversing our trail from the most recent 
+trail entry, and we move towards the front of the trail. If we've seen the variable from 
+the current trail entry, we grab its reason clause, and for each new unseen variable, 
+we mark it as seen and increment the current decision level count. Next, we ``remove''
+the variable we just processed by unmarking it as seen and decrementing \textit{levelCount}.
+
+Once we have only one literal from the current level, we construct a new learned clause 
+by iterating over the entire \textit{seen} array and we add the negative literal to the 
+learned clause because the learned clause is supposed to learn the opposite of what we've 
+done so we don't repeat it. Then we unmark everything we have seen so that way we can reuse 
+the same array the next time there's a conflict instead of allocating a new one each time. 
+
+The results for this are very good, but I won't tell you what they are, because there's 
+one more thing I want to do. You see, we iterate over the entire \textit{seen} array,
+which is as large as the number of variables in our equation. However, it's very unlikely 
+that we'll see many variables because first UIPs shrink how large the learned clause is, 
+so there's less to be seen in the first place, but also because the more we learn, generally,
+the learned clause gets smaller because each new learned clause adds more constrictions on 
+which assignments are valid, and as we constrict which ones are valid and which ones aren't,
+we inch towards learning the empty clause signaling that nothing is valid. This is just a 
+long winded way to say that the iterating over the entire seen array each time, while O(n),
+could be better.
+
+But isn't that microoptimizing?
+\footnote{Microoptimizing is like cutting your hair to help you reach a weight loss goal, 
+instead of fixing your running form so you'll be able to have better cardio.}
+After all, our two test sets have 20 and 50 variables 
+respectively, which isn't much in the grand scheme of things. And you're right, our test 
+sets are pretty small. However, the goal is to build a SAT solver that would scale well 
+and most SAT solvers can handle problems with millions of variables pretty well, so I'd 
+like this one to too. Making it scale well isn't the same as microoptimizing. Microoptimizing 
+would be like saying \textit{++i} over \textit{i++}.
+\footnote{Pre vs post incrementation in loops generally does not affect runtime and whether 
+or not it actually matters is heavily debated.}
+
+In order to do this, we're going to keep track of the indices of which variables we've
+seen in an array and then iterate over that array. We will also need to keep track of 
+which indices are in which position so we can swap and pop for efficient removal of 
+elements.
+\footnote{I love swap and pop if only for the name. I encourage everyone to do swap and 
+pops so we can say ``swap and pop'' more than we currently say ``swap and pop.''}
+Our object now looks like this:
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        ...
+        int[][] var_to_clause
+        (int, int)[] clause_to_var
+
+        bool[] seen
+        int[] seenIdx
+        int[] seenPos
+\end{lstlisting}
+
+\noindent
+Here a subtle detail about these data structures. \textit{seen} and \textit{seenPos}
+are a fixed size of \textit{numVars} because they require a full mapping from variable
+to value at all times, but \textit{seenIdx} is dynamically sized because the number of 
+variables that we see each clause resolution changes. So if you are implementing this 
+yourself, make sure that \textit{seen} and \textit{seenPos} are allocated enough space 
+upon initialization. Personally, I also reserve \textit{numVars} amount of space in 
+\textit{seenIdx} so that it never has to reallocate space while solving, but it's not 
+strictly necessary. 
+
+This is how these data structures change the algorithm:
+\begin{lstlisting}
+if (contradiction has a value) {
+    int[] conflict = contradiction.value
+    int levelCount = 0
+    int curLevel = decisionLevel
+
+    for each (int var in conflict) {
+        if (!seen[abs(var)]) {
+            seen[abs(var)] = True 
+            append(seenIdx, abs(var))
+            seenPos[abs(var)] = seenIdx.size
+
+            if (trail[var_to_trail[abs(var)]].decisionLevel == curLevel) {
+                levelCount = levelCount + 1
+            }
+        }
+    }
+
+    for (i = trail.size down to 0) {
+        TrailEntry entry = trail[i]
+        idx = abs(entry.lit)
+
+        if (seen[idx]) {
+            int[] reason = clauses[trail[i].reasonIdx]
+
+            for each (int var in reason) {
+                if (!seen[abs(var)]) {
+                    seen[abs(var)] = True 
+                    append(seenIdx, abs(var))
+                    seenPos[abs(var)] = seenIdx.size
+
+                    int trailIdx = var_to_trail[abs(var)]
+
+                    if (trail[trailIdx].decisionLevel == curLevel) {
+                        levelCount = levelCount + 1
+                    }
+                }
+            }
+
+            seen[idx] = False
+
+            //get the position of idx in seenIdx
+            int pos = seenPos[idx]
+
+            //get the last element in seenIdx
+            int last = seenIdx.last
+
+            //overwrite the element at the position pos with the value 
+            //  of the last element in seenIdx
+            seenIdx[pos] = last 
+
+            //mark that the last element in seenIdx is now at position pos
+            seenPos[last] = pos
+
+            //remove the last element in seenIdx because it's also at position pos
+            pop(seenIdx)
+
+            levelCount = levelCount - 1
+        }
+
+        if (levelCount == 1) {
+            break
+        }
+    }
+
+    int[] learned
+    while (seenIdx is not empty) {
+        int lit_idx = seenIdx.last
+
+        int lit = trail[var_to_trail[lit_idx]].lit
+        append(learned, -lit)
+
+        seen[lit_idx] = false
+        pop(seenIdx)
+        //do nothing with seenPos because we don't have to
+    }
+}
+\end{lstlisting}
+
+\subsection{Improvements - Results}
+
+I'll let the results speak for themselves:
+\noindent
+uf20.91: \textbf{264ms}
+
+\noindent
+UUF50.218.1000: \textbf{2385ms}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Improved CDCL:             284ms (~0.28 seconds).
+First UIPs:                406ms (~0.41 seconds).
+Backjumping:               380ms (~0.38 seconds).
+Clause Learning:           425ms (~0.43 seconds).
+Iterative DPLL (AbP):      328ms (~0.33 seconds).
+Iterative DPLL (PbA):      324ms (~0.32 seconds).
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Improved CDCL:            2,385ms (~2.39 seconds).
+First UIPs:               14,012ms (~14.01 seconds).
+Backjumping:              11,291ms (~11.29 seconds).
+Clause Learning:          9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):     6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):     6,365ms (~6.37 seconds).
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
 
 \section{VSIDS}
 

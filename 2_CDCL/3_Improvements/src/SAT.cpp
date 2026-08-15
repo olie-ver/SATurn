@@ -79,6 +79,8 @@ namespace saturn {
                     }
 
                     seen[idx] = true;
+                    seenIdx.push_back(idx);
+                    seenPos[idx] = seenIdx.size() - 1;
 
                     size_t trailIdx = *var_to_trail[idx];
 
@@ -109,6 +111,8 @@ namespace saturn {
                         }
 
                         seen[r_idx] = true;
+                        seenIdx.push_back(r_idx);
+                        seenPos[r_idx] = seenIdx.size() - 1;
 
                         size_t reasonTrailIdx = *var_to_trail[r_idx];
 
@@ -117,32 +121,30 @@ namespace saturn {
                         }
                     }
 
+                    size_t pos = seenPos[idx];
+                    size_t last = seenIdx.back();
+
+                    seenIdx[pos] = last;
+                    seenPos[last] = pos;
+
+                    seenIdx.pop_back();
                     seen[idx] = false;
+                    
                     levelCount--;
                 }
 
                 std::vector<int> learned;
+                learned.reserve(seenIdx.size());
 
-                for (size_t i = 0; i < numVars; i++) {
-                    if (seen[i]) {
-                        int lit = trail[*var_to_trail[i]].lit;
-                        learned.push_back(-lit);
-                        seen[i] = false;
-                    }
+                while (!seenIdx.empty()) {
+                    size_t s_idx = seenIdx.back();
+
+                    int lit = trail[*var_to_trail[s_idx]].lit;
+                    learned.push_back(-lit);
+
+                    seen[s_idx] = false;
+                    seenIdx.pop_back();
                 }
-
-                // for (size_t i = 0; i < seen.size(); i++) {
-                //     assert(seen[i] == false);
-                // }
-                // int numCurLevel = 0;
-                // for (int var : learned) {
-                //     int idx = std::abs(var) - 1;
-                //     if (trail[*var_to_trail[idx]].decisionLevel == decisionLevel) {
-                //         std::cout << "on this level: " << var << std::endl;
-                //         numCurLevel++;
-                //     }
-                // }
-                // assert(numCurLevel == 1);
 
                 if (learned.empty()) {
                     return false;
