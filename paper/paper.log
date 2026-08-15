@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  14 AUG 2026 17:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  15 AUG 2026 08:16
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -870,21 +870,21 @@ Chapter 4.
 [61
 
 ] [62] [63] [64] [65] [66] [67] [68] [69]
-Overfull \hbox (11.81499pt too wide) in paragraph at lines 3430--3510
+Overfull \hbox (11.81499pt too wide) in paragraph at lines 3429--3509
 [] 
  []
 
 [70] [71] [72] [73] [74] [75] [76]
-Overfull \hbox (11.81499pt too wide) in paragraph at lines 3808--3890
+Overfull \hbox (11.81499pt too wide) in paragraph at lines 3807--3889
 []
  []
 
-[77] [78] [79] [80] [81] [82] [83] [84] [85] [86] [87] [88]
+[77] [78] [79] [80] [81] [82] [83] [84] [85] [86] [87] [88] [89] [90] [91] [92] [93] [94] [95] [96] [97] [98] [99]
 Chapter 5.
-[89
+[100
 
 ]
-runsystem(latexminted cleantemp  --timestamp 20260814173154 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
+runsystem(latexminted cleantemp  --timestamp 20260815081637 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
 
  (./paper.aux)
  ***********
@@ -892,21 +892,21 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: 07A3D167731BDDA12CDE5AEE6A8ABAA2;7534.
+(rerunfilecheck)             Checksum: 22F51FC843FEE6FB762CAB8E2C475366;8158.
  ) 
 Here is how much of TeX's memory you used:
- 41246 strings out of 467525
- 889218 string characters out of 5418982
- 2171254 words of memory out of 5000000
- 67676 multiletter control sequences out of 15000+600000
+ 41439 strings out of 467525
+ 892174 string characters out of 5418982
+ 2171259 words of memory out of 5000000
+ 67681 multiletter control sequences out of 15000+600000
  724369 words of font info for 149 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 98i,11n,108p,1651b,2015s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 98i,11n,108p,1651b,2017s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-BoldItalic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathcal.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathscr.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathsf.pfb>
-Output written on paper.pdf (90 pages, 582917 bytes).
+Output written on paper.pdf (101 pages, 613675 bytes).
 PDF statistics:
- 2992 PDF objects out of 3580 (max. 8388607)
- 2839 compressed objects within 29 object streams
- 1967 named destinations out of 2073 (max. 500000)
- 365 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 3278 PDF objects out of 3580 (max. 8388607)
+ 3111 compressed objects within 32 object streams
+ 2155 named destinations out of 2487 (max. 500000)
+ 405 words of extra memory for PDF output out of 10000 (max. 10000000)
 

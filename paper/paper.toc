@@ -38,8 +38,13 @@
 \contentsline {subsection}{\numberline {4.4.2}Fixing Clause Resolution}{82}{subsection.4.4.2}%
 \contentsline {subsection}{\numberline {4.4.3}Improvements - Results}{88}{subsection.4.4.3}%
 \contentsline {section}{\numberline {4.5}VSIDS}{88}{section.4.5}%
-\contentsline {section}{\numberline {4.6}Clause Database Management}{88}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Restarts}{88}{section.4.7}%
-\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{88}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{89}{chapter.5}%
+\contentsline {subsection}{\numberline {4.5.1}cVSIDS}{89}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}mVSIDS}{91}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}EMA/Normalized VSIDS}{93}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}AMA/adaptVSIDS}{96}{subsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.5.5}VSIDS - Results}{97}{subsection.4.5.5}%
+\contentsline {section}{\numberline {4.6}Clause Database Management}{99}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Restarts}{99}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{99}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{100}{chapter.5}%
 \contentsfinish 

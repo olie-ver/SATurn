@@ -2984,7 +2984,6 @@ the new addresses for everything.
 
 \footnote{More information about CDCL can be found here: 
     \url{https://www.cis.upenn.edu/~cis1890/files/Lecture4.pdf}}
-
 \section{Clause Learning}
 
 The first step in creating a CDCL solver is to learn and use new clauses. There are 
@@ -4457,6 +4456,509 @@ Unit Propagation:         140,041ms (~2.34 minutes).
 \end{FVerbatim}
 
 \section{VSIDS}
+
+Variable State Independent Decaying Sum (VSIDS) is a type of variable assignment 
+heuristic, basically a loosely defined rule, that is used in modern CDCL solvers.
+It is \textit{the} best variable assignment/branching heuristic with many variations.
+In this chapter, we follow this paper
+\begin{center}
+    \url{https://arxiv.org/pdf/1506.08905}
+\end{center}
+which gives a much more in depth and theoretical explanation of how and why they work.
+Four our purposes, we'll understand at a higher level what VSIDS are as well as how 
+and why they work. 
+
+Currently, our variable assignment choosing heuristic has been ``find first Unassigned
+variable, and assign it True.'' With VSIDS, this becomes ``find the most active Unassigned
+variable, and assign it True.'' The first step in VSIDS is to add in an array of
+\textbf{activity scores} which rank ``how active'' a variable is. There are two schemes 
+for ranking activity score, which is ranking each literal (positive and negative variables),
+or just the variables (absolute value of the literal). For our purposes, we will rank just 
+the variables. 
+
+The next step is after clause resolution, add to each variable's score if it was involved 
+in clause resolution. Again, there are multiple ways to do this. Some implementations choose 
+only the variables in the learned clause, some implementations choose every variable involved 
+in the resolution algorithm, even if they are resolved away, and there are more implementations 
+than just those two. For our purposes, we will choose bumping the scores of only the variables 
+in the learned clause.
+
+The last step, which doesn't happen every iteration, is to multiply each score by a decay factor 
+\footnote{Not to be confused with Deadpool's ``dying factor."}
+after a certain number of conflicts. The idea behind this is to even the playing field for 
+each variable. If a variable accumulates a giant activity score, obviously it will be the first 
+pick if it's valid. However, activity scores don't represent how recent the activity score bump 
+occurred, so if that variable stopped being active, it would still be the first pick despite 
+not actually being active relative to the learned clauses. This decay lets the variables that 
+are starting to become more active have a better chance at competing with the potentially 
+inactive, but score-dominating variables. As it is a decaying factor, this value is chosen 
+to be greater than 0, but less than 1, so that the scores shrink to some percentage.
+
+\subsection{cVSIDS}
+
+We're going to start out with implementing the most basic form of VSIDS and work our way 
+up to some better versions. We'll start with the ``textbook'' form, which was outlined in 
+the section's introduction. This form of VSIDS is called \textbf{cVSIDS} by the paper we're 
+using. We first add in our \textit{activity} array into our solver 
+object with a counter for the number of conflicts.
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        ...
+        double[] activity
+        int numConflicts
+        ...
+\end{lstlisting}
+Then our solve code becomes as follows:
+\begin{lstlisting}
+bool solve() {
+    //setup
+    ...
+
+    while (True) {
+        if (trailHead == trail.size) {
+            double maxScore = -1.0
+            optional int firstUnassigned
+
+            for (i = 1 up to numVars) {
+                if (assignment[i] == Unassigned) {
+                    if (activity[i] > maxScore) {
+                        firstUnassigned = i
+                        maxScore = activity[i]
+                    }
+                }
+            }  
+            
+            //the rest of the assignment code is the same
+            ...
+        }
+
+        optional int[] contradiction = propagate(assignment)
+
+        if (contradiction has a value) {
+            numConflicts = numConflicts + 1
+
+            //resolve conflict using UIPs
+            ...
+            int[] learned
+            while (seenIdx is not empty) {
+                int lit_idx = seenIdx.last
+                activity[lit_idx] = activity[lit_idx] + 1
+                ...
+            }
+
+            //backjump
+            ...
+
+            //apply decay factor
+            if (numConflicts == X) {
+                for (i = 0 up to activity.size) {
+                    activity[i] *= Y
+                }
+                numConflicts = 0
+            }
+
+            continue
+        }
+    }
+}
+\end{lstlisting}
+The pseudocode is very straightforward, so I won't bother to explain it much. Just 
+so you know, if you choose to initialize \textit{maxScore} with a value of 0.0 in the 
+assignment code, use \verb|>=| instead of \verb|>| because the activity scores start 
+out at 0.0, so not using \verb|>=| will mess with unsatisfiable problems. In our 
+code to apply the decay factor, I use ``X'' and ``Y'' to represent the number of 
+conflicts and the decay factor respectively. The reason why these aren't set values,
+but rather placeholders is because there aren't two numbers that perform the best for
+\textit{all} equations, so they should be adjusted programmatically or manually set 
+experimentally. However, I just decided to choose two random numbers, so I used 
+\textbf{X = 10} and \textbf{Y = 0.8}. But results for different X and Y will be 
+shown as well.
+
+The results were as follows:
+\noindent
+uf20.91: \textbf{279ms}
+
+\noindent
+UUF50.218.1000: \textbf{1841ms}
+
+We didn't get a big speedup for satisfiable problems, but we 
+did shave off about half a second for the unsatisfiable problems, 
+which I think is pretty darn good.
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+cVSIDS (X = 1, Y = 0.5):    260ms (~0.26 seconds).
+cVSIDS (X = 1, Y = 0.8):    266ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.5):   270ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.8):   279ms (~0.29 seconds).
+Improved CDCL:              284ms (~0.28 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+cVSIDS (X = 1, Y = 0.5):    1,680ms (~1.68 seconds).
+cVSIDS (X = 1, Y = 0.8):    1,705ms (~1.71 seconds).
+cVSIDS (X = 10, Y = 0.5):   1,782ms (~1.78 seconds).
+cVSIDS (X = 10, Y = 0.8):   1,841ms (~1.84 seconds).
+Improved CDCL:              2,385ms (~2.39 seconds).
+\end{FVerbatim}
+\noindent
+In the results, since we will be interating over many versions of VSIDS, 
+I will leave out the older results and only compare against the previous 
+versions of our solver. In the results, it appears to be that lower 
+X and Y values lead to faster solving times, however, I encourage you to 
+choose your own X and Y values and see what happens for yourself.
+
+\subsection{mVSIDS}
+
+\textbf{mVSIDS} is the second form of VSIDS introduced by the paper from 
+the section introduction. In this type of VSIDS, we bump the values of 
+every variable we resolve on during clause resolution as well as the values 
+of the variables in the learned clause. The multiplicative decay step is 
+applied the same as during cVSIDS.
+
+The algorithmic change is basically trivial:
+\begin{lstlisting}
+bool solve() {
+    //setup
+    ..
+
+    while (True) {
+        //assigning
+        ...
+
+        optional int[] contradiction = propagate(assignment)
+
+        if (contradiction has a value) {
+            numConflicts = numConflicts + 1
+
+            //set up UIPs from conflict clause
+            ...
+
+            for (i = trail.size down to 0) {
+                TrailEntry entry = trail[i]
+                idx = abs(entry.lit)
+
+                if (seen[idx]) {
+                    //grab reason and update seen and levelCount
+                    ...
+
+                    activity[idx] += 1
+                    //unmark seen and update levelCount
+                    ...
+                }
+
+                if (levelCount == 1) {
+                    break
+                }
+            }
+
+            //create learned clause and update activity scores
+            ...
+
+            //backjump
+            ...
+
+            //apply decay factor
+            ...
+
+            continue
+        }
+    }
+}
+\end{lstlisting}
+\noindent 
+Here are the results using \textbf{X = 10} and \textbf{Y = 0.8}:
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+mVSIDS (X = 1, Y = 0.5):    279ms (~0.28 seconds).
+mVSIDS (X = 1, Y = 0.8):    277ms (~0.28 seconds).
+mVSIDS (X = 10, Y = 0.5):   269ms (~0.27 seconds).
+mVSIDS (X = 10, Y = 0.8):   284ms (~0.28 seconds).
+
+cVSIDS (X = 1, Y = 0.5):    260ms (~0.26 seconds).
+cVSIDS (X = 1, Y = 0.8):    266ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.5):   270ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.8):   279ms (~0.29 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+mVSIDS (X = 1, Y = 0.5):    1,532ms (~1.53 seconds).
+mVSIDS (X = 1, Y = 0.8):    1,526ms (~1.53 seconds).
+mVSIDS (X = 10, Y = 0.5):   1,420ms (~1.42 seconds).
+mVSIDS (X = 10, Y = 0.8):   1,467ms (~1.47 seconds).
+
+cVSIDS (X = 1, Y = 0.5):    1,680ms (~1.68 seconds).
+cVSIDS (X = 1, Y = 0.8):    1,705ms (~1.71 seconds).
+cVSIDS (X = 10, Y = 0.5):   1,782ms (~1.78 seconds).
+cVSIDS (X = 10, Y = 0.8):   1,841ms (~1.84 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+\end{FVerbatim}
+\noindent
+So even with the worst mVSIDS time, it beats the best cVSIDS time
+(per the benchmark, results may vary, these tests are very small and are not 
+very representative of real-world SAT solver usage).
+
+\subsection{EMA/Normalized VSIDS}
+
+EMA stands for ``Exponential Moving Average'' and it's what allows us to 
+mathematically decide which variables' activity scores should be decayed 
+and by how much. If we go back to the earlier example of some variable gaining 
+a really high activity score and then becoming inactive, but still dominating 
+over the more recently active variables, this is what EMA helps with. EMA will 
+decay high scoring, but actually inactive variables' scores while mostly 
+preserving the actually active variables' scores. 
+
+The way it does it is with this nifty formula:
+$$s_n = (1 - f)\delta_n + f * s_{n - 1}$$
+
+$s_n$ is the \textbf{current score}, $f$ is our \textbf{decay factor},
+$\delta_n \in \{0, 1\}$ where a value of $0$ corresponds to a variable 
+not being bumped, and a value of $1$ corresponds to a variable being bumped.
+Let's walk through an example:
+
+\begin{center}
+    Suppose $f = 0.95$, and $s_0 = 0.0$. In the first conflict ($n = 1$),
+    a variable was involved. Its score becomes:
+    $$s_1 = (1 - 0.95)(1) + 0.95(0.0) = 0.05$$
+    It's not much, but it's much more than 0, so this variable is considered 
+    high ranking. Now suppose in the next conflict ($n = 2$), the variable was 
+    not involved. Its score now becomes:
+    $$s_2 = (1 - 0.95)(0) + 0.95(0.05) = 0.0475$$
+    This is less than $0.05$, so now it's low ranking, even if the difference is small.
+    Now suppose it's involved in the third conflict ($n = 3$):
+    $$s_3 = (1 - 0.95)(1) + 0.95(0.0475) = 0.095125$$
+    This is much larger than what it was before.
+\end{center}
+
+Although you probably have guessed already, we've been implementing VSIDS 
+in a straightforward naive way by following the described process down to the letter. 
+For sake of simplicity, for Normalized VSIDS, we'll also implement it naively.
+
+Implementing normalized VSIDS isn't too different to how we're already implementing it,
+except now, we update every score upon each conflict iteration. We'll need an additional 
+data structure to keep track of the $\delta$ values. Since we're appending normalization 
+on top of mVSIDS, we still update a $\delta$ value only when we resolve a variable or it 
+appears in the learned clause. This means that we now delay the updating of our activity 
+scores until after we construct the learned clause:
+\begin{lstlisting}
+bool solve() {
+    //setup
+    ..
+
+    while (True) {
+        //assigning
+        ...
+
+        optional int[] contradiction = propagate(assignment)
+
+        if (contradiction has a value) {
+            numConflicts = numConflicts + 1
+
+            //set up UIPs from conflict clause
+            ...
+
+            for (i = trail.size down to 0) {
+                TrailEntry entry = trail[i]
+                idx = abs(entry.lit)
+
+                if (seen[idx]) {
+                    //grab reason and update seen and levelCount
+                    ...
+
+                    delta[idx] = True
+                    //unmark seen and update levelCount
+                    ...
+                }
+
+                if (levelCount == 1) {
+                    break
+                }
+            }
+
+            //create learned clause and update activity scores
+            int[] learned
+            while (seenIdx is not empty) {
+                int lit_idx = seenIdx.last
+                delta[lit_idx] = True
+                ...
+            }
+
+            //backjump
+            ...
+
+            //apply decay factor
+            for (i = 1 up to numVars) {
+                if (delta[i] == True) {
+                    activity[i] = (1 - Y) + Y * activity[i]
+                } else {
+                    activity[i] = Y * activity[i]
+                }
+                delta[i] = False
+            }
+
+            continue
+        }
+    }
+}
+\end{lstlisting}
+\noindent
+Notice how that there is no X value anymore because normalization happens upon 
+every iteration instead of after a set number. Thankfully, our fastest times were 
+when we updated activity scores after every iteration anyways, so we probably weren't 
+missing some ``fastest'' time under a different X value.
+
+Here are the results:
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+EMA (X = 1, Y = 0.8):       287ms (~0.29 seconds).
+EMA (X = 1, Y = 0.5):       280ms (~0.28 seconds).
+
+mVSIDS (X = 1, Y = 0.5):    279ms (~0.28 seconds).
+mVSIDS (X = 1, Y = 0.8):    277ms (~0.28 seconds).
+mVSIDS (X = 10, Y = 0.5):   269ms (~0.27 seconds).
+mVSIDS (X = 10, Y = 0.8):   284ms (~0.28 seconds).
+
+cVSIDS (X = 1, Y = 0.5):    260ms (~0.26 seconds).
+cVSIDS (X = 1, Y = 0.8):    266ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.5):   270ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.8):   279ms (~0.29 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+EMA (X = 1, Y = 0.8):       1,497ms (~1.50 seconds).
+EMA (X = 1, Y = 0.5):       1,621ms (~1.62 seconds).
+
+mVSIDS (X = 1, Y = 0.5):    1,532ms (~1.53 seconds).
+mVSIDS (X = 1, Y = 0.8):    1,526ms (~1.53 seconds).
+mVSIDS (X = 10, Y = 0.5):   1,420ms (~1.42 seconds).
+mVSIDS (X = 10, Y = 0.8):   1,467ms (~1.47 seconds).
+
+cVSIDS (X = 1, Y = 0.5):    1,680ms (~1.68 seconds).
+cVSIDS (X = 1, Y = 0.8):    1,705ms (~1.71 seconds).
+cVSIDS (X = 10, Y = 0.5):   1,782ms (~1.78 seconds).
+cVSIDS (X = 10, Y = 0.8):   1,841ms (~1.84 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+\end{FVerbatim}
+\noindent
+Here we see that EMA/normalizing the VSIDS doesn't make a huge contribution,
+but it still makes a decent one for some values of Y.
+
+\subsection{AMA/adaptVSIDS}
+
+Adaptive Moving Average (AMA) VSIDS is an extension to EMA VSIDS where rather than 
+having a fixed decay factor, we choose between two different decay rates depending on 
+the state of our learned clause. The big idea behind making the decay factor variable 
+instead of fixed is that our solver's ``productivity" isn't fixed. The learned clause 
+affects this productivity in how high the quality of the learned clause is. 
+
+To figure out the quality of a learned clause, we have to look at its \textbf{LBD}
+which stands for \textbf{literal blocks distance}. LBD is defined as the number of 
+distinct decision levels in the learned clause. A learned clause with a low LBD is considered to be higher 
+quality than that of one with a high LBD. The paper doesn't explicitly say why this is the case,
+\footnote{I might be illiterate and may have just missed the reason.}
+but we can make a few guesses as to why.Considering that a low LBD means that there aren't 
+many decision levels involved in the contradiction, so that means that the contradiction 
+is more or less ``confined" to a smaller area of the search space. This indicates that 
+the conflict has a more localized relationship with the current set of decisions. 
+Such clauses have a higher chance to become unit or nearly unit, under a smaller 
+amount of changes to the current assignment, better contraining future search more effectively.
+Contrast this to high LBD, which has multiple decision levels involved in the contradiction, 
+meaning that the contradiction spans a broader portion of the current search space, making 
+it less likely it'll have an immediate effect on constraining future search.
+
+This is supported by the fact that when we learn a clause with a low LBD, we choose a 
+higher decay factor, so that variable activity scores shrink less, meaning we remember 
+them more in the present. Likewise, when we learn a clause with a high LBD, we choose 
+a lower decay factor, so variable activity scores shrink faster, making older activity 
+lose its influence faster relative to the newer active variables.
+
+The paper introduces this variable called \textit{lbdema}, which is defined as the 
+exponential moving average of the LBD. Like our EMA VSIDS, this is calculated 
+upon every iteration, and it's also a recurrence relation where the previous value affects 
+what the next value will be. The formula is similar to the previous EMA formula:
+$${lbdema}_n = (1 - \alpha) * {LBD}_t + \alpha * {lbdema}_{n - 1}$$
+$\alpha$ is our \textbf{smoothing factor}, ${LBD}_t$ is the LBD of the current learned clause,
+and \\${lbdema}_{n - 1}$ is the previous lbdema. In our testing of AMA VSIDS, I used 
+$\alpha = 0.1$. 
+
+\subsection{VSIDS - Results}
+The results for VSIDS vary wildly because there are so many different types beyond what 
+we've explored, and there are so many different parameters that could affect the end 
+results. For VSIDS, although there might look like there's a clear winner, we need to 
+keep in mind that we're using two relatively small test sets, so drawing an actual
+conclusion as to which VSIDS version is ``objectively'' better isn't credible. 
+Although AMA VSIDS isn't the fastest from our benchmarks, it will be the version we 
+continue with for the rest of our paper. As for code, given how easy it is to swap out 
+each version of VSIDS with each other, the exact code used for each version won't be 
+provided, as the total changes were small enough that following along shouldn't be overly
+difficult.
+
+Another thing to note is that at the moment, there was not much exploration for the 
+time differences. In order to figure out why the speeds between each version was 
+different, it would be helpful to analyze how many conflicts there were, as well as the
+order of deciding variables. As of now, I am just looking at the results and just 
+accepting them as they are, not because I lack curiosity or scientific rigor, but because 
+this is the second night in a row where I barely got any sleep for no reason, and I 
+am too tired to analyze this under a microscope.
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+AMA (Y = 0.75 or 0.99):     274ms (~0.27 seconds).
+
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+EMA (X = 1, Y = 0.8):       287ms (~0.29 seconds).
+EMA (X = 1, Y = 0.5):       280ms (~0.28 seconds).
+
+mVSIDS (X = 1, Y = 0.5):    279ms (~0.28 seconds).
+mVSIDS (X = 1, Y = 0.8):    277ms (~0.28 seconds).
+mVSIDS (X = 10, Y = 0.5):   269ms (~0.27 seconds).
+mVSIDS (X = 10, Y = 0.8):   284ms (~0.28 seconds).
+
+cVSIDS (X = 1, Y = 0.5):    260ms (~0.26 seconds).
+cVSIDS (X = 1, Y = 0.8):    266ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.5):   270ms (~0.27 seconds).
+cVSIDS (X = 10, Y = 0.8):   279ms (~0.29 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+AMA (Y = 0.75 or 0.99):     1,629ms (~1.63 seconds).
+
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+EMA (X = 1, Y = 0.8):       1,497ms (~1.50 seconds).
+EMA (X = 1, Y = 0.5):       1,621ms (~1.62 seconds).
+
+mVSIDS (X = 1, Y = 0.5):    1,532ms (~1.53 seconds).
+mVSIDS (X = 1, Y = 0.8):    1,526ms (~1.53 seconds).
+mVSIDS (X = 10, Y = 0.5):   1,420ms (~1.42 seconds).
+mVSIDS (X = 10, Y = 0.8):   1,467ms (~1.47 seconds).
+
+cVSIDS (X = 1, Y = 0.5):    1,680ms (~1.68 seconds).
+cVSIDS (X = 1, Y = 0.8):    1,705ms (~1.71 seconds).
+cVSIDS (X = 10, Y = 0.5):   1,782ms (~1.78 seconds).
+cVSIDS (X = 10, Y = 0.8):   1,841ms (~1.84 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+\end{FVerbatim}
+\noindent
 
 \section{Clause Database Management}
 
