@@ -4962,7 +4962,374 @@ Improved CDCL:              2,385ms (~2.39 seconds).
 
 \section{Clause Database Management}
 
+Clause database management is another essential addition to a CDCL SAT solver. 
+For larger and larger equations, and for equations with less valid assignents, 
+we will tend to learn more clauses. While First UIPs can efficiently compute 
+these learned clauses, with the added benefit of them being smaller than if we 
+didn't use the first UIP condition, the number of learned clauses still has a 
+memory impact. Although our test sets are of 3-SAT instances, so the initial 
+clauses are small to begin with, and the learned clauses aren't as large as they 
+could be, for larger SAT problems, the number of learned clauses can become exponential
+in size. 
+
+Although some people like to say that memory management isn't important because the 
+hardware gets better and better, the day we have to stop worrying about the amount 
+of memory being used is the day we have unlimited memory to work with. And until that 
+day comes (which will be never), those people can shut up and go back to coding their 
+2GB Chrome tab website. 
+\footnote{Websites take up too much memory, much more than they need, 
+and I will happily die on this hill.}
+
+For this section, we will go back to using this paper:
+\begin{center}
+    \small{\url{https://www3.cs.stonybrook.edu/~cram/cse505/Fall20/Resources/cdcl.pdf}}
+\end{center}
+starting from section \textbf{4.5.4. Clause Deletion Strategies}.
+The three (listed) methods described are:
+\begin{itemize}
+    \item \textit{n-order learning}: Only learning clauses with $n$ or fewer literals.
+    \item \textit{m-size relevance-based learning}: Learning all clauses as long as they 
+            currently imply assignments or are themselves a unit clause, only being
+            only being discarded once they have $m$ or more Unassigned literals.
+    \item \textit{k-bounded learning}: Clauses smaller than $k$ are kept permanently,
+            but larger clauses are discarded once they stop being unit.
+\end{itemize}
+\noindent
+The paper also mentions that \textit{k-bounded learning} and \textit{m-size relevance-based learning}
+can be combined. You may wonder why we can't combine all three, however, notice that 
+\textit{k-bounded learning} is an extension of \textit{n-order learning}, as they both keep 
+clauses smaller than some threshold, but \textit{k-bounded learning} is more merciful to 
+larger clauses.
+
+The paper also describes a newer heuristic that is based on its \textit{activity} score. 
+The heuristic is essentially ``VSIDS for clauses instead of variables.'' We will progress our 
+way into implementing all of these algorithms, incrementally of course. Before we continue, it 
+should be noted that modern SAT solvers don't have a universal clause deletion policy, and each 
+one does its own thing, and once ours is mature enough, it will be no different.
+\footnote{Does that make us all unique or all the same?}
+
+\subsection{N-Order Learning}
+
+\textit{n-order learning} is definitely the most aggressive clause learning/deletion policy of 
+the bunch. I don't think I'd want to encounter it on the streets. It's very straightforward in 
+idea: if a clause has more than $n$ literals, it won't get learned at all. This may raise some red 
+flags, and I hope the one we're all thinking of is, how do we backjump? If we're not learning a clause, 
+how do we know which decision level to backjump to? Well, just because we're not learning it doesn't 
+mean we can't backjump to a higher decision level, it just means we won't add the new clause to our 
+database. Does that put you at ease? Well it shouldn't because the reason why this was such a big 
+red flag in the first place is that as of now, when we decide a new variable, we always start with 
+True and rely on clause learning to force it False later. So when we backjump and start a new 
+decision level, how do we start the new decision level as False if we didn't learn anything?
+
+As of now, there is no way to change our course.
+\footnote{This will be addressed in the next section.}
+So what can we do? You're gonna find this funny (not really), we need to bring back our 
+``tried second branch'' flag, or at least some form of it. Without it, and I cannot emphasize 
+this enough, we will just be stuck in an infinite loop.
+
+So how should we pick a value of $n$? There isn't a universal way to choose, so we will try 
+the maximum clause length of the original CNF, and then try some numbers around it. Because 
+our current testing sets are all instances of 3-SAT, it's not very fair, in my opinion, to 
+test on different sizes of $n$ when the data is specifically tailored to be a fixed size. Because 
+of this, we will go to our CNF database 
+\footnote{\url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}}
+and get a new testing set, ``Flat200-479'' which is a SAT encoding of a 3-color problem. There are 
+600 variables and 2237 clauses, all satisfiable.
+\footnote{As I was setting up the benchmarking test, my framework reported that the solver failed on 
+this new test set. It turned out I gave it the wrong path, and after providing it the correct path, it 
+passed, as we would expect. The shock of seeing the [FAIL] really threw me for a loop.}
+
+Here are the baseline results (without n-order learning):
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+AMA:     274ms (~0.27 seconds).
+
+On all 100 equations in Flat200-479:
+
+AMA:     24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+AMA:     1,629ms (~1.63 seconds).
+\end{FVerbatim}
+\noindent
+We will now discuss our changes to our algorithm. Firstly, we need to compute the 
+maximum clause length. As of now, we will say that the maximum clause length of the 
+original equation will also be the maximum clause length of any learned clause, and then 
+see how changing this number to lower or higher changes our runtime speed. To compute 
+the maximum clause length, we will iterate through the original clauses and take the 
+maximum size.
+
+Next, we want to check how large the learned clause will be. We do this by checking 
+the size of the \textit{seenIdx} array because it holds the variables that will 
+become part of the learned clause. This avoids computing what the learned clause will 
+be unnecessarily. For now, we will just backtrack one level in this case, then move onto 
+backjumping.
+
+We first need to remember to change our interface to use our old DecisionLevel struct:
+\begin{lstlisting}
+    public interface:
+
+    private interface:
+        DecisionLevel {
+            int idx,
+            bool triedOtherBranch
+        }
+
+        DecisionLevel[] trailStarts
+        ...
+\end{lstlisting}
+\noindent
+And of course we need to adjust our code to use the DecisionLevel struct instead of just an index.
+
+The algorithmic changes are as follows:
+\begin{lstlisting}
+bool solve() {
+    //setup
+    ..
+
+    while (True) {
+        //assigning
+        ...
+
+        optional int[] contradiction = propagate(assignment)
+
+        if (contradiction has a value) {
+            numConflicts = numConflicts + 1
+
+            //set up UIPs from conflict clause
+            ...
+
+            for (i = trail.size down to 0) {
+                TrailEntry entry = trail[i]
+                idx = abs(entry.lit)
+
+                if (seen[idx]) {
+                    //grab reason and update seen and levelCount
+                    ...
+
+                    delta[idx] = True
+                    //unmark seen and update levelCount
+                    ...
+                }
+
+                if (levelCount == 1) {
+                    break
+                }
+            }
+
+            if (seenIdx.size > maxSize) {
+                while (trail.size > 0 && trail_starts.size > 0) {
+                    DecisionLevel decision = trailStarts.last
+
+                    while (trail.size > decision.idx + 1) {
+                        int lit = trail.last.lit
+                        assignment[abs(lit)] = Unassigned
+                        var_to_trail[abs(lit)] = -1
+                        erase(trail, trail.last)
+                    }
+
+                    if (decision.triedFalse == False) {
+                        TrailEntry entry = trail.last
+
+                        entry.lit = -entry.lit
+                        assignment[abs(entry.lit)] = False
+                        var_to_trail[abs(entry.lit)] = -1
+                        decision.triedFalse = True
+
+                        trailHead = decision.idx
+                        break
+                    } else {
+                        int lit = trail.last.lit
+                        assignment[abs(lit)] = Unassigned
+                        var_to_trail[abs(lit)] = -1
+                        erase(trail.last)
+                        erase(trailStarts.last)
+                    }
+                    
+                    if (trail.size == 0) {
+                        return False
+                    }
+
+                    while (seenIdx.size > 0) {
+                        int idx = seenIdx.last
+                        seen[idx] = False
+                        pop(seenIdx)
+                    }
+
+                    for (i = 0 up to numVars) {
+                        delta[i] = False
+                    }
+
+                    continue
+                }
+            }
+
+            //create learned clause and update activity scores
+            int[] learned
+            while (seenIdx is not empty) {
+                int lit_idx = seenIdx.last
+                delta[lit_idx] = True
+                ...
+            }
+
+            //backjump
+            ...
+
+            //apply decay factor
+            for (i = 1 up to numVars) {
+                if (delta[i] == True) {
+                    activity[i] = (1 - Y) + Y * activity[i]
+                } else {
+                    activity[i] = Y * activity[i]
+                }
+                delta[i] = False
+            }
+
+            continue
+        }
+    }
+}
+\end{lstlisting}
+\noindent
+So it's pretty straightforward,
+\footnote{I struggled with debugging for half an hour because I forgot to clear out
+\textit{delta} and \textit{seenIdx/seen}. I can see the headlines now: 
+``Functional programmers are right about this ONE thing!!!''}
+we separate our code into two branches. In the first branch where we aren't going to 
+learn the clause, we just backtrack as we used to in our clause learning section, clear 
+out everything related to adjusting the VSIDS and then move on, and otherwise we move on 
+business as usual.
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+N-order:   283ms (~0.28 seconds).
+AMA:       274ms (~0.27 seconds).
+
+On all 100 equations in Flat200-479:
+
+N-order:   85,749ms (~1.43 minutes).
+AMA:       24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+N-order:   2,313ms (~2.31 seconds).
+AMA:       1,629ms (~1.63 seconds).
+\end{FVerbatim}
+\noindent
+As you can see, doing n-order learning was terrible for our runtime. Unfortunately 
+this isn't an implementation issue in our n-order learning algorithm, unless you 
+consider that implementing n-order learning is an implementation issue to begin with.
+You can probably guess why this is (we removed a ton of unit propagation!), and this 
+is really important because it goes to show that even small initial clauses can cause 
+much larger learned clauses. When I doubled $n$, the runtime was nearly the same as 
+AMA, but a tad slower. 
+
+\subsection{M-Size Relevance-Based Learning}
+
+The kind of clause management heuristic we're going to try is m-size relevance-based 
+learning, where we learn every single clause, but only delete them when they stop 
+implying assignments and have more than $m$ Unassigned literals. To set this up, 
+we will restart from our VSIDS code since it's not like there's anything to build off of 
+from n-order learning. The paper we use uses the phrasing ``as soon as the number of
+unassigned literals is greater than an integer $m$'' which sounds like we have to keep 
+track of the number of unassigned literals per clause. We can do this by directly tying 
+the number of Unassigned literals to the clause in a struct, which we will do. 
+
+There is also the option of scanning the clauses in their entirety and using that information 
+to choose which ones to keep and which ones to discard. Then, instead of doing this every 
+conflict or whatever, we clean up the database after a certain number of conflicts.
+
+Although adding in this struct to keep track of the number of Unassigned literals seems 
+really simple, you have to consider that our watched literals implementation isn't a great 
+support structure for it, since we'd need to add in a mapping from variables to clauses,
+then update every single clause containing a variable, and blah blah blah, it's a lot.
+There's also just the fact that honestly, I'm going to be debugging this for hours, the 
+end of the quarter is draining me and I just want to graduate, and so in other words,
+I'm making the executive decision to not ``waste'' more time than I have to.
+
+So since our clause lengths are pretty small still, we'll say that once the clause 
+is no longer unit, we'll get rid of it, as long as it's not part of forcing an assignment.
+The implementation will be extensible, ie, it won't ``hardcode'' that the clause must be 
+non-unit in order to be deleted, it will still manually count the number of Unassigned 
+literals and then compare against a threshold to decide.
+
+Here's what we need to do to get this to work: every time there's a certain number 
+of conflicts, we need to scan each clause if they meet our conditions. Then for 
+each ones that do, we will mark them to be deleted. Then we just delete them! So simple!
+So easy! It's actually more complicated than that because of our watched literals unfortunately.
+We need to remove the watch lists of each clause we're deleting, update the watch lists of all 
+variables that were watching the clause we deleted, and update the watch lists of all the clauses 
+that get shifted in memory, which of course, is a lot easier said than done. So here's the game 
+plan: I'm gonna \textit{try} to get some sleep (it is 1:41AM), and when I wake up, maybe I'll 
+have the mental fortitude to properly explain this.
+\footnote{My senioritis got so bad, I think it turned into full blown mental illness.}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+M-size:    293ms (~0.29 seconds).
+N-order:   283ms (~0.28 seconds).
+AMA:       274ms (~0.27 seconds).
+
+On all 100 equations in Flat200-479:
+
+M-size:    25,681ms (~25.68 seconds).
+N-order:   85,749ms (~1.43 minutes).
+AMA:       24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+M-size:    1,937ms (~1.94 seconds).
+N-order:   2,313ms (~2.31 seconds).
+AMA:       1,629ms (~1.63 seconds).
+\end{FVerbatim}
+\noindent
+We see that m-size relevance-based learning is slightly slower than AMA VSIDS, and much faster 
+than n-order learning (except for uf20-91). There could be some reasons for this, such as doing 
+clause deletion too frequently. Rather than doing it a fixed number of times, we could also 
+perform it whenever the database grows by a certain amount, say 10\%. If we do this, our results 
+speed up quite a bit on the larger equations (FLAT200.470):
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+M-size (10\%):  295ms (~0.30 seconds).
+M-size:         293ms (~0.29 seconds).
+N-order:        283ms (~0.28 seconds).
+AMA:            274ms (~0.27 seconds).
+
+On all 100 equations in Flat200-479:
+
+M-size (10\%):  18,797ms (~18.80 seconds).
+M-size:         25,681ms (~25.68 seconds).
+N-order:        85,749ms (~1.43 minutes).
+AMA:            24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+M-size (10\%)   1,781ms (~1.78 seconds).
+M-size:         1,937ms (~1.94 seconds).
+N-order:        2,313ms (~2.31 seconds).
+AMA:            1,629ms (~1.63 seconds).
+\end{FVerbatim}
+\noindent
+Although it doesn't speed up on the smaller equations, a ~7 second speedup on larger 
+equations shows that this scales better on larger SAT problems, which is great!
+
+\subsection{K-Bounded Learning}
+
+\subsection{Combining M-Size and K-Bounded Learning}
+
+\subsection{``Clause VSIDS''}
+
+\subsection{Clause Database Management - Results}
+
 \section{Restarts}
+
+\subsection{Assignment Polarity}
 
 \section{Comparing to MiniSAT}
 
