@@ -5512,9 +5512,58 @@ AMA:            1,629ms (~1.63 seconds).
 Although it doesn't speed up on the smaller equations, a ~7 second speedup on larger 
 equations shows that this scales better on larger SAT problems, which is great!
 
-\subsection{K-Bounded Learning}
-
 \subsection{Combining M-Size and K-Bounded Learning}
+
+Due to the similarities of m-size learning and k-bounded learning, I felt like it 
+didn't make much sense to implement k-bounded learning by itself, then combining it 
+with m-size learning afterwards. Combining these two is really easy since all we're 
+doing is checking if clauses are:
+\begin{enumerate}
+    \item Greater than some size $k$
+    \item Have at least $m$ Unassigned literals
+\end{enumerate}
+Since we already do the second one in our m-size loop, it's just adding another condition
+that needs to be true in order to mark a clause to be removed.
+
+On the other hand, what isn't easy is choosing a size $k$. Not all CNF equations are 
+made equal. Some equations have small clauses (like our testing sets) and learn larger 
+clauses, some have large clauses and learn smaller clauses, etc. Choosing a fixed $k$ for 
+all clauses is obviously a really bad idea. Make it too large and we just learn everything, 
+make it too small and we forget everything. We will bring back our ``maxSize'' counter 
+from n-order based learning and use that. We will use a maxSize that is twice as large as 
+the largest clause in the original CNF
+\footnote{Because adding a second condition to one conditional is easy, and iterating through 
+the clauses to find the size of the largest clause is also easy, we will skip pseudocode.}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+MK-bound:       288ms (~0.29 seconds).
+M-size (10\%):  320ms (~0.32 seconds).
+M-size:         293ms (~0.29 seconds).
+N-order:        283ms (~0.28 seconds).
+AMA:            274ms (~0.27 seconds).
+
+On all 100 equations in Flat200-479:
+
+MK-bound:       19,082ms (~19.08 seconds).
+M-size (10\%):  17,716ms (~17.72 seconds).
+M-size:         25,681ms (~25.68 seconds).
+N-order:        85,749ms (~1.43 minutes).
+AMA:            24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+MK-bound:       1,740ms (~1.74 seconds).
+M-size (10\%)   1,768ms (~1.77 seconds).
+M-size:         1,937ms (~1.94 seconds).
+N-order:        2,313ms (~2.31 seconds).
+AMA:            1,629ms (~1.63 seconds).
+\end{FVerbatim}
+\noindent
+We see that using a maxSize that's twice as large as the size of the largest original clause
+causes a pretty big slowdown on Flat200-479. This indicates that we're removing clauses 
+too aggressively relative to the size of the clauses we're learning. 
 
 \subsection{``Clause VSIDS''}
 

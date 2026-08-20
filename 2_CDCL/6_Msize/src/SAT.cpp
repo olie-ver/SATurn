@@ -6,7 +6,6 @@
 #include <cassert>
 #include <iostream>
 
-#define RESET 10
 #define MAXUNASS 2
 
 namespace saturn {
