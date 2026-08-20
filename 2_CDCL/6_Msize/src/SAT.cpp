@@ -40,23 +40,16 @@ namespace saturn {
                     const std::vector<int>& clause = clauses[i];
 
                     size_t numUnassigned = 0;
-                    size_t numTrue = 0;
                     for (size_t j = 0; j < clause.size(); j++) {
                         int idx = std::abs(clause[j]) - 1;
                         if (vars[idx] == UNASSIGNED) {
                             numUnassigned++;
-                        } else if (!evals_false(clause[j])) {
-                            numTrue++;
                         }
                     }
 
                     if (numUnassigned > MAXUNASS) {
                         remove[i - numClauses] = true;
                     }
-
-                    // if (numUnassigned != 1 || numTrue != 0) {
-                    //     remove[i - numClauses] = true;
-                    // }
                 }
 
                 for (size_t i = 0; i < trail.size(); i++) {
@@ -97,10 +90,12 @@ namespace saturn {
                     // Update watcher lists: last -> idx.
                     replaceWatchIndex(last, idx);
 
-                    for (TrailEntry& entry : trail) {
-                        if (entry.reasonIdx.has_value() &&
-                            *entry.reasonIdx == last) {
-                            *entry.reasonIdx = idx;
+                    for (size_t i = 0; i < trail.size(); i++) {
+                        if (trail[i].reasonIdx.has_value()) {
+                            size_t& reasonIdx = *trail[i].reasonIdx;
+                            if (reasonIdx == last) {
+                                reasonIdx = idx;
+                            }
                         }
                     }
 
@@ -111,27 +106,6 @@ namespace saturn {
                 curSize = clauses.size();
 
                 numConflicts = 0;
-
-                // for (size_t i = 0; i < clauses.size(); i++) {
-                //     auto [w1, w2] = clause_to_var[i];
-
-                //     assert(w1 < clauses[i].size());
-                //     assert(w2 < clauses[i].size());
-                // }
-
-                // for (size_t var = 0; var < var_to_clause.size(); var++) {
-                //     for (size_t clauseIdx : var_to_clause[var]) {
-                //         assert(clauseIdx < clauses.size());
-
-                //         auto [w1, w2] = clause_to_var[clauseIdx];
-
-                //         int lit1 = clauses[clauseIdx][w1];
-                //         int lit2 = clauses[clauseIdx][w2];
-
-                //         assert(var_to_widx(lit1) == var ||
-                //             var_to_widx(lit2) == var);
-                //     }
-                // }
             }
 
 

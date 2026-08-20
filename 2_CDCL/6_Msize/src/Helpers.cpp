@@ -39,17 +39,21 @@ namespace saturn {
         size_t var2 = var_to_widx(lit2);
 
         // Update first watch list.
-        for (size_t& clauseIdx : var_to_clause[var1]) {
-            if (clauseIdx == oldIdx) {
-                clauseIdx = newIdx;
+        std::vector<size_t>& firstWatchList = var_to_clause[var1];
+        
+        for (size_t i = 0; i < firstWatchList.size(); i++) {
+            if (firstWatchList[i] == oldIdx) {
+                firstWatchList[i] = newIdx;
             }
         }
 
         // Update second watch list.
         if (var2 != var1) {
-            for (size_t& clauseIdx : var_to_clause[var2]) {
-                if (clauseIdx == oldIdx) {
-                    clauseIdx = newIdx;
+            std::vector<size_t>& secondWatchList = var_to_clause[var2];
+        
+            for (size_t i = 0; i < secondWatchList.size(); i++) {
+                if (secondWatchList[i] == oldIdx) {
+                    secondWatchList[i] = newIdx;
                 }
             }
         }

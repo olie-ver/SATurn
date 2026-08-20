@@ -5265,8 +5265,201 @@ variables that were watching the clause we deleted, and update the watch lists o
 that get shifted in memory, which of course, is a lot easier said than done. So here's the game 
 plan: I'm gonna \textit{try} to get some sleep (it is 1:41AM), and when I wake up, maybe I'll 
 have the mental fortitude to properly explain this.
-\footnote{My senioritis got so bad, I think it turned into full blown mental illness.}
+\footnote{My senioritis got so bad, it evolved into full blown mental illness.}
 
+Here's what we'll need first: we're going to implement the helper functions to help update 
+our watch lists so our watched literals will work properly. So first we'll add them to our 
+object:
+
+\begin{lstlisting}
+    public interface:
+
+    private interface:
+        ...
+        void removeFromWatchList(int[] watchList, int idx)
+        void removeClauseFromWatchLists(int clauseIdx)
+        void replaceWatchIndex(int oldIdx, int newIdx)
+        ...
+\end{lstlisting}
+\noindent
+We will implement them in order.
+
+\begin{lstlisting}
+void removeFromWatchList(int[] watchList, int idx) {
+    for (i = 0 up to watchList.size) {
+        if (watchList[i] == idx) {
+            swap(watchList[i], watchList.last)
+            pop(watchList)
+            break
+        }
+    }
+}
+\end{lstlisting}
+This algorithm is very straightforward. Given an array of clause indices that 
+we're watching, we want to remove the passed in \textit{clause index}, not 
+the \textit{element} at the passed in index. We use swap-and-pop to avoid 
+shifting elements, which would be a bookkeeping nightmare.
+
+\begin{lstlisting}
+void removeClauseFromWatchLists(int clauseIdx) {
+    (int firstWatch, int secondWatch) = clause_to_var[clauseIdx]
+
+    int lit1 = clauses[clauseIdx][firstWatch]
+    int lit2 = clauses[clauseIdx][secondWatch]
+
+    int varIdx1 = var_to_widx(lit1)
+    int varIdx2 = var_to_widx(lit2)
+
+    removeFromWatchList(var_to_clause[varIdx1], clauseIdx)
+
+    if (varIdx1 != varIdx2) {
+       removeFromWatchList(var_to_clause[varIdx2], clauseIdx)
+    }
+}
+\end{lstlisting}
+\noindent
+This helper works by first grabbing the indices of the two literals watching 
+the clause at the passed in index. We then turn them into the actual literals 
+by indexing the clause. Then, we get the indices of the literals to where they 
+map in \textit{var\_to\_clause}, so that way we can grab the literals' watchlists.
+Finally, we remove the clause index from those literals' watchlists. This is a 
+little bit confusing because of all of the indexing and grabbing the corresponding 
+elements we're doing. 
+
+\begin{lstlisting}
+void replaceWatchIndex(int oldIdx, int newIdx) {
+    (int firstWatch, int secondWatch) = clause_to_var(newIdx)
+
+    int lit1 = clauses[newIdx][firstWatch]
+    int lit2 = clauses[newIdx][secondWatch]
+
+    int varIdx1 = var_to_widx(lit1)
+    int varIdx2 = var_to_widx(lit2)
+
+    int[] firstWatchList = var_to_clause[var1]
+    for (i = 0 up to firstWatchList.size) {
+        if (firstWatchList[i] == oldIdx) {
+            firstWatchList[i] = newIdx
+        }
+    }
+
+    if (varIdx1 != varIdx2) {
+        int[] secondWatchList = var_to_clause[var2]
+        for (i = 0 up to secondWatchList.size) {
+            if (secondWatchList[i] == oldIdx) {
+                secondWatchList[i] = newIdx
+            }
+        }
+    }
+}
+\end{lstlisting}
+\noindent
+This one is pretty self explanatory. We do our indexing magic to get the watchlists 
+for the clause's corresponding watch literals, and we replace an old index with 
+a new index. Again, not an element \textit{at} an old index, an element \textit{equaling}
+an old index.
+
+Here is how they are used in our m-size learning algorithm:
+\begin{lstlisting}
+bool solveCNF() {
+    //setup
+    ...
+    int numConflicts = 0
+
+    while(true) {
+        if (numConflicts > threshold) {
+            bool[] remove
+
+            for (i = numClauses up to clauses.size) {
+                int[] clause = clauses[i]
+                
+                int numUnassigned = 0
+                for (j = 0 up to clause.size) {
+                    if (vars[abs(clause[j])] == Unassigned) {
+                        numUnassigned = numUnassigned + 1
+                    }
+                }
+
+                if (numUnassigned > m) {
+                    remove[i - numClauses] = True
+                }
+            }
+
+            for (i = 0 up to trail.size) {
+                if (trail[i].reasonIdx is not optional) {
+                    int reasonIdx = trail[i].reasonIdx.value
+
+                    if (reasonIdx >= numClauses) {
+                        remove[reasonIdx - numClauses] = False
+                    }
+                }
+            }
+
+            for (i = clauses.size down to numClauses) {
+                if (remove[i - numClauses] == False) {
+                    continue
+                }
+
+                int lastIdx = clauses.size - 1
+
+                if (i == lastIdx) {
+                    removeClauseFromWatchLists(i)
+                    pop(clauses)
+                    pop(clause_to_var)
+                    continue
+                }
+
+                removeClauseFromWatchLists(i)
+                swap(clauses[i], clauses[last])
+                swap(clause_to_var[i], clause_to_var[last])
+
+                replaceWatchIndex(last, idx)
+
+                for (i = 0 up to trail.size) {
+                    if (trail[i].reasonIdx is not optional) {
+                        if (trail[i].reasonIdx.value == last) {
+                            trail[i].reasonIdx.value = idx
+                        }
+                    }
+                }
+
+                pop(clauses)
+                pop(clause_to_var)
+            }
+
+            numConflicts = 0
+        }
+
+        //rest of solving loop
+        ...
+    }
+} 
+\end{lstlisting}
+\noindent
+This is what's going on: first, we check that a certain number of conflicts have happened. 
+This number is fixed. If there have been that many conflicts, we scan every clause that is 
+\textbf{not} a part of our original CNF equation. If it has more than $m$ Unassigned literals, 
+we mark it for deletion. In our code, our \textit{remove} array uses an indexing where we subtract 
+the original number of clauses from the current clause indexing variable. This keeps the array 
+smaller in our implementation. Next, we iterate through our trail, and we check if any of the 
+clauses we've marked to be deleted are the reason why something was propagated. If a clause we 
+want to delete is a reason clause, we can't delete it because it's still being used in our 
+assignments. 
+
+Next, we iterate from the back of the clause database up to the front, excluding the 
+original clauses. If we're not supposed to remove the current clause, we move on (duh).
+Otherwise, we grab the index of the last clause. If the last clause in the database is 
+marked to be deleted, we can easily pop it off the database. Otherwise, we need to do 
+our swap and pop nonsense. We remove the clause from its watchlists, swap the current 
+clause with the last clause in the database, then we replace the watch indices. 
+
+After that, we traverse our trail again and check if we've swapped any literal's 
+reason clause index. If we have, then we need to update it. After that, we can 
+remove the clause and its watched literals from the database. After this is all over,
+we reset the counter for the number of conflicts and continue with the rest of the 
+solving loop. 
+
+That's a lot of work, so how does it hold up against our other implementations?
 \begin{FVerbatim}
 On all 1000 equations in uf20-91:
 
@@ -5296,21 +5489,21 @@ speed up quite a bit on the larger equations (FLAT200.470):
 \begin{FVerbatim}
 On all 1000 equations in uf20-91:
 
-M-size (10\%):  295ms (~0.30 seconds).
+M-size (10\%):  320ms (~0.32 seconds).
 M-size:         293ms (~0.29 seconds).
 N-order:        283ms (~0.28 seconds).
 AMA:            274ms (~0.27 seconds).
 
 On all 100 equations in Flat200-479:
 
-M-size (10\%):  18,797ms (~18.80 seconds).
+M-size (10\%):  17,716ms (~17.72 seconds).
 M-size:         25,681ms (~25.68 seconds).
 N-order:        85,749ms (~1.43 minutes).
 AMA:            24,238ms (~24.24 seconds).
 
 On all 1000 equations in UUF50.218.1000:
 
-M-size (10\%)   1,781ms (~1.78 seconds).
+M-size (10\%)   1,768ms (~1.77 seconds).
 M-size:         1,937ms (~1.94 seconds).
 N-order:        2,313ms (~2.31 seconds).
 AMA:            1,629ms (~1.63 seconds).

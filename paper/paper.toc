@@ -46,12 +46,12 @@
 \contentsline {section}{\numberline {4.6}Clause Database Management}{99}{section.4.6}%
 \contentsline {subsection}{\numberline {4.6.1}N-Order Learning}{99}{subsection.4.6.1}%
 \contentsline {subsection}{\numberline {4.6.2}M-Size Relevance-Based Learning}{104}{subsection.4.6.2}%
-\contentsline {subsection}{\numberline {4.6.3}K-Bounded Learning}{106}{subsection.4.6.3}%
-\contentsline {subsection}{\numberline {4.6.4}Combining M-Size and K-Bounded Learning}{106}{subsection.4.6.4}%
-\contentsline {subsection}{\numberline {4.6.5}``Clause VSIDS''}{106}{subsection.4.6.5}%
-\contentsline {subsection}{\numberline {4.6.6}Clause Database Management - Results}{106}{subsection.4.6.6}%
-\contentsline {section}{\numberline {4.7}Restarts}{106}{section.4.7}%
-\contentsline {subsection}{\numberline {4.7.1}Assignment Polarity}{106}{subsection.4.7.1}%
-\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{106}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{107}{chapter.5}%
+\contentsline {subsection}{\numberline {4.6.3}K-Bounded Learning}{110}{subsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.6.4}Combining M-Size and K-Bounded Learning}{110}{subsection.4.6.4}%
+\contentsline {subsection}{\numberline {4.6.5}``Clause VSIDS''}{110}{subsection.4.6.5}%
+\contentsline {subsection}{\numberline {4.6.6}Clause Database Management - Results}{110}{subsection.4.6.6}%
+\contentsline {section}{\numberline {4.7}Restarts}{110}{section.4.7}%
+\contentsline {subsection}{\numberline {4.7.1}Assignment Polarity}{110}{subsection.4.7.1}%
+\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{110}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{111}{chapter.5}%
 \contentsfinish 
