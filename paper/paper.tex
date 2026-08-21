@@ -5563,9 +5563,290 @@ AMA:            1,629ms (~1.63 seconds).
 \noindent
 We see that using a maxSize that's twice as large as the size of the largest original clause
 causes a pretty big slowdown on Flat200-479. This indicates that we're removing clauses 
-too aggressively relative to the size of the clauses we're learning. 
+too aggressively relative to the size of the clauses we're learning.
 
 \subsection{``Clause VSIDS''}
+
+Now we get to the more interesting part: ``Clause VSIDS.''
+\footnote{This is NOT an official or technical name as far as I am aware}
+The idea is that just like in VSIDS for variables, we measure a clause's activity
+and quality (LBD), and use that to determine whether or not it should be deleted. 
+We can still take into account things such as length, whether or not it's being used, 
+and the other factors we've been considering in other versions as well, however, the 
+activity and quality are the main ones.
+
+The paper defines this heuristic as ``the decision whether a clause should be 
+deleted is based not only on the number of literals but also on its \textit{activity} in 
+contributing to conflict making and on the number of decisions taken since its creation.''
+
+In order to implement this, we'll need three additional data structures:
+\begin{lstlisting}
+    public interface:
+
+    private interface:
+        ...
+        double[] cActivity
+        int[] creationConflict
+        int[] lbds
+        ...
+\end{lstlisting}
+\noindent
+\textit{cActivity} measures a learned clause's activity. We will update the activity of 
+every clause involved in a conflict, if it's a learned clause. Because activity is a metric 
+we use to determine whether or not a clause should be deleted, and we never delete an original 
+clause, we don't need to keep track of any data for any original clauses. 
+\textit{creationConflict} keeps track of the conflict number that a clause was created on.
+So if we learn a clause on conflict 50, it's creation conflict is 50. We use this to measure the 
+age of the clause, where $age = totalConflicts - creationConflict$.
+Lastly, \textit{lbds} keeps track of a clause's LBD upon learn time. Even though a clause's LBD 
+changes as our decision trail changes, we want to keep the original LBD from when the clause was 
+learned. This is because we want to know what decision levels led to the conflict in the first place, 
+and recomputing it describes the how ``useful'' the learned clause is under the current assignment, 
+not when it was actually created. Some SAT solvers do use dynamic LBD computations, but it's a 
+different heuristic.
+
+In order to keep track of these metrics for each learned clause, we need to update our 
+VSIDS code, as well as some other parts of our conflict resolution algorithm. Luckily, 
+these changes are very minimal:
+\begin{lstlisting}
+bool solveCNF() {
+    //setup
+    ...
+    int totalConflicts = 0
+    int curSize = numClauses
+
+    double activityIncrease = 1.0
+    double activityGrowth = 1.05
+    double maxIncrease = 1e100
+    double resetIncrease = 1e-100
+
+    while (true) {
+        if (activityIncrease > maxIncrease) {
+            for each (clauseActivity in cActivity) {
+                clauseActivity *= resetIncrease
+            }
+            activityIncrease *= resetIncrease
+        }
+
+        //Current clause deletion
+        if (clauseDatabase.size grew by X%) {
+            ...
+
+            for (i = clauses.size down to numClauses) {
+                if (remove[i - numClauses] == False) {
+                    continue
+                }
+
+                int lastIdx = clauses.size - 1
+
+                if (i == lastIdx) {
+                    removeClauseFromWatchLists(i)
+                    pop(clauses)
+                    pop(clause_to_var)
+
+                    pop(cActivity)
+                    pop(creationConflict)
+                    pop(lbds)
+
+                    continue
+                }
+
+                removeClauseFromWatchLists(i)
+                swap(clauses[i], clauses[last])
+                swap(clause_to_var[i], clause_to_var[last])
+
+                swap(cActivity[i], cActivity[last])
+                swap(creationConflict[i], creationConflict[last])
+                swap(lbds[i], lbds[last])
+
+                ...
+
+                pop(clauses)
+                pop(clause_to_var)
+
+                pop(cActivity)
+                pop(creationConflict)
+                pop(lbds)
+            }
+
+            curSize = clauses.size
+        }
+
+        //assignment
+        ...
+
+        if (contradiction occurred) {
+            totalConflicts = totalConflicts + 1
+            ...
+
+            for (int trailIdx = trail.size down to 0) {
+                ...
+                int reasonIdx = trail[trailIdx].reasonIdx.value;
+                if (reasonIdx >= numClauses) {
+                    cActivity[reasonIdx - numClauses] += activityIncrease
+                }
+            }
+            //rest of VSIDS and LBD calculation
+            ...
+
+            //backjump and learn 
+            ... 
+
+            append(cActivity, 0.0)
+            append(creationConflict, totalConflicts)
+            append(lbds, lbd)
+            activityIncrease *= activityGrowth
+            ...
+        }
+    }
+}
+\end{lstlisting}
+\noindent
+In our clause deletion code, we just added code to update our new data structures
+to be consistent with the rest of the clause database data structures. And then 
+in the VSIDS calculation, we added code to update a clause's activity if it's 
+a learned clause, and at the end of the loop, we just add extra entries into each 
+of the data structures so they grow with the database. 
+
+We use an activity increase and an activity growth variable to simulate the effects 
+of an activity decay and bump. The idea is that instead of bumping only the clauses 
+that were involved in a conflict and decaying the rest, we bump only the clauses 
+involved in a conflict in a way that is as if we decayed the others. By increasing 
+the activity increase by some growth amount every conflict, when we add to a clause's 
+activity, we add an ever increasing amount, so that way, more recent clauses get 
+larger and larger activities and less recent clauses don't have such huge increases. 
+The only caveat to this is that because conflicts happen all the time, we need to 
+reset the activity increase once it grows to a stupidly large size. This can be thought 
+of as our decay step.
+
+The next step is to now use these metrics in our clause deletion code. We could do 
+a bunch of experiments of how each metric impacts runtime and clause deletion, but 
+frankly, I don't want to. Instead, here's what workflow we'll use:
+\begin{enumerate}
+    \item Find which clauses that can be deleted by LBD, age, and activity
+    \item Find which clauses can be deleted via m+k-bounded learning
+    \item Protect clauses with an LBD \verb|<=| 2
+    \item Protect clauses that are currently reason clauses
+    \item Delete the ``bad'' ones
+\end{enumerate}
+\noindent
+To determine what a ``bad'' clause means, we need to think of what the goals of 
+clause deletion is. For instance, do we want to delete a fixed number of clauses, 
+or should it be more dynamic, as in, there isn't a quota to fulfill, instead we look at 
+each clause and go ``you suck, get out'' or ``you're good, stay?'' This idea is pretty 
+attractive, but there is something we should consider: what if there's not enough bad 
+clauses relative to our database size, or what if there's too many bad clauses relative 
+to our database size? Ie, what if we mark too little clauses for deletion and our database 
+is still large, as well as marking too many clauses for deletion and then our database 
+becomes super small again? To be honest, if there aren't enough ``bad'' clauses, to delete,
+to me it seems like most of the database is really good, so I wouldn't mark \textit{extra}
+clauses for deletion, however, capping how many clauses we delete does seem like a good idea.
+
+Because we have a clear marker of when clause deletion should occur (when the database 
+grows by 10\%), we will say that the number of clauses being deleted can't exceed this 
+10\% threshold. So if our original database has 100 clauses and it grows to 110 clauses,
+we can't delete more than 9 clauses. Supposing we delete 0, and the database grows to 
+121, we can't delete more than 10 clauses, and so on. Another advantage of this is 
+that the maximum number of clauses we can delete grows/shrinks with our threshold, so 
+if in a later experiment we found that it's more beneficial to run the deletion algorithm 
+every time the database grows by 20\%, we don't have to manually update the number of 
+clauses we're allowed to delete as well.
+
+In order to decide which clauses to delete, we want to decide a threshold for our 
+metrics. I used the ones in the bottom 25th percentile for their respetive metric, 
+so high LBD, high age, and low activity. We then select the clauses in those 
+bottom metrics, and if they have at least 2 of these negative attributes, we mark 
+them to be deleted. 
+
+After that, we do our regular m+k bounded learning, then afterwards, we mark clauses 
+that have low LBD (\verb|<=| 2), and clauses that are reason clauses as protected, 
+so they can't be deleted even if they had at least two bad attributes.
+
+The code is as follows:
+\begin{lstlisting}
+bool solveCNF() {
+    //setup
+    ... 
+
+    while (true) {
+        //Current clause deletion
+        if (clauseDatabase.size grew by X%) {
+            int numCanDelete = clauseDatabase.size - curSize
+
+            int[] candidateIdx
+            for (i = 0 up to clauseDatabase.size - numClauses) {
+                candidateIdx[i] = i
+            }
+
+            int cutoff = candidateIdx.size * 0.25
+
+            sortIncreasing(cActivity)
+
+            double activityCutoff = cActivity[cutoff]
+
+            sortIncreasing(conflictCreation)
+
+            int ageCutoff = conflictCreation[cutoff]
+
+            sortDecreasing(lbds)
+
+            int lbdCutoff = lbds[cutoff]
+
+            for (i = numClauses up to clauses.size) {
+                bool lowActivity = cActivity[i] <= activityCutoff
+                bool highAge = creationConflict[i] <= ageCutoff
+                bool highlbd = lbds[i] >= lbdCutoff
+
+                remove[i - numClauses] = lowActivity + highAge + highlbd >= 2
+            }
+
+            //rest of the database deletion
+            ...
+        }
+
+        //rest of solving
+        ...
+    }
+
+}
+\end{lstlisting}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Clause VSIDS:   347ms (~0.35 seconds).
+MK-bound:       288ms (~0.29 seconds).
+M-size (10\%):  320ms (~0.32 seconds).
+M-size:         293ms (~0.29 seconds).
+N-order:        283ms (~0.28 seconds).
+AMA:            274ms (~0.27 seconds).
+
+On all 100 equations in Flat200-479:
+
+Clause VSIDS:   19,181ms (~19.18 seconds).
+MK-bound:       19,082ms (~19.08 seconds).
+M-size (10\%):  17,716ms (~17.72 seconds).
+M-size:         25,681ms (~25.68 seconds).
+N-order:        85,749ms (~1.43 minutes).
+AMA:            24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Clause VSIDS:   1,804ms (~1.80 seconds).
+MK-bound:       1,740ms (~1.74 seconds).
+M-size (10\%)   1,768ms (~1.77 seconds).
+M-size:         1,937ms (~1.94 seconds).
+N-order:        2,313ms (~2.31 seconds).
+AMA:            1,629ms (~1.63 seconds).
+\end{FVerbatim}
+\noindent
+To be honest, I'm a little bit disappointed in these results. I was really hopeful 
+that this heuristic would have yielded more gains in speed, not runtime. Was my 
+implementation perfect? No. Could that have contributed to the increased runtime?
+Yes, but I have a feeling that it's also the testing sets being used. Again, we 
+can't necessarily draw a conclusion on \textit{all} SAT problems based on this 
+data, but we can draw the conclusion that the solve is worse for \textit{these}
+SAT problems.
 
 \subsection{Clause Database Management - Results}
 
