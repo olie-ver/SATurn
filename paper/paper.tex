@@ -61,7 +61,7 @@
   {}% <numberless-entry-format>
   {\bfseries\hfill\contentspage}% <filler-page-format>
 
-\title{From Scratch:\\The Design and Implementation of a SAT Solver From Scratch}
+\title{From Scratch:\\The Design and Implementation of a SAT Solver (First Draft)}
 \author{Oliver Lie}
 \date{\today}
 
@@ -72,24 +72,31 @@
 
 \chapter*{Preface}
 
-Hello! Thank you for taking me seriously enough to pick up this book and begin reading it.
-Before we continue, I just want you to know that I am not an expert when it comes to things 
-such as algorithms, data structures, general computer science, or even SAT solvers 
-(what this book is about). Despite that, that's exactly why I wanted to write this. 
-These things that I am not an expert in are my passion, and by doing this technical research, 
-I hope to become a little less of ``not an expert'' in those fields.
+Hello, thank you for picking up this book. I have just finished writing it, except for this 
+portion which I'm writing right now! It has been one epicly long journey of 9 weeks in my 
+last quarter of college before I graduate. I wasn't even sure if I would be able to complete 
+this by the end, but it seems just like my assignments, I finished this at the last minute.
 
-The aim of this book isn't to improve or revolutionize SAT solving algorithms. 
-Rather, it is to make the methods and reasoning more accessible to the lay undergraduate 
-(I am open to the possibility that I myself may be the lay undergraduate, and you are 
-simply smarter than me). And for the record, to cover myself in the future, if you are a student 
-tasked with creating a SAT solver, DO NOT USE THIS BOOK OR ANY OF THE ONLINE CODE TO CHEAT!!!
-This book and the online code is meant to help you learn how these algorithms are implemented,
-not for you to copy.
+To be completely honest, I am not an expert when it comes to computer science. After all, 
+my degree is in environmental sciences (just kidding, I am a computer science major).
+However, even though I don't know everything about every data structure, algorithm, 
+design pattern, or whatever, I think that this book would be great for someone getting 
+started in the world of SAT solving. These things that I am not an expert in are my passion,
+and by doing this technical research, I hope to become a little less of ``not an expert'' in 
+those fields.
+
+We are not going to revolutionize SAT solving, in fact, we're barely going to scratch the 
+surface in this book (it's a big world out there). What I aim to do in writing this is to 
+help you understand how SAT solvers work and how they are implemented. I hope that this 
+remains accessible and I'm not too confusing, however, I am just a \sout{girl} undergraduate.
+Because we're covering how SAT solvers work and are implemented, if you are a student tasked 
+with building one, don't use this to cheat. That would hurt my feelings. Instead use this to 
+help your own understanding instead of copy-pasting.
 
 Throughout this book we will build our own modern SAT solver from scratch, 
 complete with all the bells and whistles. We will begin with the most basic 
-algorithm imaginable, brute force, and gradually work our way through DPLL, CDCL, and beyond.
+algorithm imaginable, brute force, and gradually work our way through DPLL, CDCL, 
+and beyond.
 
 Throughout this journey we will encounter thought experiments, exercises, and a
 handful of experiments intended to solidify our understanding. Any external resources will 
@@ -106,11 +113,17 @@ To be completely transparent, ``AI-assisted'' means that instead of spending day
 banging my head against a wall trying to understand a bug or some subtle algorithmic detail, 
 I occasionally asked an AI to explain concepts or help debug an implementation. Every word of this book, 
 however, is my own. AI did not generate any of the explanatory text you will read here, 
-although it certainly helped produce some of the code that accompanies it.
+although it certainly helped produce some of the code that accompanies it. I know that AI 
+is very unpopular, and I do get that, however, even with literature and code I could find, it 
+wasn't enough \textbf{for me} to figure out how everything is implemented from the ground up. 
+That being said, I would still encourage you to read the other literature out there and look 
+at code on your own, and perhaps you'll find me an idiot for needing AI assistance in the first 
+place.
 
 There are practical reasons for this. SAT solvers are difficult to implement correctly, 
 and introducing subtle bugs is remarkably easy. In fact, before deciding to write this book, 
-I had already attempted to build a SAT solver once before. I never managed to get a working CDCL implementation.
+I had already attempted to build a SAT solver once before. I never managed to get a working CDCL 
+implementation.
 
 That failure, however, taught me a tremendous amount. So in a sense, we are learning
 SAT solving together (isn't that comforting?). My previous mistakes have shown me many 
@@ -2025,7 +2038,7 @@ you to think of other questions regarding inefficiencies in our current implemen
 These questions were the driving force into the invention of the 
 \textit{Watched Literals} algorithm.
 
-\textbf{INSERT HISTORY, WHICH IS INTERESTING BTW, HERE}
+\textbf{History can be found here}
 \footnote{\url{https://school.a4cp.org/summer2011/slides/Gent/SATCP3.pdf}}
 
 Let's learn how the Watched Literals algorithm works. Earlier, I made a comment 
@@ -6132,8 +6145,6 @@ pick a variable via its VSIDS, we assign it based on its polarity. Also very eas
 figure out, you got this, I believe in you.
 
 Here are the results:
-
-Here are the results:
 \begin{FVerbatim}
 On all 1000 equations in uf20-91:
 
@@ -6192,70 +6203,96 @@ That's a pretty decent speedup on the larger equations. Not sure how I feel
 about the speedup on UUF50.218.1000, but since it's not even 100ms across all 
 1000 cases, I think I'll take it.
 
-\section{Comparing to MiniSAT}
-
-With that, we have completed our SAT solver. For something built in 9 weeks, it's 
-pretty algorithmically rich. But how does it compare to MiniSAT? That is what this 
-section aims to find out. In order to compare them together, we can't use Test++ 
-as all MiniSAT code I can find isn't C++20, and won't compile under those standards. 
-Therefore, a custom testing environment must be built. And since we're using a custom 
-environment, we will also change our testing sets as well. 
-
-I can't do MiniSAT justice in my own explanations of it. However, for those who 
-don't know, MiniSAT was the winner of three categories in the 2005 SAT solving 
-competition, and is considered to be one of \textbf{the} SAT solvers to use.
-More about MiniSAT can be found here:
-\begin{center}
-    \url{http://minisat.se}
-\end{center}
-
-Because we're comparing our SAT solver to a competition-winning solver, 
-I thought it would be fun and cool to use benchmarks from a SAT solver 
-competition. After scouring the internet, I was able to find the SAT competition
-website.
-\footnote{It didn't take much scouring.}
-Unfortunately, I was unable to find any of the benchmark files from the competitions. 
-Before you find the website yourself and go ``it's right there moron,'' I think you 
-and I both know I'm smart enough to click a preview/download link to view the files. 
-However, I was met with either 404 errors or the page wouldn't load. Luckily, I was 
-able to find a website that claims to have competition benchmarks from 2002 to 2024. 
-Why do I say ``claims?'' I say that because the one downloadable file that appears to 
-actually be the benchmarks and not file names or hashes, is 28.7GB in size. And that's 
-a .zip file, so these are the \textit{compressed} benchmarks. I have spent over 8 hours 
-trying to download this file and I still have over 9GB to go as of this writing.
-
-Okay so I just clicked a different link on the website and found a site that also has 
-benchmarks, with their results as well, and downloading singular files is way easier
-there. I'm not sure what to make of this because I feel like I wasted the last night 
-sleeping waiting for this giant file (that at this point can only be described as a .zip 
-bomb for a normal person) to download. So given how that's the case, there will be two 
-comparisons (maybe). The first will be against all the files that I can download quickly,
-and the second (if I decide to do it) will be against the files in the giant .zip file. 
-
-The files for the first comparison can be found here:
-\begin{center}
-    \url{https://benchmark-database.de}
-\end{center}
-
-MiniSAT code found here:
-\begin{center}
-    \url{https://github.com/niklasso/minisat}
-\end{center}
-
-I couldn't find any rules about how benchmarking is set up or the rules on how they're 
-run, other than the fact that your SAT solver must produce the correct output and reasoning
-for it. Because of that, we will use our own set up. For each benchmark file, we will 
-make up our own rules. We'll run each benchmark file into a solver three times as a warmup, 
-then we will run it 3 times as a trial, and then we'll take the average time for that file. 
-Because I couldn't find a ``reset" method to reset the solver back to its starting state as 
-if it just exited the constructor in MiniSAT's code, we will just reconstruct the solver 
-each time.
-
-
-
-Files found here:
-\url{https://zenodo.org/records/15125952?preview_file=undefined}
-
 \chapter{Conclusion}
+
+Well that was a journey. In 9 weeks, I have learned how to build a fully functioning 
+(but definitely not industry-level) SAT solver, and hopefully in the amount of time it 
+took you to read through all of this, you did too. Despite how much we've done, there is 
+a much larger world of SAT solving out there. CDCL and DPLL are just two algorithms out 
+of many that can be used to solve SAT problems. Some are better than others in certain 
+cases. That is why, like some ML models, SAT solvers also use an ``ensemble-like'' method 
+of solving. Unlike ML ensembles, which takes the output of multiple models and ``weighs''
+them to form the final output, these SAT solvers run multiple different solving 
+algorithms and heuristics at once, and whichever gets an answer first is the winner. 
+This is because those algorithms will all have the same output, some just get there 
+faster.
+
+There are also parallel algorithms for SAT solving, so instead of one thread solving 
+one problem, you can have multiple threads solving one problem or multiple threads solving 
+multiple problems. 
+
+Outside of solving, there is also the notion of simplification of the problem in general. 
+These preprocessing and inprocessing algorithms are capable of removing redundant clauses 
+and variables from the problem entirely, thus making it easier to solve. Likewise, we can 
+also strengthen clauses. Even cooler, we can solve a CNF problem, add more clauses and variables,
+then use our previous solution to try to help solve those new constraints. This is called 
+incremental SAT, which is a really important feature.
+
+Obviously if I had more than 9 weeks
+\footnote{It was a self-imposed timeline, but that's irrelevant.}
+to write and learn about SAT solvers, we could learn how to extend it even further, 
+perhaps even one day being competition worthy. There is so much more out there, and I 
+think it would be amazing if we got to explore that more in a second draft.
+
+\section{Improvements}
+
+Before I end this for good, I want to list some improvements needed for this paper
+and our solving.
+
+\subsection{This Paper is Poorly Written}
+
+You know it, I know it, everyone knows it. This would never pass academic review. 
+You're thinking ``this guy has never written anything before'' and you're 100\% 
+right, I haven't. I need to go back, review it, reformat, add actual citations, etc.
+Is it my fault it's in a poorly written state to begin with? 100\%, and I while I won't 
+be making this project my entire life until I die, I will go back every now and then to 
+fix things, reword stuff, reformat, whatever needs done. You can help me out by first 
+reading this, then contacting me on revisions I should make. Any advice and help is 
+really appreciated, and I'm writing this for the people who are interested, so 
+by showing interest in this, it tells me how much more I need to put in to make it 
+better for y'all.
+
+One thing I'd like to do is redo the chapter on CDCL so it's not one mega-chapter
+and it could be separated into its necessary parts (clause learning, backjumping)
+and then the things to improve it those aspects (VSIDS, first UIPs, restarts)
+could be in their own chapter, then lastly, a chapter on the things that we 
+need to keep in mind when we implement on actual hardware (clause database management).
+This would make the flow of everything more isolated and easier to follow along 
+rather than following in my exact footsteps. 
+
+\subsection{The Code Needs to be Cleaned}
+
+I said to myself ``I'll refactor this nicely later'' and later never came, and before
+I knew it, I've finished writing everything I set out to write! The code is supposed to 
+be used as a teaching aide, and when it's not very clean, it's not as good as it could be. 
+Sure there are code comments to help explain some things where the implementation differ 
+from the pseudocode, but that doesn't make the code more readable, just easier to understand 
+if you \textit{can} read it.
+
+Speaking of pseudocode, it's not in great shape. The pseudocode is really similar to the 
+actual code, which is a strength and a curse. I'm not great at writing pseudocode, and I 
+think that it's a skill that I need to develop more. If I were better at writing pseudocode,
+the first thing I would do is reformat it, then make it less C-based so it's actual 
+pseudocode instead of ``slightly more abstract C++.'' This would tie in better to the 
+theory of SAT solving, then the actual code could be used as a teaching aide on how it's 
+implemented.
+
+\subsection{We Don't Explore Other Real Solvers}
+
+Since this is a paper on how to build a solver, the main focus was on how to build one, 
+but we ignore how other solvers have been built. This could be a good chance to explore 
+the history of SAT solving, from the people, the algorithms, and the programs that have 
+been built throughout the years. And through exploring other solvers and algorithms, we 
+could have new chapters and sections on how they work and how to implement them, which 
+would be pretty cool.
+
+\subsection{There Are No Actual Citations}
+
+This one is pretty self explanatory. Even though I tell you where I got my facts and 
+figures, I don't properly cite them. I'm pretty sure this paper would be enough to 
+get me expelled for plagiarism due to how I don't use proper citations anywhere. 
+
+And with that, those are all I can think of that needs to be done for this paper. 
+Thank you for reading until the end. Til next time or something.
 
 \end{document}

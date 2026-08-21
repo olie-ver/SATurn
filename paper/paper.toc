@@ -51,6 +51,10 @@
 \contentsline {subsection}{\numberline {4.6.5}Clause Database Management - Results}{117}{subsection.4.6.5}%
 \contentsline {section}{\numberline {4.7}Restarts}{121}{section.4.7}%
 \contentsline {subsection}{\numberline {4.7.1}Assignment Polarity}{123}{subsection.4.7.1}%
-\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{126}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Conclusion}{128}{chapter.5}%
+\contentsline {chapter}{\numberline {5}Conclusion}{127}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Improvements}{127}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}This Paper is Poorly Written}{128}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}The Code Needs to be Cleaned}{128}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}We Don't Explore Other Real Solvers}{128}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}There Are No Actual Citations}{129}{subsection.5.1.4}%
 \contentsfinish 

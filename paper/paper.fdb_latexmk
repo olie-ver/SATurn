@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1787329297.28417 "/Users/oliverlie/Documents/GitHub/SATurn/paper/paper.tex" "paper.pdf" "paper" 1787329300.30582 0
-  "/Users/oliverlie/Documents/GitHub/SATurn/paper/paper.tex" 1787329297.05533 255688 3a612ddae4c4c340617e2d168ddc04b1 ""
+["pdflatex"] 1787353198.12823 "/Users/oliverlie/Documents/GitHub/SATurn/paper/paper.tex" "paper.pdf" "paper" 1787353201.21406 0
+  "/Users/oliverlie/Documents/GitHub/SATurn/paper/paper.tex" 1787353197.89373 258497 61926545e070a293f3fd041e51752fb6 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/stix/stix-t1.enc" 1388795362 7013 c55cc8669071ac14036c4a0c96c16202 ""
@@ -212,10 +212,10 @@
   "/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1785473314 5573038 b99aad5e4898a9034e953632f940512b ""
   "/usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1774209607 3636776 dc5fa9b6b1453b9d196cd42edf876004 ""
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
-  "paper.aux" 1787329300.15835 10340 c8c19a7e600b4b42b89af87ad5aa2f30 "pdflatex"
-  "paper.out" 1787329300.15959 9265 327362f5ee2263b37d32eef774d1be77 "pdflatex"
-  "paper.tex" 1787329297.05533 255688 3a612ddae4c4c340617e2d168ddc04b1 ""
-  "paper.toc" 1787329300.15985 4814 632dfd71d8898bc6b06859fba84bf07c "pdflatex"
+  "paper.aux" 1787353201.0606 10923 a67ed9bf34f71a5c283fde4825c25bc4 "pdflatex"
+  "paper.out" 1787353201.06216 10121 b65a651b78b6ed571d9daaa20d4a6460 "pdflatex"
+  "paper.tex" 1787353197.89373 258497 61926545e070a293f3fd041e51752fb6 ""
+  "paper.toc" 1787353201.0624 5214 4a73b919b2cf6c0b064a07528ab24b92 "pdflatex"
   (generated)
   "paper.aux"
   "paper.log"

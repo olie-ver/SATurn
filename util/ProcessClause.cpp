@@ -1,5 +1,0 @@
-namespace Util {
-    void processClause() {
-        
-    }
-}
