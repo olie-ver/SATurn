@@ -48,9 +48,9 @@
 \contentsline {subsection}{\numberline {4.6.2}M-Size Relevance-Based Learning}{104}{subsection.4.6.2}%
 \contentsline {subsection}{\numberline {4.6.3}Combining M-Size and K-Bounded Learning}{110}{subsection.4.6.3}%
 \contentsline {subsection}{\numberline {4.6.4}``Clause VSIDS''}{111}{subsection.4.6.4}%
-\contentsline {subsection}{\numberline {4.6.5}Clause Database Management - Results}{116}{subsection.4.6.5}%
-\contentsline {section}{\numberline {4.7}Restarts}{116}{section.4.7}%
-\contentsline {subsection}{\numberline {4.7.1}Assignment Polarity}{116}{subsection.4.7.1}%
-\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{116}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Experiments and Next Steps}{117}{chapter.5}%
+\contentsline {subsection}{\numberline {4.6.5}Clause Database Management - Results}{117}{subsection.4.6.5}%
+\contentsline {section}{\numberline {4.7}Restarts}{121}{section.4.7}%
+\contentsline {subsection}{\numberline {4.7.1}Assignment Polarity}{123}{subsection.4.7.1}%
+\contentsline {section}{\numberline {4.8}Comparing to MiniSAT}{126}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Conclusion}{128}{chapter.5}%
 \contentsfinish 

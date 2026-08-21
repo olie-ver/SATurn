@@ -5848,14 +5848,414 @@ can't necessarily draw a conclusion on \textit{all} SAT problems based on this
 data, but we can draw the conclusion that the solve is worse for \textit{these}
 SAT problems.
 
+There were some things I tried to see what could be causing this. I tried adjusting 
+how aggressive/loose the badness score had to be in order to be marked to be deleted. 
+A lower badness score threshold correlated with a higher runtime. Then I tried removing 
+the cap on deletion altogether, and that didn't impact the runtime very much. Then I tried 
+adjusting the percentile to be the 20th, 25th, and 50th, and they all had very similar runtimes 
+as well. I even tried messing with what we consider a bad clause, and that impacted 
+the runtime, in a bad way. Lastly, I tried removing mk-bound learning, and that also didn't 
+make much of an impact. I then removed the k-bounded learning afterwards, and that also didn't 
+seem to help. No matter what I tried, it appears that this heuristic was hurting the runtime 
+on all accounts. Perhaps something to be explored at a later date.
+
 \subsection{Clause Database Management - Results}
+
+Here are the results for all the kinds of clause database management compared to 
+the last implementation without any kind of management:
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Clause VSIDS:               347ms (~0.35 seconds).
+MK-bound:                   288ms (~0.29 seconds).
+M-size (10\%):              320ms (~0.32 seconds).
+M-size:                     293ms (~0.29 seconds).
+N-order:                    283ms (~0.28 seconds).
+
+AMA:                        274ms (~0.27 seconds).
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+First UIPs:                 406ms (~0.41 seconds).
+Backjumping:                380ms (~0.38 seconds).
+Clause Learning:            425ms (~0.43 seconds).
+Iterative DPLL (AbP):       328ms (~0.33 seconds).
+Iterative DPLL (PbA):       324ms (~0.32 seconds).
+Watched Literals:           349ms (~0.35 seconds).
+Pure Literal Elimination:   1548ms (~1.55 seconds).
+Unit Propagation:           868ms (~0.87 seconds).
+Recursive Backtracking:     1,540,613ms (~25.68 minutes).
+Brute Force:                1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):    49,874ms (~50 seconds).
+Parallel:                   10,589ms (~10.5 seconds).
+
+On all 100 equations in Flat200-479:
+
+Clause VSIDS:   19,181ms (~19.18 seconds).
+M-size (10\%):  17,716ms (~17.72 seconds).
+AMA:            24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Clause VSIDS:               1,804ms (~1.80 seconds).
+MK-bound:                   1,740ms (~1.74 seconds).
+M-size (10\%)               1,768ms (~1.77 seconds).
+M-size:                     1,937ms (~1.94 seconds).
+N-order:                    2,313ms (~2.31 seconds).
+
+AMA:                        1,629ms (~1.63 seconds).
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+First UIPs:                 14,012ms (~14.01 seconds).
+Backjumping:                11,291ms (~11.29 seconds).
+Clause Learning:            9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
+Watched Literals:           7,130ms (~7.13 seconds).
+Pure Literal Elimination:   231,107ms (~3.85 minutes).
+Unit Propagation:           140,041ms (~2.34 minutes).
+\end{FVerbatim}
+\noindent
+
+Because of how well M-size (10\%) performed, I will keep it in the overall results 
+when compared with every other solver we've created so far:
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Clause VSIDS:               347ms (~0.35 seconds).
+M-size (10\%):              320ms (~0.32 seconds).
+
+AMA (Y = 0.75 or 0.99):     274ms (~0.27 seconds).
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+First UIPs:                 406ms (~0.41 seconds).
+Backjumping:                380ms (~0.38 seconds).
+Clause Learning:            425ms (~0.43 seconds).
+Iterative DPLL (AbP):       328ms (~0.33 seconds).
+Iterative DPLL (PbA):       324ms (~0.32 seconds).
+Watched Literals:           349ms (~0.35 seconds).
+Pure Literal Elimination:   1548ms (~1.55 seconds).
+Unit Propagation:           868ms (~0.87 seconds).
+Recursive Backtracking:     1,540,613ms (~25.68 minutes).
+Brute Force:                1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):    49,874ms (~50 seconds).
+Parallel:                   10,589ms (~10.5 seconds).
+
+On all 100 equations in Flat200-479:
+
+Clause VSIDS:               19,181ms (~19.18 seconds).
+M-size (10\%):              17,716ms (~17.72 seconds).
+AMA:                        24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Clause VSIDS:               1,804ms (~1.80 seconds).
+M-size (10\%)               1,768ms (~1.77 seconds).
+
+AMA:                        1,629ms (~1.63 seconds).
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+First UIPs:                 14,012ms (~14.01 seconds).
+Backjumping:                11,291ms (~11.29 seconds).
+Clause Learning:            9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
+Watched Literals:           7,130ms (~7.13 seconds).
+Pure Literal Elimination:   231,107ms (~3.85 minutes).
+Unit Propagation:           140,041ms (~2.34 minutes).
+\end{FVerbatim}
+\noindent
+Sorry that this section is really bloated.
 
 \section{Restarts}
 
+This is the last thing we will implement in our SAT solver (for now, maybe). 
+Restarts are exactly what it sounds like. We completely delete the trail and 
+all notion of assignment. Why would we do that? A valid question. The idea is that 
+perhaps while we've been solving, we got stuck in a bad part of the search space
+and are just getting contradiction after contradiction. Rather than staying stuck there,
+perhaps we could restart our solver so that it will end up in a different part of the 
+search space that might be better. 
+
+Makes enough sense, but how do we ensure that we don't just go back to the same 
+part of the search space again? Well luckily because we've been learning, our solver 
+isn't exactly the same as it initially was. It ``knows'' more, and since knowledge is 
+power, the new learned clauses can force certain assignments and propagations earlier 
+and that will nudge or push us into the right direction. 
+
+So implement this, it's really really simple. All we need to do is after a certain number 
+of conflicts, clear ONLY the trail. We don't clear out our VSIDS, clause measurements, 
+reset the watched literals, nothing, nada, nahin. Why? Because the idea of restarts is 
+that when the going gets tough, we get going. Notice how I said that we get going, not 
+that we get forgetful? We go back to the beginning, remembering everything we've learnt, 
+and use that to (hopefully) not repeat mistakes. If we forgot things like our VSIDS, we 
+would make the same assignment with the exact same decision, and we'd have to rely only 
+on our learned clauses to sway our decision making. But since VSIDS tells us which 
+variables have been important in conflicts, it tells us which variables are best to start 
+out with on our new try.
+
+For our solver, I chose to restart every time we clear out the clause database. If you've 
+been loosy-goosy about following my implementation or have been doing your own experiments
+(nice), you can define your own condition. Just remember these things when you're doing a 
+restart:
+\begin{itemize}
+    \item Clear the entire trail.
+    \item The trail\_starts array must always have a decision level of 0.
+    \item Clearing out var\_to\_trail is not strictly necessary as long 
+            as your implementation is correct.
+    \item If you do clear out var\_to\_trail, make sure it's resized properly.
+    \item Reset qHead.
+    \item Reset the decision level to 0.
+    \item Unassign every variable.
+    \item You might want to do a root level propagation.
+\end{itemize}
+
+Here are the results:
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Restarts:                   385ms (~0.39 seconds).
+Clause VSIDS:               347ms (~0.35 seconds).
+M-size (10\%):              320ms (~0.32 seconds).
+
+AMA (Y = 0.75 or 0.99):     274ms (~0.27 seconds).
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+First UIPs:                 406ms (~0.41 seconds).
+Backjumping:                380ms (~0.38 seconds).
+Clause Learning:            425ms (~0.43 seconds).
+Iterative DPLL (AbP):       328ms (~0.33 seconds).
+Iterative DPLL (PbA):       324ms (~0.32 seconds).
+Watched Literals:           349ms (~0.35 seconds).
+Pure Literal Elimination:   1548ms (~1.55 seconds).
+Unit Propagation:           868ms (~0.87 seconds).
+Recursive Backtracking:     1,540,613ms (~25.68 minutes).
+Brute Force:                1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):    49,874ms (~50 seconds).
+Parallel:                   10,589ms (~10.5 seconds).
+
+On all 100 equations in Flat200-479:
+
+Restarts:                   9,428ms  (~9.43 seconds).
+Clause VSIDS:               19,181ms (~19.18 seconds).
+M-size (10\%):              17,716ms (~17.72 seconds).
+AMA:                        24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Restarts:                   1,824ms (~1.82 seconds).
+Clause VSIDS:               1,804ms (~1.80 seconds).
+M-size (10\%)               1,768ms (~1.77 seconds).
+
+AMA:                        1,629ms (~1.63 seconds).
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+First UIPs:                 14,012ms (~14.01 seconds).
+Backjumping:                11,291ms (~11.29 seconds).
+Clause Learning:            9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
+Watched Literals:           7,130ms (~7.13 seconds).
+Pure Literal Elimination:   231,107ms (~3.85 minutes).
+Unit Propagation:           140,041ms (~2.34 minutes).
+\end{FVerbatim}
+\noindent
+Even though our solver is getting slower and slower on uf20-91, I think it's
+actually really good that for the larger problems, it's getting substantially 
+faster. Even though we want our algorithms and programs to work really quickly 
+on small inputs, I think it's important for us to at some point prioritize the 
+larger inputs. And given how most SAT problems are even larger than these, 
+I think that's a good thing. 
+
 \subsection{Assignment Polarity}
+
+Back in the day, we had this thing called ``Pure Literal Elimination,'' but when 
+we transitioned to CDCL, it went away \textit{forever}. Well dear reader, I'm here 
+to tell you that it's still going to be gone forever, but its spirit lives on with us.
+And by that, I mean, we're going to take the idea behind pure literal elimination and 
+apply it to our restarts. 
+
+You see, as we continue learning new clauses, we also encounter new literals. Earlier, 
+back when we switched from brute force to recursive backtracking, we noticed that solving 
+times decreased. Other than the main structure of the solvers, the only thing that changed
+was in brute force, we started out with most variable assignments being False, while in 
+recursive backtracking and beyond, they start out as True. I made a claim that this speedup 
+was because there were less negative literals than there were positive literals. I won't 
+say that I knew for sure, but if we stop for a second to think about it, it makes sense. 
+
+When there are more positive literals, the likelihood of a variable's final assignment 
+being True is higher than when there are more negative literals. This was the idea behind 
+pure literal elimination, to an extent. Pure literal elimination worked because when a
+literal only shows up with one polarity, if there is a solution, there is a 100\% chance 
+that there is at least one solution where that pure literal's assignment matches its
+polarity (T for positive, F for negative). We want to bring this idea into our assignment 
+polarity. While we can't guarantee that literals will remain pure because of clause learning, 
+we can at least make better decisions based on the current number of positive/negative occurrences 
+of a variable.
+
+To do this, we'll add in a \textit{polarity} array to our solver:
+\begin{lstlisting}
+    public interface:
+
+    private interface:
+        ...
+        int[] polarity
+        ...
+\end{lstlisting}
+\noindent
+Instead of using a count for both positive and negative literals, instead, we'll 
+use one counter for each variable. When the count is negative, we know that there 
+are more negative occurrences of the variable, and when the count is nonnegative, we 
+will pretend that are more positive occurrences of the variable (even though when the 
+count is 0, that means it's balanced).
+
+Because we're using one counter per variable, it might be tempting to use a literal's 
+value directly in the count. After all, if we encounter one $+4$ and one $-4$, they'd 
+cancel out to 0. Although this is logically correct, I'm worried about integer overflow 
+for equations with millions of variables
+\footnote{$2^32 \approx 4.3$ billion, so if we had one million variables, we could only 
+handle ~43 occurrences of one polarity, which is pretty low, all things considered.}
+
+Instead we'll settle for an ``if negative => count - 1, else count + 1'' kind of deal.
+We will gather the counts in the setup phase of our solver, and we will update the counts 
+only when we learn a new clause. However, it would be interesting to update the counts for 
+all variables involved in a conflict, and see how that affects things. Because of how 
+easy this code is to add as well, I'm gonna let you figure it out. Lastly, when we 
+pick a variable via its VSIDS, we assign it based on its polarity. Also very easy to 
+figure out, you got this, I believe in you.
+
+Here are the results:
+
+Here are the results:
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Polarity:                   369ms (~0.37 seconds).
+Restarts:                   385ms (~0.39 seconds).
+Clause VSIDS:               347ms (~0.35 seconds).
+M-size (10\%):              320ms (~0.32 seconds).
+
+AMA (Y = 0.75 or 0.99):     274ms (~0.27 seconds).
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+First UIPs:                 406ms (~0.41 seconds).
+Backjumping:                380ms (~0.38 seconds).
+Clause Learning:            425ms (~0.43 seconds).
+Iterative DPLL (AbP):       328ms (~0.33 seconds).
+Iterative DPLL (PbA):       324ms (~0.32 seconds).
+Watched Literals:           349ms (~0.35 seconds).
+Pure Literal Elimination:   1548ms (~1.55 seconds).
+Unit Propagation:           868ms (~0.87 seconds).
+Recursive Backtracking:     1,540,613ms (~25.68 minutes).
+Brute Force:                1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):    49,874ms (~50 seconds).
+Parallel:                   10,589ms (~10.5 seconds).
+
+On all 100 equations in Flat200-479:
+
+Polarity:                   8,580ms  (~8.58 seconds).
+Restarts:                   9,428ms  (~9.43 seconds).
+Clause VSIDS:               19,181ms (~19.18 seconds).
+M-size (10\%):              17,716ms (~17.72 seconds).
+AMA:                        24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Polarity:                   1,897ms (~1.90 seconds).
+Restarts:                   1,824ms (~1.82 seconds).
+Clause VSIDS:               1,804ms (~1.80 seconds).
+M-size (10\%)               1,768ms (~1.77 seconds).
+
+AMA:                        1,629ms (~1.63 seconds).
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+First UIPs:                 14,012ms (~14.01 seconds).
+Backjumping:                11,291ms (~11.29 seconds).
+Clause Learning:            9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
+Watched Literals:           7,130ms (~7.13 seconds).
+Pure Literal Elimination:   231,107ms (~3.85 minutes).
+Unit Propagation:           140,041ms (~2.34 minutes).
+\end{FVerbatim}
+\noindent
+That's a pretty decent speedup on the larger equations. Not sure how I feel 
+about the speedup on UUF50.218.1000, but since it's not even 100ms across all 
+1000 cases, I think I'll take it.
 
 \section{Comparing to MiniSAT}
 
-\chapter{Experiments and Next Steps}
+With that, we have completed our SAT solver. For something built in 9 weeks, it's 
+pretty algorithmically rich. But how does it compare to MiniSAT? That is what this 
+section aims to find out. In order to compare them together, we can't use Test++ 
+as all MiniSAT code I can find isn't C++20, and won't compile under those standards. 
+Therefore, a custom testing environment must be built. And since we're using a custom 
+environment, we will also change our testing sets as well. 
+
+I can't do MiniSAT justice in my own explanations of it. However, for those who 
+don't know, MiniSAT was the winner of three categories in the 2005 SAT solving 
+competition, and is considered to be one of \textbf{the} SAT solvers to use.
+More about MiniSAT can be found here:
+\begin{center}
+    \url{http://minisat.se}
+\end{center}
+
+Because we're comparing our SAT solver to a competition-winning solver, 
+I thought it would be fun and cool to use benchmarks from a SAT solver 
+competition. After scouring the internet, I was able to find the SAT competition
+website.
+\footnote{It didn't take much scouring.}
+Unfortunately, I was unable to find any of the benchmark files from the competitions. 
+Before you find the website yourself and go ``it's right there moron,'' I think you 
+and I both know I'm smart enough to click a preview/download link to view the files. 
+However, I was met with either 404 errors or the page wouldn't load. Luckily, I was 
+able to find a website that claims to have competition benchmarks from 2002 to 2024. 
+Why do I say ``claims?'' I say that because the one downloadable file that appears to 
+actually be the benchmarks and not file names or hashes, is 28.7GB in size. And that's 
+a .zip file, so these are the \textit{compressed} benchmarks. I have spent over 8 hours 
+trying to download this file and I still have over 9GB to go as of this writing.
+
+Okay so I just clicked a different link on the website and found a site that also has 
+benchmarks, with their results as well, and downloading singular files is way easier
+there. I'm not sure what to make of this because I feel like I wasted the last night 
+sleeping waiting for this giant file (that at this point can only be described as a .zip 
+bomb for a normal person) to download. So given how that's the case, there will be two 
+comparisons (maybe). The first will be against all the files that I can download quickly,
+and the second (if I decide to do it) will be against the files in the giant .zip file. 
+
+The files for the first comparison can be found here:
+\begin{center}
+    \url{https://benchmark-database.de}
+\end{center}
+
+MiniSAT code found here:
+\begin{center}
+    \url{https://github.com/niklasso/minisat}
+\end{center}
+
+I couldn't find any rules about how benchmarking is set up or the rules on how they're 
+run, other than the fact that your SAT solver must produce the correct output and reasoning
+for it. Because of that, we will use our own set up. For each benchmark file, we will 
+make up our own rules. We'll run each benchmark file into a solver three times as a warmup, 
+then we will run it 3 times as a trial, and then we'll take the average time for that file. 
+Because I couldn't find a ``reset" method to reset the solver back to its starting state as 
+if it just exited the constructor in MiniSAT's code, we will just reconstruct the solver 
+each time.
+
+
+
+Files found here:
+\url{https://zenodo.org/records/15125952?preview_file=undefined}
+
+\chapter{Conclusion}
 
 \end{document}
