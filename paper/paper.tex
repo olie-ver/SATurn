@@ -6290,6 +6290,16 @@ been built throughout the years. And through exploring other solvers and algorit
 could have new chapters and sections on how they work and how to implement them, which 
 would be pretty cool.
 
+\subsection{Our Solver is C++ Only}
+
+Our SAT solver is C++ only. It will only run in C++, and depending on how you write it, 
+it could be limited to just C++20, if you don't precompile it. This means if we wanted 
+to use it in other languages like C, Java, JavaScript, Python, Rust, or any other language, 
+we would need to create a bridge between the two languages. This isn't a very difficult 
+undertaking, however, as the solver grows, we would need to update the bridge for each 
+language, which wouldn't be fun. Since we also deal with implementation details in this 
+book, building bridges between languages could be a fun thing to write and learn about.
+
 \subsection{There Are No Actual Citations}
 
 This one is pretty self explanatory. Even though I tell you where I got my facts and 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  21 AUG 2026 16:06
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  21 AUG 2026 19:50
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -902,7 +902,7 @@ Chapter 5.
 [127
 
 ] [128] [129]
-runsystem(latexminted cleantemp  --timestamp 20260821160610 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
+runsystem(latexminted cleantemp  --timestamp 20260821195014 7E3F660480AB1640DE8024C200B5A4D3)...executed safely (allowed).
 
  (./paper.aux)
  ***********
@@ -910,21 +910,21 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: B65A651B78B6ED571D9DAAA20D4A6460;10121.
+(rerunfilecheck)             Checksum: 0D48BBE7E455ADEA2F2D32117953BE16;10305.
  ) 
 Here is how much of TeX's memory you used:
- 41913 strings out of 467525
- 899352 string characters out of 5418982
+ 41915 strings out of 467525
+ 899386 string characters out of 5418982
  2171363 words of memory out of 5000000
- 67691 multiletter control sequences out of 15000+600000
+ 67692 multiletter control sequences out of 15000+600000
  724369 words of font info for 149 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,11n,108p,1651b,2017s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-BoldItalic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathcal.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathscr.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathsf.pfb>
-Output written on paper.pdf (130 pages, 696485 bytes).
+Output written on paper.pdf (130 pages, 697321 bytes).
 PDF statistics:
- 3988 PDF objects out of 4296 (max. 8388607)
- 3786 compressed objects within 38 object streams
- 2619 named destinations out of 2984 (max. 500000)
- 485 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 3993 PDF objects out of 4296 (max. 8388607)
+ 3791 compressed objects within 38 object streams
+ 2620 named destinations out of 2984 (max. 500000)
+ 493 words of extra memory for PDF output out of 10000 (max. 10000000)
 
