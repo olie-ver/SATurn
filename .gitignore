@@ -1,8 +1,4 @@
-paper/*.aux
-paper/*.fdb_latexmk
-paper/*.fls
-paper/*.out
-paper/*.gz
-paper/*.tex
-paper/*.toc
-paper/*.log
+paper/*
+paper/subfiles/*
+paper/subfiles/*.tex
+!paper/*.pdf
