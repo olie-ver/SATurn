@@ -5,3 +5,4 @@ paper/*.out
 paper/*.gz
 paper/*.tex
 paper/*.toc
+paper/*.log
