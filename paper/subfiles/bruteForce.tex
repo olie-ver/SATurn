@@ -1,0 +1,268 @@
+\chapter{Brute Force}
+
+Since the dawn of man, whenever encountered with a difficult problem, we have
+decided ``eh, let's do it in the hardest way possible because I can't think of a
+better solution.'' The history of brute forcing things goes all the way back to
+our ancestors discovering fire,
+\footnote{This is probably not true.} 
+all the way to our current solution to climate change.
+\footnote{Which is doing nothing and hoping
+everything sorts itself out, which is really disappointing.}
+
+The idea of brute forcing something is really as simple as it gets. We have $n$
+number of literals, and therefore $2^n$ possible assignments, and we will check
+them all until we have either found a solution, or until we've run out of
+assignments to check. Because of how simple the idea is, it would just be
+better to show code and explain that instead of explaining then showing code.
+
+\begin{algorithm}[H]
+\caption{Brute Force}\label{alg:3}
+\begin{algorithmic}[1]
+\Procedure{SolveBruteForce}{}
+
+\For{\texttt{each possible assignment[1..numVars]}}
+    \State $solved \gets True$
+
+    \For{$Clause[1..n]$ in $Clauses$}
+        \State $satisfied \gets False$
+
+        \For{$i \gets 1$ up to $n$}
+            \State $v \gets Clause[i]$
+            \State $idx \gets \Call{abs}{v}$
+
+            \If{$v > 0$}
+                \State $satisfied \gets assignment[idx] \vee satisfied$
+            \Else 
+                \State $satisfied \gets \neg assignment[idx] \vee satisfied$
+            \EndIf
+        \EndFor
+        \State $solved \gets satisfied \wedge solved$
+    \EndFor
+
+    \If{$solved = True$}
+        \State $vars \gets assignment$
+        \State return $True$
+    \EndIf
+\EndFor
+
+\State return $False$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Let's understand what's going on. Firstly, an \textit{assignment} in this case 
+is an array of boolean values. Under the current assignment, we assume that it's
+satisfactory (innocent until proven guilty) as shown on \textbf{line 3}. Next, 
+we iterate through each clause in our database, and we assume that the clause is 
+not satisfied. This is because or-ing a false value with a true value will get us 
+a satisfied clause, but or-ing a true value with all false values will keep us 
+at true. And if we decided to ``and'' everything together, it would have its own 
+issues as well. 
+
+On \textbf{line 6}, we iterate through the current clause. We grab its literals at 
+index \textit{i}, and then we take the absolute value of that literal. This is because 
+the absolute values of our literals ranges from $[1..numVars]$ and each assignment has 
+exactly $numVars$ variables in it. So by taking the absolute value of a literal, we 
+get to use it as an index into our \textit{assignment} variable.
+
+On \textbf{line 9}, we check if the literal is greater than 0. If it is greater than 
+0, we just ``or'' its assignment's value with whether or not the clause is currently 
+satisfied. Otherwise, we take the negation of the assignment's value and ``or'' that 
+with whether or not the clause is currently satisfied. This is because negative literals 
+means ``use the opposite value of whatever I've been assigned with.'' Then we 
+``and'' that clause-satisfied value with whether or not the equation has been solved.
+We repeat this until there are no more clauses.
+
+Then on \textbf{line 17}, we check if we've solved the equation. If we have, we 
+store that assignment in our SAT solver and return $true$ to signify that we've found 
+a solution. Otherwise, we move on to the next assignment. We do that until there are no
+more assignments or we've found a satisfactory assignment. If we reach a point where 
+we've looked through every assignment and none of them are satisfactory, we return 
+$false$ on \textbf{line 22}.
+
+Since it's trivially easy to see why the code works, we will move onto something
+more interesting: optimizing brute force.
+
+\section{Optimizing Brute Force}
+
+I'll be completely honest with you, if you want to skip this section, go ahead.
+It's more or less just something interesting enough we can do to make the
+(arguably) worst algorithm\footnote{I do not know of any algorithm worse than
+brute forcing.} better.
+
+Since we're dealing with pseudocode, we're not going to consider the hardware
+side of computers such as branch prediction, cache locality, or anything that
+the hardware uses to execute our code (other than the CPU). We will consider
+it from a pure Big-O perspective (excluding constant factors unless we're
+choosing between two algorithms with the same computational complexity).
+
+The first thing we will add is short circuiting to our clause evaluation. After
+\textbf{line 15} where we finish OR-ing the ``clause satisfied'' boolean, we will add in
+a new block:
+
+\begin{algorithm}[H]
+\caption{Brute Force}\label{alg:4}
+\begin{algorithmic}[1]
+\Procedure{SolveBruteForce}{}
+
+\For{\texttt{each possible assignment[1..numVars]}}
+    \State $solved \gets True$
+
+    \For{$Clause[1..n]$ in $Clauses$}
+        \State $satisfied \gets False$
+
+        \For{$i \gets 1$ up to $n$}
+            \State $v \gets Clause[i]$
+            \State $idx \gets \Call{abs}{v}$
+
+            \If{$v > 0$}
+                \State $satisfied \gets assignment[idx] \vee satisfied$
+            \Else 
+                \State $satisfied \gets \neg assignment[idx] \vee satisfied$
+            \EndIf
+
+            \If{$satisfied = True$}
+                \State \texttt{Move onto the next clause}
+            \EndIf
+        \EndFor
+        \State $solved \gets satisfied \wedge solved$
+    \EndFor
+
+    \If{$solved = True$}
+        \State $vars \gets assignment$
+        \State return $True$
+    \EndIf
+\EndFor
+
+\State return $False$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+This just says ``once this clause is satisfied, go evaluate the next one
+immediately.''
+
+We can then add another conditional after this loop, which will move onto the
+next variable assignment the instant the equation is no longer satisfied:
+
+\begin{algorithm}[H]
+\caption{Brute Force}\label{alg:5}
+\begin{algorithmic}[1]
+\Procedure{SolveBruteForce}{}
+
+\For{\texttt{each possible assignment[1..numVars]}}
+    \State $solved \gets True$
+
+    \For{$Clause[1..n]$ in $Clauses$}
+        \State $satisfied \gets False$
+
+        \For{$i \gets 1$ up to $n$}
+            \State $v \gets Clause[i]$
+            \State $idx \gets \Call{abs}{v}$
+
+            \If{$v > 0$}
+                \State $satisfied \gets assignment[idx] \vee satisfied$
+            \Else 
+                \State $satisfied \gets \neg assignment[idx] \vee satisfied$
+            \EndIf
+
+            \If{$satisfied = True$}
+                \State \texttt{Move onto the next clause}
+            \EndIf
+        \EndFor
+        \State $solved \gets satisfied \wedge solved$
+        \If{$solved = false$} 
+            \State \texttt{Move onto the next assignment}
+        \EndIf
+    \EndFor
+
+    \If{$solved = True$}
+        \State $vars \gets assignment$
+        \State return $True$
+    \EndIf
+\EndFor
+
+\State return $False$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+With that, that's all the optimization I can think of. In case you're
+wondering, no this does not change the asymptotic runtime of the method,
+however, it's easy to see why these changes would presumably make the
+algorithm run faster as we're adding code that stops evaluation the moment
+we've figured just enough out to know if it's worth continuing evaluation and
+deferring extra calculation (recording the current assignment) until once we
+know it's satisfiable.
+
+As an exercise to the reader, I will ask you, how can you parallelize this
+algorithm? And once you've figured that out, can you program it in a way
+where once one thread finds a satisfactory assignment, it terminates all other
+threads immediately instead of waiting for the others to finish?
+
+\subsection{Generating Assignments}
+
+How do we generate assignments? In the C++ implementation, we don't generate an assignment 
+directly. Instead, we can recognize that a string of 1's (true) and 0's (false) is just a 
+string of bits, which is just a datatype. We can use a large data, such as a \textit{long}
+to hold 32 variable assignments. Since this is just a data type, if we had a for loop from 
+$i \rightarrow 2^32$, or however many variables we have involved, our index variable can be used 
+as an assignment itself! Using some clever bit shifting, we can either store the assignment into 
+a bit array or index the bits of $i$ directly to simulate the behavior of accessing the assignment 
+of a variable. You may think that 32 variables, or 64, depending on your compiler and architecture 
+is very small, and while that may be true, you must consider how inefficient of an algorithm brute 
+force is to begin with. Theoretically we \textit{could} make brute force numerically scale to any 
+number of inputs if we wanted to, but the algorithm is so terrible that after 32, it would become 
+basically unusable anyways other than a potential CPU hog.
+
+\section{Brute Force - Results}
+
+To see how well our current algorithm does, running some tests would be a
+good idea. Why run tests when we have already proven that our algorithm
+works ``perfectly?'' To see how quickly it runs of course.
+
+To test its speed (and as we add more features, to ensure correctness is
+kept), we use a database of problems from here:
+
+\begin{center}
+    \url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}
+\end{center}
+
+We gave our current implementation 1000 SAT instances (uf20-91), each
+with 20 variables and 91 clauses each, all satisfiable. It took this baseline
+brute force algorithm \textbf{2,119,301 milliseconds}, which is roughly 35.32
+minutes. This result is actually from the first time I wrote a brute force 
+algorithm. The brute force result you can find on GitHub, it actually took 
+\textbf{1,770,851 milliseconds}, which is about 29.51 minutes. I have no idea what I 
+did in the rewrite that shaved off 4 minutes. I won't even lie to you reader,
+I am a busy undergraduate student, so I didn't even do the "best practice" for 
+testing, which would be to quit all other processes and then benchmark it. However,
+while I was testing, I was doing a Canvas assignment, so I was doing lots of 
+background work.
+
+Normally in science you have to run an experiment at least three times for
+data accuracy. But you must understand that I don't want to give up an hour
+and a half of my life to an algorithm that we're going to be improving upon
+anyways.
+
+Here are the results for all brute force algorithms, including the short-circuited 
+and parallel versions:
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+\end{FVerbatim}
+
+For the parallel version, the way it works is that it spawns in some number of 
+worker threads and they all share a flag that alerts them if any other thread has 
+found a solution. If a thread has, each worker will finish whatever iteration it's 
+on and terminate. The full code can be found on the GitHub.For the parallel version, the 
+implementation isn't perfect. I believe that we don't prevent false sharing amongst cache 
+lines (ie we get more cache swaps between threads leading to more cache misses), which could 
+explain why on my M1 MacBook Air, we don't get close to a ~8 times speedup. Since this was for 
+fun, I'm not going to perfect the parallelized version, that can be an exercise to the reader :\verb|)|

@@ -1,0 +1,282 @@
+\section{Better Unit Propagation}
+
+So the textbook style unit propagation sucked. Let's change that. As discussed before, 
+the biggest bottleneck/inefficiency in the actual implementation is the number of copies 
+we need to make of our clauses and assignments on each decision level. Assigning one variable 
+creates a new decision level, so 20 variables means 20 levels. For an unsatisfiable 
+CNF equation, I estimate we need to make about 3 copies of our clauses and assignments:
+one for the initial storage, another for the first failure, and a third for the second. 
+Even if we ignore the inefficiencies in how we propagate (memory allocations, traversals, and 
+adjustments our arrays would need to make when we delete things), this is a huge amount of 
+memory to store. If you think that 20 variables and 91 clauses is a lot, modern SAT solvers 
+can handle equations with \textbf{millions} of variables, so creating an algorithm that 
+makes brute force look attractive is actually an achievement.
+\footnote{They might revoke my degree for that actually}
+
+So what's the strategy? Firstly, it would be nice if we didn't actually mutate our 
+clauses at all. Ie, no clause deletion, and no variable deletion. Next, it would be 
+nice if we didn't need hash sets in order to store our unit variables. Instead, it
+would be nice if we had a data structure where we put in our decided variables, and then 
+it slowly shrinks as we iterate through. Ie, we propagate one on variable at a time and 
+never again. This sounds like we need a \textit{queue}.
+\footnote{That wasn't shoehorned in at all!}
+
+Lastly, instead of copying our assignment, and constantly reiterating through the 
+\textit{entire} clause database, what if we just marked which variables we assigned,
+and which clauses we've satisfied? That way when we need to undo, we just mark those 
+variables as Unassigned, and those clauses as no longer satisfied. That way we save a lot 
+of memory (and besides, copying is NOT O(1) as you might be led to believe by that deceptively
+simply ``='' operator).
+
+Let's change our interface:
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        void parse(string equation)
+        bool solve(var[] assignment, int level)
+        bool evaluate(var[] assignment)
+        (int[] vars, int[] clauses) propagate()
+
+        int numVars
+        int numClauses
+        int numAssigned
+
+        int[][] clauses
+        bool[] satisfied
+
+        optional var[] vars
+\end{lstlisting}
+
+We need to make some minimal changes to \textit{solveCNF()}:
+
+\begin{algorithm}[H]
+\caption{Main Solving Method}\label{alg:12}
+\begin{algorithmic}[1]
+
+\Procedure{solveCNF}{}
+
+\State assignment[1..numVars]
+
+\For{each $var$ in $assignment$}
+    \State $var \gets Unassigned$
+\EndFor
+
+\State $\Call{Propagate}{assignment, 0}$
+
+\State return $\Call{solve}{assignment, 1}$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Since \textit{propagate()} now takes a decision level/variable index, we need to pass 
+one to the method. Although no variable has an index of 0 (because it's reserved to mark the 
+end of a clause), passing in $0$ just tells it ``Hey, there isn't a literal to propagate on,
+so just find all clauses with only one variables and mark them as satisfied and `learn' those 
+variables.'' And since this is at the root level, we don't need to undo anything if it turns out 
+that the equation is unsatisfiable, since we're gathering things that HAVE to be a certain value 
+if this equation is to be satisfiable.
+
+Now let's get straight to \textit{solve()}:
+
+\begin{algorithm}[H]
+\caption{Recursive Solving}\label{alg:13}
+\begin{algorithmic}[1]
+
+\Procedure{solve}{assignment[1..n], level}
+
+\If{level = numVars}
+    \State return $\Call{evaluate}{assignment}$
+\EndIf
+
+\If{assignment[level] != Unassigned}
+    \State $\Call{solve}{assignment, level + 1}$
+\EndIf
+
+\State $assignment[level] \gets true$
+\State $(unitVars[1..n], satClause[1..m]) \gets \Call{propagate}{assignment, level}$
+
+\If{$\Call{solve}{assignment, level + 1} = true$}
+    \State return $true$
+\EndIf
+
+\For{each $var$ in $unitVars$}
+    \State $idx \gets \Call{abs}{var}$
+    \State $assignment[idx] \gets Unassigned$
+\EndFor
+
+\For{each $cIdx$ in $satClause$}
+    \State $satisfied[cIdx] \gets false$
+\EndFor
+
+\State $assignment[level] \gets false$
+\State $(unitVars[1..n], satClause[1..m]) \gets \Call{propagate}{assignment, level}$
+
+\If{$\Call{solve}{assignment, level + 1} = true$}
+    \State return $true$
+\EndIf
+
+\For{each $var$ in $unitVars$}
+    \State $idx \gets \Call{abs}{var}$
+    \State $assignment[idx] \gets Unassigned$
+\EndFor
+
+\For{each $cIdx$ in $satClause$}
+    \State $satisfied[cIdx] \gets false$
+\EndFor
+
+\State $assignment[level] \gets Unassigned$
+\State return $false$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+This method is practically the same, except now, we just check if we've already assigned 
+the variable at the current decision level. If we have assigned a variable before we reach 
+its decision level, then it must have been inferred/learned from the \textit{propagate()} 
+method, so we don't need to call it again. Then, it's business as usual: assume the 
+current variable is True, propagate, if it leads to a satisfiable assignment, return True, 
+otherwise, we undo what we've assigned and marked as learned, then repeat with False. 
+
+What's more interesting is our shiny new \textit{propagate()} method:
+
+\begin{algorithm}[H]
+\caption{Unit Propagation}\label{alg:14}
+\begin{algorithmic}[1]
+
+\Procedure{propagate}{assignment[1..n], level}
+
+\State unit \Comment a queue of unit variables
+\State unitVars[1..n]
+\State satClauses[1..m]
+
+\State $\Call{enqueue}{unit, level}$
+
+\While{$Call{empty}{unit} = false$}
+    \State $\Call{dequeue}{unit}$
+
+    \For{$i \gets 1$ up to $numClauses$}
+        \If{satisfied[$i$] = $true$}
+            \texttt{Move onto the next clause}
+        \EndIf
+
+        \State $Clause[1..t] \gets Clauses[i]$
+        \State $uNum \gets \Call{countUnassigned}{Clause}$
+        \State $tNum \gets \Call{countTrue}{Clause}$
+
+        \If{tNum > 0}
+            \State satisfied[$i$] = $true$
+            \State $\Call{append}{satClauses}{i}$
+        \EndIf
+
+        \If{tNum = 0 $\wedge$ uNum = 1}
+            \State $\Call{append}{unitClauses, i}$
+            \State $uVar \gets \Call{firstUnassigned}{Clause}$
+            \State $\Call{append}{unitVars, uVar}$
+
+            \State $idx \gets \Call{abs}{uVar}$
+            \If{uVar > 0}
+                \State $assignment[idx] \gets true$
+            \Else
+                \State $assignment[idx] \gets false$
+            \EndIf
+
+            \State $\Call{enque}{unit, uVar}$
+            \State satisfied[$i$] = $true$
+            \State $\Call{append}{satClauses, i}$
+        \EndIf
+    \EndFor
+\EndWhile
+
+\State return (unitVars, satClauses) 
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+So, let's discuss what's going on. \textit{propagate()} now takes in the decision level, 
+which is also the same thing as an index for a variable (conceptually speaking). It then 
+adds that to a queue, then while the queue is not empty, it scans the clauses as before. 
+First it makes sure we're not operating on a clause that's already been satisfied 
+(because we can't tell anything from it), and when it finds a clause that has a true literal, 
+it marks the clause as satisfied. Then when it finds a unit clause, it marks the clause as 
+satisfied, keeps track of the new unit variable its found, and then adds that unit variable 
+to the queue. Then once it's done, it returns the unit variables and the indices of the satisfied 
+clauses.
+
+You may have some questions about this approach. Firstly, how do we make sure we don't 
+ever add the same variable twice? The answer is the same as before: because we assign a 
+variable once it's found to be in a unit clause, it can't be found as Unassigned again, 
+and therefore can't be marked as a unit variable again. Then, since we skip over already 
+satisfied clauses, the amount of clauses we scan each iteration decreases monotonically. 
+
+And going back to our \textit{solve()} code, even if we mark the same clause as satisfied 
+or the same variable as unit twice, it doesn't matter because when we backtrack, we simply 
+restore it back to its state of unsatisfied or Unassigned, respectively. What's important is 
+that we don't mark the same clause or variable twice \textit{across decision levels} because 
+then, and only then, would our backtracking code become a problem because we wouldn't be 
+correctly restoring the state of the equation back to what it was before the decision level 
+was entered. But since we can't mark the same variable or clause twice \textbf{until}
+we backtrack, there's nothing to worry about.
+
+Before we end this section, you may also be wondering: can we use the \textit{satisfied}
+array in our \textit{evaluate()} method to skip clauses we know we've already satisfied?
+And the answer is yes, and I would encourage you to do so in your implementations.
+
+\subsection{Better Unit Propagation - Results}
+So after implementing better unit propagation, this took \textbf{868ms} to solve all 1000 
+satisfiable equations. The first time I implemented this version of unit propagation,
+it actually took \textbf{2363ms}, so this is somehow over twice as fast. And because it's so 
+fast, just like the first time I implemented this, we will be now testing our solver on 
+unsatisfiable equations as well.
+
+Our second testing set comes from the same database as before.
+\footnote{\url{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}, in case you needed a reminder.}
+And our next testing set is called ``UUF50.218.1000." In other words, it's full of equations that 
+have 50 variables, 218 clauses, and there are 1000 such equations in the set. In order to solve 
+all 1000 equations, it took \textbf{140,411ms} (~2.34 minutes). That's also much faster than the first time 
+I implemented this algorithm. The first time I did, it took 646,228ms (~10.77 minutes). Honestly,
+with this much speedup, I don't know if I was just bad at implementing these algorithms the first time,
+\footnote{Highly likely}
+or if downgrading my operating system (and subsequently wiping my harddrive clean)
+\footnote{I HATED MacOS Tahoe. Sequoia is where it's at.}
+just has that much of an effect on execution speed.
+\footnote{Also likely, depending on how much RAM and swap is being used to begin with.}
+
+Why didn't we test our previous versions out on unsatisfiable equations? That's a good question.
+For brute forcers, since there is no satisfiable assignment, it needs to check every single 
+one to conclude that it's unsatisfiable, which would take a lot of time. Likewise with our 
+recursive backtracking solver. And since our (my) implementation of textbook unit propagation 
+was \textit{worse} than brute force,
+\footnote{A difficult feat.}
+obviously we wouldn't want to test it on something that will take more time than a satisfiable 
+equation. Also because the asymptotic runtime is \textit{still} exponential, having a much 
+larger equation would take a much, much larger amount of time, even if they were satisfiable.
+
+\begin{FVerbatim}
+Results so far:
+
+On all 1000 equations in uf20-91:
+
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Unit Propagation: 140,041ms (~2.34 minutes).
+\end{FVerbatim}

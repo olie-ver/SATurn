@@ -1,0 +1,278 @@
+\section{Unit Propagation}
+
+Unit propagation is the next step in implementing DPLL, and it introduces the
+idea of implication. Imagine a clause with two variables: $A$ and $Z$,
+and we know that $A = False$. What can we say about $Z$? Well, if our equation is satisfiable, 
+then the clause must be satisfiable, therefore $Z = True$ because if it didn't, 
+that would be a contradiction.
+
+So instead of assigning variables $B$, $C$, \ldots, $Y$, then assigning $Z$,
+why don't we just do it now, and use that knowledge in other clauses
+containing $Z$ or $\neg Z$?
+
+That is essentially the idea behind unit propagation: the decisions we make
+imply other assignments, and so we should force them now instead of waiting
+until later.
+
+However, this introduces a light hiccup into our implementation. You see, 
+our initial invariant about assigning variables is that they are
+assigned in numerical order instead of (possibly) out of order.
+
+``Not a problem! We'll just make the assignment array have space for every
+variable so we can index it anywhere,'' I hear you think. Unfortunately that interferes with
+our base case because it relies on the size
+of the assignment array. If it is initially at a fixed size of
+\textit{numVars}, then our base case will always fire because our assignment
+array always has a size of \textit{numVars}. So we would either need to
+change our base case or change how we store learned variables.
+
+What about a learned set? One that holds whether or not we've learned a
+variable (positive or negative), and then as we traverse down the call stack,
+we just check if a variable is already learned, and if so, we give it its learned
+value?
+
+That would 100\% work. In fact, the first time I implemented DPLL,
+that is exactly what I used. However, it has the disadvantage of being annoying 
+to maintain. Instead, why don't we create a new data type called something like
+\textit{var} that represents the state of each variable: \textit{True},
+\textit{False}, and \textit{Unassigned}.
+
+Then we can just maintain a simple counter of how many are not
+\textit{Unassigned}, and then that keeps our base case nice and neat.
+Yes dear reader, we are going to do that, however, if you'd like to use the
+learned set, reading about how we do it without a learned set will help you
+and offer clues on how to implement it your way.
+
+\subsection{Changes To Our Implementation}
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        void parse(string equation)
+        bool solve(var[] assignment, int level)
+        bool evaluate(var[] assignment)
+        void propagate()
+
+        int numVars
+        int numClauses
+        int numAssigned
+
+        int[][] clauses
+
+        optional var[] vars
+\end{lstlisting}
+
+Here we just add in a new enum for the states that a variable can be, and
+adjust the methods using \textit{bool}s to use the new enum type instead.
+
+\subsection{``Textbook" Unit Propagation}
+
+Before we start changing our algorithm, let's implement the
+\textit{propagate()} method.
+
+As stated before, the idea is that given a clause with either only one variable
+or only one \textit{Unassigned} variable (and the rest evaluate to
+\textit{False}), we can immediately say that \textit{Unassigned} variable will
+be whatever value it needs to be to evaluate to \textit{True} for that clause.
+
+In the ``textbook" way of implementation,
+\footnote{\url{https://en.wikipedia.org/wiki/Unit_propagation}} 
+once a clause is satisfied because of a literal, you remove every other
+clause that is satisfied by that literal. And for every other clause containing 
+the negation of the literal, you remove that negation entirely. This is done to shrink the 
+search space.
+
+We will implement this algorithm with as much malicious compliance as you can 
+carry at an office job without getting fired:
+
+\begin{algorithm}[H]
+\caption{Main Solving Method}\label{alg:9}
+\begin{algorithmic}[1]
+
+\Procedure{solveCNF}
+
+\State assignment[1..numVars] \Comment{assignment contains numVars variables}
+
+\For{each $var$ in $assignment$}
+    \State $var \gets Unassigned$
+\EndFor
+
+$\Call{Propagate}{assignment}$
+
+\State return $\Call{solve}{assignment, 1}$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+We want to propagate before we start solving in case there are clauses with 
+only one variable (they're already unit). One thing to note about this pseudocode 
+implementation that differs in \textbf{Algorithm 8} is that here, $assignment$ 
+already contains $numVars$ variables, whereas in \textbf{Algorithm 8}, $assignment$
+contained up to $n$ variables. They both still use 1-based indexing.
+
+\begin{algorithm}[H]
+\caption{Recursive Solving Method}\label{alg:10}
+\begin{algorithmic}[1]
+
+\Procedure{solve}{assignment[1..n], level}
+
+\If{level = numVars}
+    \State return $\Call{evaluate}{assignment}$
+\EndIf
+
+\State $backupAssignment[1..numVars] \gets assignment$
+\State $backupClauses[1..numClauses][1..n] \gets clauses$
+
+\If{assignment[level] = Unassigned}
+    \State $assignment[level] \gets true$
+    $\Call{propagate}{assignment}$
+\EndIf
+
+\If{$\Call{solve}{assignment, level + 1} = true$}
+    \State return $true$
+\EndIf
+
+\State $clauses \gets backupClauses$
+\State $assignment \gets backupAssignment$
+
+\If{assignment[level] = Unassigned}
+    \State $assignment[level] \gets false$
+    $\Call{propagate}{assignment}$
+\EndIf
+
+\If{$\Call{solve}{assignment, level + 1} = true$}
+    \State return $true$
+\EndIf
+
+\State{return $false$}
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Before we get onto the code for unit propagation, let's understand this code first. 
+Because unit propagation no longer guarantees that variables are assigned in order, 
+we need to pass in a ``level'' as a parameter so we know which variable we need to 
+assign. We also now need to check that propagation didn't already assign this variable. 
+If it's currently Unassigned, we need to assign it then propagate, but if it's been 
+assigned before we assign it, then we know that it's the result of propagation, so we 
+can continue onto the next level. Other than that, it's practically the same as our recursive 
+backtracking code, except now we need to have a ``backup'' of our clauses and our assignment. 
+
+Why? Because \textit{propagate()} \textbf{mutates} the clauses and the assignment in a way 
+that breaks the assumption that our literals are assigned in ``numeric'' order. Since it 
+returns nothing, we don't have a way to undo that easily, so instead, for readability, 
+we just have a backup copy and whenever propagation leads to an unsatisfying assignment, 
+we return false and undo whatever changes we made by copying back into our solver's fields.
+And the reason why we don't need to undo the propagation before returning False is because 
+when we move back up the call stack by one level, the method continues by undoing the effects for us.
+Now let's look at how we perform textbook unit propagation:
+
+\begin{algorithm}[H]
+\caption{Textbook Unit Propagation}\label{alg:11}
+\begin{algorithmic}[1]
+
+\Procedure{propagate}{assignment[1..n]}
+
+\While{$true$}
+    \State unitClauses \Comment{A set of clauses}
+    \State unitVars \Comment{A set of variables}
+
+    \For{each $Clause$ in $Clauses$}
+        \State $isUnit \gets true$
+        \State $uIdx \gets -1$
+        \State $numU \gets 0$
+
+        \For{each $var$ in $Clause$}
+            \State $idx \gets \Call{abs}{var}$
+
+            \If{assignment[$idx$] = Unassigned}
+                \State $numU \gets numU + 1$
+                \State $uIdx \gets \Call{indexOf}{Clause, var}$
+            \ElsIf{$\Call{evalsFalse}{var} = false$}
+                \State $isUnit \gets false$
+            \EndIf
+        \EndFor
+
+        \If{isUnit $\wedge$ numU = 1}
+            \State \Call{insert}{$unitClauses$, $Clause$}
+            \State \Call{insert}{$unitVars$, $uIdx$}
+
+            \State $var \gets clause[uIdx]$
+            \State $idx \gets \Call{abs}{var}$
+
+            \If{$var > 0$}
+                \State $assignment[idx] \gets true$
+            \Else 
+                \State $assignment[idx] \gets false$
+            \EndIf
+        \EndIf
+    \EndFor
+
+    \For{each $Clause$ in $Clauses$}
+        \For{each $var$ in $Clause$}
+            \If{$\Call{contains}{unitVars, -var}$}
+                \State $\Call{remove{Clause, -var}}$
+            \EndIf
+
+            \If{$\Call{contains}{unitVars, var} \wedge \Call{contains}{unitClause, Clause}$}
+                \State $\Call{remove{Clauses, Clause}}$
+            \EndIf
+        \EndFor
+    \EndFor
+
+    \If{\Call{Empty}{unitClauses} $\wedge$ \Call{Empty}{unitVars}}
+        return
+    \EndIf
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Okay, now let's understand what's happening here. We immediately go into an 
+infinite loop (nice), and we start looking at each clause for two things:
+\begin{enumerate}
+    \item The clause has only one Unassigned variable 
+    \item Every other literal in the clause is False (remember, literals are evaluated variables)
+\end{enumerate}
+
+If both things are true, then the Unassigned variable will be assigned whatever value 
+is required to make it evaluate to True within that clause, and we know we have found 
+a unit variable and a unit clause. After we have found all of our unit variables and unit 
+clauses, we then rescan every other clause and delete the each unit variable's negative,
+(if we learn that -5 is unit, then we remove +5), and if the clause contains a unit 
+variable, we just delete that clause entirely from the database. Once we stop finding 
+new unit variables and new unit clauses, we stop entirely. You may wonder (I reread my 
+code and thought I found a bug), ``how do we know that we always terminate?'' That's a 
+great question. You see, this confusion may come from the fact that we rescan the database 
+every iteration of the \textit{while()} loop searching for unit clauses. What is stopping 
+us from re-finding the same clause as unit upon a new iteration? The answer is much simpler 
+than you'd expect: since we assign our unit variables, the clauses upon the next iteration 
+no longer foloow our criteria for being unit propagate-able because there is now a literal 
+in that clause that is True. Therefore, the number of unit variables and clauses monotonically
+decrease between iterations (a fancy way of saying the number can only go down).
+
+Now, you may be wondering, ``what's the performance of our solver now?" Let me answer that 
+as plainly as possible: worse than brute force. How? Easy! We are doing SO MANY things that 
+hurt the computer. We are allocating TONS of memory in order to backtrack, we are allocating 
+even more memory to propagate (hash sets aren't cheap), and hashing, while O(1), is not 
+a cheap operation to do. So yeah, I can believe that it's worse than brute force because 
+at least the brute force algorithm was easy on the CPU. Let's learn how this is 
+\textit{usually}
+\footnote{I wanted to say ``actually implemented'', however, that's a big generalization, and 
+again, since I'm not the expert here, I don't think I have the authority to say that. The next 
+section is how \textit{I} implemented it, and it roughly follows the idea on how SAT solvers 
+implement this.}
+implemented!

@@ -1,0 +1,217 @@
+\section{Restarts}
+
+This is the last thing we will implement in our SAT solver (for now, maybe). 
+Restarts are exactly what it sounds like. We completely delete the trail and 
+all notion of assignment. Why would we do that? A valid question. The idea is that 
+perhaps while we've been solving, we got stuck in a bad part of the search space
+and are just getting contradiction after contradiction. Rather than staying stuck there,
+perhaps we could restart our solver so that it will end up in a different part of the 
+search space that might be better. 
+
+Makes enough sense, but how do we ensure that we don't just go back to the same 
+part of the search space again? Well luckily because we've been learning, our solver 
+isn't exactly the same as it initially was. It ``knows'' more, and since knowledge is 
+power, the new learned clauses can force certain assignments and propagations earlier 
+and that will nudge or push us into the right direction. 
+
+So implement this, it's really really simple. All we need to do is after a certain number 
+of conflicts, clear ONLY the trail. We don't clear out our VSIDS, clause measurements, 
+reset the watched literals, nothing, nada, nahin. Why? Because the idea of restarts is 
+that when the going gets tough, we get going. Notice how I said that we get going, not 
+that we get forgetful? We go back to the beginning, remembering everything we've learnt, 
+and use that to (hopefully) not repeat mistakes. If we forgot things like our VSIDS, we 
+would make the same assignment with the exact same decision, and we'd have to rely only 
+on our learned clauses to sway our decision making. But since VSIDS tells us which 
+variables have been important in conflicts, it tells us which variables are best to start 
+out with on our new try.
+
+For our solver, I chose to restart every time we clear out the clause database. If you've 
+been loosy-goosy about following my implementation or have been doing your own experiments
+(nice), you can define your own condition. Just remember these things when you're doing a 
+restart:
+\begin{itemize}
+    \item Clear the entire trail.
+    \item The trail\_starts array must always have a decision level of 0.
+    \item Clearing out var\_to\_trail is not strictly necessary as long 
+            as your implementation is correct.
+    \item If you do clear out var\_to\_trail, make sure it's resized properly.
+    \item Reset qHead.
+    \item Reset the decision level to 0.
+    \item Unassign every variable.
+    \item You might want to do a root level propagation.
+\end{itemize}
+
+Here are the results:
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Restarts:                   385ms (~0.39 seconds).
+Clause VSIDS:               347ms (~0.35 seconds).
+M-size (10\%):              320ms (~0.32 seconds).
+
+AMA (Y = 0.75 or 0.99):     274ms (~0.27 seconds).
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+First UIPs:                 406ms (~0.41 seconds).
+Backjumping:                380ms (~0.38 seconds).
+Clause Learning:            425ms (~0.43 seconds).
+Iterative DPLL (AbP):       328ms (~0.33 seconds).
+Iterative DPLL (PbA):       324ms (~0.32 seconds).
+Watched Literals:           349ms (~0.35 seconds).
+Pure Literal Elimination:   1548ms (~1.55 seconds).
+Unit Propagation:           868ms (~0.87 seconds).
+Recursive Backtracking:     1,540,613ms (~25.68 minutes).
+Brute Force:                1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):    49,874ms (~50 seconds).
+Parallel:                   10,589ms (~10.5 seconds).
+
+On all 100 equations in Flat200-479:
+
+Restarts:                   9,428ms  (~9.43 seconds).
+Clause VSIDS:               19,181ms (~19.18 seconds).
+M-size (10\%):              17,716ms (~17.72 seconds).
+AMA:                        24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Restarts:                   1,824ms (~1.82 seconds).
+Clause VSIDS:               1,804ms (~1.80 seconds).
+M-size (10\%)               1,768ms (~1.77 seconds).
+
+AMA:                        1,629ms (~1.63 seconds).
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+First UIPs:                 14,012ms (~14.01 seconds).
+Backjumping:                11,291ms (~11.29 seconds).
+Clause Learning:            9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
+Watched Literals:           7,130ms (~7.13 seconds).
+Pure Literal Elimination:   231,107ms (~3.85 minutes).
+Unit Propagation:           140,041ms (~2.34 minutes).
+\end{FVerbatim}
+\noindent
+Even though our solver is getting slower and slower on uf20-91, I think it's
+actually really good that for the larger problems, it's getting substantially 
+faster. Even though we want our algorithms and programs to work really quickly 
+on small inputs, I think it's important for us to at some point prioritize the 
+larger inputs. And given how most SAT problems are even larger than these, 
+I think that's a good thing. 
+
+\subsection{Assignment Polarity}
+
+Back in the day, we had this thing called ``Pure Literal Elimination,'' but when 
+we transitioned to CDCL, it went away \textit{forever}. Well dear reader, I'm here 
+to tell you that it's still going to be gone forever, but its spirit lives on with us.
+And by that, I mean, we're going to take the idea behind pure literal elimination and 
+apply it to our restarts. 
+
+You see, as we continue learning new clauses, we also encounter new literals. Earlier, 
+back when we switched from brute force to recursive backtracking, we noticed that solving 
+times decreased. Other than the main structure of the solvers, the only thing that changed
+was in brute force, we started out with most variable assignments being False, while in 
+recursive backtracking and beyond, they start out as True. I made a claim that this speedup 
+was because there were less negative literals than there were positive literals. I won't 
+say that I knew for sure, but if we stop for a second to think about it, it makes sense. 
+
+When there are more positive literals, the likelihood of a variable's final assignment 
+being True is higher than when there are more negative literals. This was the idea behind 
+pure literal elimination, to an extent. Pure literal elimination worked because when a
+literal only shows up with one polarity, if there is a solution, there is a 100\% chance 
+that there is at least one solution where that pure literal's assignment matches its
+polarity (T for positive, F for negative). We want to bring this idea into our assignment 
+polarity. While we can't guarantee that literals will remain pure because of clause learning, 
+we can at least make better decisions based on the current number of positive/negative occurrences 
+of a variable.
+
+To do this, we'll add in a \textit{polarity} array to our solver:
+\begin{lstlisting}
+    public interface:
+
+    private interface:
+        ...
+        int[] polarity
+        ...
+\end{lstlisting}
+\noindent
+Instead of using a count for both positive and negative literals, instead, we'll 
+use one counter for each variable. When the count is negative, we know that there 
+are more negative occurrences of the variable, and when the count is nonnegative, we 
+will pretend that are more positive occurrences of the variable (even though when the 
+count is 0, that means it's balanced).
+
+Because we're using one counter per variable, it might be tempting to use a literal's 
+value directly in the count. After all, if we encounter one $+4$ and one $-4$, they'd 
+cancel out to 0. Although this is logically correct, I'm worried about integer overflow 
+for equations with millions of variables
+\footnote{$2^32 \approx 4.3$ billion, so if we had one million variables, we could only 
+handle ~43 occurrences of one polarity, which is pretty low, all things considered.}
+
+Instead we'll settle for an ``if negative => count - 1, else count + 1'' kind of deal.
+We will gather the counts in the setup phase of our solver, and we will update the counts 
+only when we learn a new clause. However, it would be interesting to update the counts for 
+all variables involved in a conflict, and see how that affects things. Because of how 
+easy this code is to add as well, I'm gonna let you figure it out. Lastly, when we 
+pick a variable via its VSIDS, we assign it based on its polarity. Also very easy to 
+figure out, you got this, I believe in you.
+
+Here are the results:
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Polarity:                   369ms (~0.37 seconds).
+Restarts:                   385ms (~0.39 seconds).
+Clause VSIDS:               347ms (~0.35 seconds).
+M-size (10\%):              320ms (~0.32 seconds).
+
+AMA (Y = 0.75 or 0.99):     274ms (~0.27 seconds).
+EMA (X = 1, Y = 0.95):      266ms (~0.27 seconds).
+
+Improved CDCL:              284ms (~0.28 seconds).
+First UIPs:                 406ms (~0.41 seconds).
+Backjumping:                380ms (~0.38 seconds).
+Clause Learning:            425ms (~0.43 seconds).
+Iterative DPLL (AbP):       328ms (~0.33 seconds).
+Iterative DPLL (PbA):       324ms (~0.32 seconds).
+Watched Literals:           349ms (~0.35 seconds).
+Pure Literal Elimination:   1548ms (~1.55 seconds).
+Unit Propagation:           868ms (~0.87 seconds).
+Recursive Backtracking:     1,540,613ms (~25.68 minutes).
+Brute Force:                1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):    49,874ms (~50 seconds).
+Parallel:                   10,589ms (~10.5 seconds).
+
+On all 100 equations in Flat200-479:
+
+Polarity:                   8,580ms  (~8.58 seconds).
+Restarts:                   9,428ms  (~9.43 seconds).
+Clause VSIDS:               19,181ms (~19.18 seconds).
+M-size (10\%):              17,716ms (~17.72 seconds).
+AMA:                        24,238ms (~24.24 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Polarity:                   1,897ms (~1.90 seconds).
+Restarts:                   1,824ms (~1.82 seconds).
+Clause VSIDS:               1,804ms (~1.80 seconds).
+M-size (10\%)               1,768ms (~1.77 seconds).
+
+AMA:                        1,629ms (~1.63 seconds).
+EMA (X = 1, Y = 0.95):      1,504ms (~1.50 seconds).
+
+Improved CDCL:              2,385ms (~2.39 seconds).
+First UIPs:                 14,012ms (~14.01 seconds).
+Backjumping:                11,291ms (~11.29 seconds).
+Clause Learning:            9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
+Watched Literals:           7,130ms (~7.13 seconds).
+Pure Literal Elimination:   231,107ms (~3.85 minutes).
+Unit Propagation:           140,041ms (~2.34 minutes).
+\end{FVerbatim}
+\noindent
+That's a pretty decent speedup on the larger equations. Not sure how I feel 
+about the speedup on UUF50.218.1000, but since it's not even 100ms across all 
+1000 cases, I think I'll take it.

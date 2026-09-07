@@ -1,0 +1,213 @@
+\section{Recursive Backtracking}
+
+First, we need to rewrite our brute force algorithm to be recursive, as that's
+the foundation for the entire algorithm (duh). To do this, we will introduce a
+new method \textit{solve()} which will be our recursive solving method. To
+also make things simpler, we will extract the equation evaluation into its own
+separate method as well.
+
+This means our SAT solver becomes like so:
+
+\begin{lstlisting}
+public interface:
+    SATSolver(string input)
+    bool solveCNF()
+
+private interface:
+    void parse(string equation)
+    bool solve(bool[] assignment)
+    bool evaluate(bool[] assignment)
+    int numVars
+    int numClauses
+    int[][] clauses
+    optional bool[] lits
+\end{lstlisting}
+
+The flow essentially becomes like this: \textit{solveCNF()} calls
+\textit{solve()}, which calls itself over and over and returns whatever solution
+it finds back up to \textit{solveCNF()}, who will handle any sort of cleanup.
+
+Why can't we just make \textit{solveCNF()} call itself recursively? Good question.
+That's because \textit{solveCNF()} will handle any setup that
+\textit{solve()} will need in order to function properly, and it will handle any
+cleanup that \textit{solve()} may create.
+
+Let's now discuss how \textit{solve()} will work.
+It will be passed in a \textit{bool[]} for the current assignment of literals.
+When the size of our assignment is equal to the number of variables, we will
+then evaluate the satisfiability of the assignment, and if it's satisfiable we
+return true. Otherwise, we return false, backtrack, retry, until we either find a
+satisfiable assignment or we've exhausted them all.
+
+The pseudocode is as so, starting with \textit{evaluate()}:
+
+\begin{algorithm}[H]
+\caption{Evaluate CNF}\label{alg:6}
+\begin{algorithmic}[1]
+
+\Procedure{evaluate}{$assignment[1..n]$}
+\For{each $Clause[1..n]$ in $Clauses$}
+    \State $satisfied \gets false$
+
+    \For{$i \gets 0$ up to $n$}
+        \State $var \gets Clause[i]$
+        \State $idx \gets \Call{abs}{var}$
+
+        \If{$var > 0$}
+            \State $satisfied \gets assignment[idx] \vee satisfied$
+        \Else 
+            \State $satisfied \gets \neg assignment[idx] \vee satisfied$
+        \EndIf
+
+        \If{$satisfied = true$}
+            \State \texttt{Move onto the next clause}
+        \EndIf
+    \EndFor
+    
+    \If{$satisfied = false$}
+        \State {return $false$}
+    \EndIf
+\EndFor
+\State $vars \gets assignment$
+\State return $true$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+For this algorithm, we've extracted out the logic on how we evaluate a CNF equation, 
+but there are a few changes to how we've done it in our brute force methods. For instance,
+we no longer require a global $solved$ variable for the entire equation, but now we only 
+need a $satisfied$ variable for just the current clause. Since CNF is satisfied iff all 
+clauses are satisfied, if we find one unsatisfied clause, that's enough to stop evaluation 
+completely. Otherwise, we can save whatever assignment it was and return true.
+
+Now for our recursive \textit{solve()} method:
+
+\begin{algorithm}[H]
+\caption{Recursive Backtracking}\label{alg:7}
+\begin{algorithmic}[1]
+
+\Procedure{solve}{$assignment[1..n]$}
+
+\If{$n = numVars$}
+    \State return $\Call{evaluate}{assignment}$
+\EndIf
+
+\State $\Call{Append}{assignment, true}$
+
+\If{$\Call{solve}{assignment}$}
+    \State return $true$
+\EndIf
+
+\State $assignment[n] \gets false$
+
+\If{$\Call{solve}{assignment}$}
+    \State return $true$
+\EndIf
+
+\State $\Call{truncate}{assignment, 1}$
+\State return $false$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+This might be slightly confusing at first, so let's go over it.
+
+We first check our base case. If our assignment has all of its variables, we
+evaluate it and return the result whether it be true or false. And you'll notice
+that whenever we return true from a call of \textit{solve()}, we immediately
+return true afterwards, so therefore, if we find a satisfiable assignment, we
+will go up our call stack back to \textit{solveCNF()}, so no need to worry that
+it will terminate if we find a satisfiable assignment.
+
+However, if our assignment still needs some variables, we append true to our
+assignment, then we do a recursive call on \textit{solve()}. If that recursive
+call leads to a satisfiable assignment, we return true, otherwise, we swap out
+our last value for false and try \textit{solve()} again. And if that ends up
+working out, we return true, but if it doesn't then we remove the last value
+and return false.
+
+So how do we know that it will guarantee termination for an unsatisfiable problem?
+Notice how when assigning the current variable true or false and it doesn't
+work, we just remove the last one and go up the call stack by one? Well
+suppose we're at the top of the call stack (we've assigned the first variable)
+and the first variable is assigned false, and that didn't lead to a satisfiable
+assignment. Then we remove that first variable from the assignment, and then
+we return false. So our assignment array is empty, and we've returned to
+\textit{solveCNF()}. Thus, \textit{solve()} will terminate eventually.
+
+And how do we know that we'll try every single assignment?
+Well for the very last variable, it's easy to see, if it being true doesn't satisfy
+the equation, we assign it false, and if that doesn't work, we remove it and go
+up the call stack. Then for the previous variable, if it was true, we assign it
+false and go back to the last variable where it tries true and/or false again.
+Then that doesn't work, we go up the call stack twice, and that continues until
+we've found a satisfiable assignment or we've exhausted them all.\footnote{
+This is a very informal proof, but what's most important is that we build up
+our understanding of what's going on instead of dumping notation. Perhaps I
+will do a formal proof in the future.}
+
+Lastly, our \textit{solveCNF()} method:
+
+\begin{algorithm}[H]
+\caption{Main Solving Method}\label{alg:8}
+\begin{algorithmic}[1]
+
+\Procedure{solveCNF}{}
+
+\State assignment[1..n]
+\State return $\Call{solve}{assignment}$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Because we're dealing with pseudocode, we don't have to do things such as
+reserving or resizing the assignment array. And since \textit{evaluate()} takes
+care of making sure our \textit{lits} field holds a valid assignment (if found)
+and holds nothing if not, we don't need to do anything else in
+\textit{solveCNF()}.
+
+You may wonder though, why not pass in \textit{lits} to \textit{solve()} or
+have no setup and make \textit{solveCNF()} purely recursive?
+Those are very valid questions to ask.
+
+This has to do with the differences between pseudocode and actual
+implementation. In the actual implementation, some methods depend on the
+state of \textit{lits}, such as whether or not it holds anything, and by passing
+it into \textit{solve()}, we force it to hold something, even if there is no
+satisfiable assignment. And it's true, that in \textit{solveCNF()} if we had no
+setup, we could make it recursive on \textit{lits}, however, I chose to
+implement it differently.
+
+When you are reading this, please ask yourself these kinds of questions,
+because oftentimes, the way you read my implementation is not the best way,
+and even if it is, there is no reason as to why you can't think of different
+implementations, try them out yourself, and compare. Perhaps, and I expect
+this will happen often, you will find a better implementation than the one
+written down here.
+
+\subsection{Recursive Backtracking -- Results}
+
+Running this code on the same 1000 instances (uf20-91), it took
+\textbf{1,846,644ms}, which is roughly 30.78 minutes. This is actually a pretty big
+improvement from our 35.32 minutes via brute forcing. Although this seems
+like a big gain in speed, it should be noted that at this point the algorithm is
+still just a fancier brute forcing algorithm. The next time I rewrote this algorithm,
+it took \textbf{1,540,613ms}, which is about 25.68 minutes. So once again, that's about a 
+~5 minute speedup just from rewriting it. Perhaps we should rewrite every piece of 
+software in the world to make it run 5 minutes faster. 
+
+Here's a question for you, why might assigning our variables true instead of
+false first lead to an increase in speed? \textbf{Hint: Look at the number of negations 
+present in the testing set.}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+\end{FVerbatim}

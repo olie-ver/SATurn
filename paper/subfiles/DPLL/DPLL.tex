@@ -1,0 +1,80 @@
+\chapter{DPLL}
+
+The Davis-Putnam-Logemann-Loveland (DPLL) algorithm is a complete
+backtracking based search algorithm for finding satisfiable assignments for SAT
+problems. It is, dare I say, the foundational algorithm for modern SAT solvers,
+as the state-of-the-art algorithm used by basically every SAT solver builds upon
+the foundations that DPLL provides, as we will see later on.
+
+\noindent It consists of three components:
+
+\begin{itemize}
+    \item Recursive backtracking
+    \item Unit propagation
+    \item Pure literal elimination
+\end{itemize}
+How does it work?
+
+Imagine a binary tree of variables, each with two branches representing their
+assignment, one for true and one for false. Suppose we don't know anything
+about our CNF equation. That is, from looking at it, any variable could have
+any value, and we don't know how each assignment helps us in finding out
+whether or not the equation is satisfiable. How can we figure out if we can
+satisfy the equation without just brute forcing it?
+
+The answer is \sout{making an ass out of you and me} to make assumptions.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+        \tikzset{edge from parent/.style={draw,edge from parent 
+            path={(\tikzparentnode.south)-- +(0,-8pt)-| (\tikzchildnode)}}}
+        \Tree [.a
+                    [.b
+                        [.c
+                            [.SAT ]
+                            [.UNSAT ]
+                        ]
+                        [.c
+                            [.SAT ]
+                            [.UNSAT ]
+                        ] 
+                    ]
+                    [.b
+                        [.c
+                            [.SAT ]
+                            [.SAT ]
+                        ]
+                        [.c
+                            [.UNSAT ]
+                            [.UNSAT ] 
+                        ] 
+                    ] 
+                ]
+    \end{tikzpicture}
+    \caption{Example DPLL decision tree (the outcomes may not correspond to an
+    actual CNF instance, sue me).}
+\end{figure}
+
+Going back to our hypothetical, we don't know anything about anything. We
+could have a giant decision tree to explore with an exponential number of leaves
+to evaluate. How does making assumptions help us? Do we just run a random number generator 
+and if it returns 1, we go ``okay, it's satisfiable,'' and false otherwise?
+
+No. We make assumptions about our literal assignments.Unlike brute forcing where we try 
+every possible combination of variable assignments at once, in DPLL we start with a literal, 
+we'll call it $A$. Suppose there is nothing in the equation that indicates whether or not 
+$A$ should be true or false; either could be valid.
+
+So to tackle our problem, initially we will assume $A$ is true and see where
+that leads us. We propagate that value throughout our clauses, and suppose
+there is a clause that can't be satisfied. That's a contradiction, because if the
+equation was satisfiable then $A = True$ couldn't have led us there.
+
+So we've figured out that at the very least $A = True$ leads to a
+contradiction. We've now eliminated half of the search space immediately and only need to
+consider the cases where $A = False$.
+
+This may not make total sense immediately, so instead of giving one explanation
+of the algorithm and then building it, we will build up the algorithm and explain
+how each part works.

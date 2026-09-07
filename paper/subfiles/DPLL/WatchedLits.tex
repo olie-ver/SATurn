@@ -1,0 +1,609 @@
+\section{Watched Literals}
+
+Before we get into the Watched Literal algorithm, I want to ease us into it.
+Why? Because it's so different from our current version of unit propgation. 
+For a moment (and for the rest of the book) let's forget about pure literal 
+elimination; it wasn't that great anyways. Unit propagation gave us a massive speedup 
+oppossed to recursive backtracking, taking runtimes down from minutes to seconds and 
+from half-hours to mere minutes. Despite all of that, it's really inefficient in the 
+sense that we're going so much work for so little in return.
+
+Let's define what a \textbf{contradiction} is, because we've been using that word 
+here and there, but beyond ``unsatisfiable,'' we haven't formally defined what it means.
+A \textbf{contradiction} is the result of a literal forcing a clause to evaluate to False,
+leading to the whole assignment to become unsatisfiable. You might remember how in the 
+brute force solver, we added an \textit{if()} statement at the end of evaluating a singular 
+clause that checked if that clause evaluated to False. If it did, we skipped that assignment 
+and moved onto the next one, but if it didn't, we continue our evaluation. 
+
+This led to a pretty significant speedup in the brute forcer because instead of evaluating everything 
+then deciding, we did it incrementally, allowing us to quickly leave when something was bad. 
+At the moment, our original idea for unit propagation follows that first idea of delaying 
+evaluation to the end. However, if you go back and look at the pseudocode, you'll notice that we 
+do something \textit{almost} the same as checking if a clause evaluates to False, at the moment,
+we check if everything except for one element evaluates to False, and that one element is Unassigned
+(since we made it so that unit propagation only operates on unsatisfied clauses). However, notice 
+that when a clause evaluates to False, rather than stopping our propagation and assignment, we 
+continue until we reach the evaluation phase? 
+
+Just like in brute force, the idea is the same: once a clause evaluates to False, no matter 
+where we are in our assignment, there's no point in continuing on because we've found out that 
+nothing will unfalsify that clause. As an exercise, I want you to try adding that into your 
+unit propagation code and seeing how fast it takes to run on our test sets. I would do it, but 
+I have a \underline{massive} headache from implementing this algorithm last night.
+\footnote{This headache was also induced by my lack of ability to fall asleep at all last night
+AND a really intense session at the gym. Computer science gives you headaches for sure, but not like 
+this one.}
+Once you're done, we'll discuss watched literals some more.
+
+So that early contradiction detection is one of the ideas behind watched literals. 
+It's not one the key ideas, but it is part of it. There are some other ideas behind 
+watched literals. For instance: zero cost backtracking. Not O(1) backtracking, $0$
+backtracking. Speaking of cost, do you notice something else wasteful about the 
+way we propagate? If not for our \textit{satisfied} marker array, we'd have to 
+rescan the whole equation every time we propagated, which is about twice per level. 
+That's pretty wasteful. After all, why do have to scan every clause in their entirety
+every single time? Especially because, usually, clauses don't become unsatisfied very 
+often. And because they're not at risk of becoming unsatisfied very often, why do we need 
+to scan it? And besides, it's not like every single variable appears in every single 
+clause, so why not scan only the clauses we have to? I hope these questions are leading 
+you to think of other questions regarding inefficiencies in our current implementation.
+
+These questions were the driving force into the invention of the 
+\textit{Watched Literals} algorithm.
+
+\textbf{History can be found here}
+\footnote{\url{https://school.a4cp.org/summer2011/slides/Gent/SATCP3.pdf}}
+
+Let's learn how the Watched Literals algorithm works. Earlier, I made a comment 
+about how usually, each clause doesn't contain every single variable in the 
+equation. So when we force a variable's assignment, we don't need to check 
+every single clause, only at most the ones that contain the variable and its 
+negation. (Ie, if we force a variable, say $2 = T$, we only need to check the clauses 
+containing $2$ and the clauses containing $-2$). However, do we \textit{need} to 
+check the clauses containing $2$? Think about it. Those clauses are already 
+satisfied by $2 = T$, so there's nothing to propagate on, for those clauses. 
+The only clauses that have a \textit{chance} to produce a propagation are the 
+ones containing $-2$ because $-2 = F$, so if they have one Unassigned variable 
+and everything else is now False, we can propagate!
+
+\subsection{A Visual Example of Watched Literals}
+Let's view a visual example. Suppose we had a clause with 5 literals 
+(doesn't matter what they are). The first two literals are watched
+\begin{center}
+    \[ \blackinwhitesquare \blackinwhitesquare \square \square \square \]
+    \[ U U U U U \]
+\end{center}
+Suppose the first literal now evaluates to False. We now scan the clause for 
+another literal that doesn't evaluate to False. We will find it at the third literal.
+\begin{center}
+    \[ \square \blackinwhitesquare \blackinwhitesquare \square \square \]
+    \[ F U U U U \]
+\end{center}
+Now suppose the fifth literal becomes False. We do nothing because we're not watching 
+the fifth literal.
+\begin{center}
+    \[ \square \blackinwhitesquare \blackinwhitesquare \square \square \]
+    \[ F U U U F \]
+\end{center}
+Now the third literal becomes False. We scan again for another not-False literal.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F U F U F \]
+\end{center}
+Now the second literal becomes False. Other than the second watched literal (the fourth),
+there are no more not-False literals. We don't relocate the watch.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F U F \]
+\end{center}
+However, now the second watched literal knows it's the last Unassigned literal in the clause.
+It will now evaluate to True!
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F T F \]
+\end{center}
+Our clause is now satisfied. Suppose instead, when we were here:
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F U F \]
+\end{center}
+That the fourth literal also became False.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ F F F F F \]
+\end{center}
+We've now encountered a \textit{contradiction}, meaning that whatever assignment we have
+is impossible to satisfy the equation. Suppose we backtrack, and that restores us to a 
+state where two literals in this same clause are now Unassigned. What happens to the 
+watched literals?
+\begin{center}
+    \[ \square \square \square \square \square \]
+    \[ U U F F F \]
+\end{center}
+The answer is that they stay where they are.
+\begin{center}
+    \[ \square \blackinwhitesquare \square \blackinwhitesquare \square \]
+    \[ U U F F F \]
+\end{center}
+This is because one watched literal is Unassigned, so everything is okay. Although 
+this last diagram isn't accurate to what a real restored state would look like, we can
+suspend our disbelief for the sake of simplicitly. The reason why watched literals work is 
+because of the \textbf{Watched Literal Invariant}, which is that at any given point in time,
+at least one of the watched literals is either True or Unassigned. This invariant is what
+allowed us to propagate the clause when there was only one Unassigned literal left, and we 
+will see further how it helps.
+
+
+\subsection{Algorithmic Changes}
+\begin{lstlisting}
+public interface:
+    SATSolver(string input)
+    bool solveCNF()
+
+private interface:
+    enum var
+    {
+        False
+        True
+        Unassigned
+    }
+
+    void parse(string equation)
+    bool solve(var[] assignment, int level)
+    optional int[] delta propagate(var[] assignment)
+    bool createWatched()
+
+    int numVars
+    int numClauses
+
+    int[][] clauses
+    bool[] satisfied
+    queue<int> unitProp
+
+    optional var[] vars
+    map<int, int[]> var_to_clause
+    map<int, (int, int)> clause_to_vars
+\end{lstlisting}
+
+So firstly, there are some major differences. We removed the \textit{evaluate()} method. 
+This is because now that propagation checks for contradictions, having all variables 
+assigned is now \textbf{\textit{equivalent}} to finding a satisfactory assignment of 
+variables. So we don't need to evaluate our assignment anymore! That's significantly 
+less work than what we had before, which is what we want. Next, we added in a queue, 
+\textit{unitProp}, kind of like what we had for unit propagation before. This time,
+it's now a member of the solver object instead of a local object within the method.
+We will get back to that in a second. Lastly, we added in two maps, one from 
+variables to clauses, and the other from clauses to a pair of variables. 
+
+These data structures are used for fast lookup between variables to  
+\textbf{\textit{indices}} of clauses (for \textit{var\_to\_clause}), and 
+one from \textbf{\textit{indices}} of clauses to \textbf{\textit{indices}} of 
+watched literals. It's important that we remember we're using indices instead 
+of actual clauses because forgetting how we're using our mapping is going to create 
+a lot of bugs and we're gonna have a bad time. 
+
+We also added in a new method, called \textit{createWatched()} and what it does 
+is it creates our initial maps for var\_to\_clause and clause\_to\_vars. 
+Here is the pseudocode:
+
+\begin{algorithm}[H]
+\caption{Watched Literals Creation}\label{alg:16}
+\begin{algorithmic}[1]
+
+\Procedure{createWatched}{}
+
+\For{each $Clause$ in $Clauses$}
+    \If{$Clause$ has at least 2 literals}
+        \State lit1 $\gets$ Clause[0]
+        \State lits $\gets$ Clause[1]
+        \State cIdx $\gets$ $\Call{indexOf}{Clauses, Clause}$
+        \State $\Call{append}{varToClause[lit1], cIdx}$
+        \State $\Call{append}{varToClause[lit2], cIdx}$
+        \State $clauseToVar[cIdx] \gets (0, 1)$
+    \ElsIf{$Clause$ is has 1 literal}
+        \State lit $\gets$ Clause[0]
+        \State idx $\gets \Call{abs}{lit}$ 
+        \State cIdx $\gets$ $\Call{indexOf}{Clauses, Clause}$
+        \State $\Call{append}{varToClause[lit], cIdx}$
+        \State $clauseToVar[cIdx] \gets (0, 0)$
+        \State $\Call{enqueue}{unitProp, var}$
+
+        \If{lit > 0} 
+            \State $assignment[idx] \gets true$
+        \Else
+            \State $assignment[idx] \gets false$
+        \EndIf
+    \Else
+        \State return $false$
+    \EndIf
+\EndFor
+
+\State return $true$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\noindent So here's how to read it: for each clause, it will fall into one of three cases:
+\begin{enumerate}
+    \item It's size is greater than or equal to 2
+    \item It only has 1 variable
+    \item It's empty
+\end{enumerate}
+
+In the first case, the two literals that will be watching that clause will be the 
+first two literals. So the index $i$ gets appended to their array of clause indices.
+Then, we record that clause $i$ is being watched by its first and second literal.
+
+In the second case, since there's only one literal, it gets watched by only that 
+literal (duh). We also record that clause $i$ is being watched by only its first literal.
+And lastly, we enqueue that literal to our unit propagation queue so we can do a root 
+level unit propagation before we start solving. We also want to immediately force the 
+assignment of the variable so that way we can use its value immediately in solving.
+
+In the last case, since there are no literals, this clause is automatically unsatisfiable, 
+so therefore this whole equation is unsatisfiable, so we return False so that when we call 
+this method, we know that we can't solve it. 
+
+Now let's look at our modified solving methods:
+
+\begin{algorithm}[H]
+\caption{Modified Setup}\label{alg:17}
+\begin{algorithmic}[1]
+
+\Procedure{solveCNF}{}
+
+\State assignment[1..numVars]
+
+\For{each $var$ in $assignment$}
+    \State $var \gets Unassigned$
+\EndFor
+
+\If{\Call{createWatched}{} = false}
+    \State return $false$
+\ElsIf{\Call{propagate}{assignment, 0} = false}
+    \State return $false$
+\EndIf
+
+\State return $\Call{solve}{assignment, 1}$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+There are some slight differences: we create our watched literals and make sure 
+that there isn't an unsatisfiable clause, and we make sure that \textit{propagate()}
+returns something. If both those things are successful, then we can start solving away.
+
+Next, we'll modify our \textit{solve()} method slightly:
+
+\begin{algorithm}[H]
+\caption{Modified solving method}\label{alg:18}
+\begin{algorithmic}[1]
+\Procedure{solve}{assignment[1..n], level}
+
+\If{level = numVars}
+    \State return $true$
+\EndIf
+
+\If{assignment[level] $\neq$ Unassigned}
+    \State return $\Call{solve}{assignment, level + 1}$
+\EndIf
+
+\State assignment[level] $\gets true$
+\State pResult $\gets \Call{propagate}{assignment, level}$
+
+\If{propagation failed}
+    \State assignment[level] $\gets false$
+    \State pResult $\gets \Call{propagate}{assignment, -level}$
+
+    \If{propagation failed}
+        \State return $false$
+    \EndIf
+
+    \If{\Call{solve}{assignment, level + 1} = $true$}
+        \State return $true$
+    \EndIf
+
+    \Comment solving failed, so undo propagation changes
+
+    \State \Call{undoPropagation}{pResult}
+    \State return $false$
+\EndIf
+
+\If{\Call{solve}{assignment, level + 1} = $true$}
+    \State return $true$
+\EndIf
+
+\State \Call{undoPropagation}{pResult}
+
+\State assignment[level] $\gets false$
+\State pResult $\gets \Call{propagate}{assignment, -level}$
+
+\If{propagation failed}
+    \State return $false$
+\EndIf
+
+\If{\Call{solve}{assignment, level + 1} = $true$}
+    \State return $true$
+\EndIf
+
+\State \Call{undoPropagation}{pResult}
+\State assignment[level] $\gets Unassigned$
+\State return $false$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+This is almost the same as our old unit propagation code, except for that we don't 
+keep track of which clauses are satisfied across levels, and the propagation method 
+returns an array of variable indices instead of the actual variables stored in \textit{pResult}.
+Undoing propagation involves unassigning variables involved in the propagation and marking 
+the newly satisfied clauses as unsatisfied. The code is also split up into multiple branches 
+depending on whether or not propagation was successful. Some parts of the code seem really 
+similar to each other because of this. I am sure that there may be a way to simplify the similar 
+parts, but I like the way I wrote it because I find it readable and the first time I wrote it, it 
+was very nested.
+
+Now for the interesting part:
+
+\begin{algorithm}[H]
+\caption{Watched Literal Propagation}\label{alg:19}
+\begin{algorithmic}[1]
+\Procedure{propagate}{assignment[1..n], int decision}
+
+\State delta[1..m]
+
+\If{decision $\neq$ 0}
+    \State $\Call{enqueue}{unitProp, decision}$
+    \State idx $\gets \Call{abs}{decision}$
+    \State $\Call{append}{delta, idx}$
+\EndIf
+
+\While{unitProp is not empty}
+    \State prop $\gets$ \Call{dequeue}{unitProp}
+
+    \If{varToClause does not contain -prop}
+        \State continue on to the next loop interation
+    \EndIf
+
+    \State watchedClauses $\gets$ varToClause[prop]
+
+    \For{each $cIdx$ in watchedClauses}
+        \State Clause[1..t] $\gets$ Clauses[cIdx]
+        \State watches $\gets$ clauseToVar[cIdx] \Comment pair of clause indices
+
+        \If{Clause[watches.first] $\neq$ -prop}
+            \State $\Call{swap}{watches.first, watches.second}$
+        \EndIf
+
+        \State relocated $\gets false$
+
+        \For{i $\gets$ 0 up to \Call{size}{Clause}}
+            \If{i = watches.first $\vee$ i = watches.second}
+                \State continue
+            \EndIf
+
+            \State unwatched $\gets$ Clause[i]
+            \State uIdx $\gets \Call{abs}{unwatched}$
+
+            \If{\Call{evalsFalse}{unwatched} = $false$}
+                \State $\Call{append}{varToClause[unwatched], cIdx}$
+                \State \Comment erase the clause index at its index within watchedClauses
+                \State wIdx $\gets \Call{indexOf}{watchedClauses, cIdx}$ 
+                \State $\Call{eraseAt}{watchedClauses, wIdx}$
+                \State relocated $\gets true$
+                \State break
+            \EndIf
+        \EndFor
+
+        \If{relocated = $false$}
+            \If {$\Call{checkValid}{Clause, watches.second, delta}$ = null}
+                \State return null
+            \EndIf
+        \EndIf
+    \EndFor
+\EndWhile
+
+\State return delta
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{check if the current assignment is valid}\label{alg:20}
+\begin{algorithmic}[1]
+\Procedure{checkValid}{Clause[1..n], secondWatch, delta[1..m]}
+
+\State otherWatch $\gets$ Clause[secondWatch]
+\State oIdx $\gets \Call{abs}{otherWatch}$
+
+\If{assignment[oIdx] = Unassigned}
+    \If{otherWatch > 0}
+        \State assignment[oIdx] $\gets true$
+    \Else 
+        \State assignment[oIdx] $\gets false$
+    \EndIf
+
+    \State $\Call{append}{delta}{oIdx}$
+    \State $\Call{enqueue}{unitProp}{otherWatch}$
+\Else
+    \If{\Call{evalsFalse}{otherWatch} = false}
+        \State continue onto the next loop iteration
+    \Else 
+        \State $\Call{undoPropagation}{delta}$
+        \State $\Call{clear}{unitProp}$
+        \State return null
+    \EndIf
+\EndIf
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+This is a huge method, (so large it had to be split into two pieces so it would fit)
+so let's walkthrough it so we understand every aspect of it. If we look back at our \textit{solve()} 
+code, we pass in \textit{cur\_var} and -\textit{cur\_var} as the \textit{decision} parameter into
+the propagation method. And in the beginning of \textit{solveCNF()}, we pass in $0$, to signify propagation at the 
+root level. When that happens, we don't add anything into the queue, instead we just propagate 
+on the literals that were forced during the creation of the watched literals. 
+
+Like I said before, we only need to check the clauses containing the negative version of the 
+literal being propagated on because those are the clauses that the actual unit propagation could 
+be forced upon. However, we only need to actually check the clauses being watched by the negative 
+version of the literal being propagated on. 
+
+Next, we grab the indices of those clauses being watched and then for each one, we try 
+to relocate the index of the first watched literal to a new literal that doesn't evaluate 
+to False. Why only the first? Because swapping the two indices and operating on only the 
+first index is far easier than creating a second branch dedicated to the second index.
+If a literal doesn't evaluate to False, we first make that unwatched literal now watch 
+the current clause, we then make the current watched literal stop watching the current clause,
+and then we update the first index of the watched literals to be the index of the newly 
+watching literal. That means we have successfully relocated the watched literal and no 
+unit propagation needs to occur. Because we're modifying the array of clause indices, 
+we don't want to increment the index variable in our implementation.
+
+\textit{Aside:
+When you delete something in a dynamic array, in order to fill the blank space, every element to 
+the right of what you deleted has to shift over to the left by one unit. This takes O(n) time and 
+on large arrays can be very costly. Because the next element has shifted over to the left, its index 
+is now the current index, so you don't want to increment the index variable. 
+In the implementation, the relocation logic is implemented as a ``swap and pop'' in which we swap the 
+current element with the last one, then we delete the last element, which was the current element. 
+This leads to no shifting of elements, and is logically equivalent (for our use case), even if the 
+order of elements, relative to the deleted element, is no longer the same.
+}
+
+If we couldn't relocate the watched literal's index, we want to increment the index variable 
+so that on the next iteration it will point to a new element. In the case that we couldn't 
+relocate the watched literal, it means that every element in the clause, except for possibly the 
+element pointed to by the second watched literal, evaluates to False. If the element pointed to by 
+the second watched literal also evaluates to False, then we've encountered a contradiction in our 
+assignment. However, if the second watched literal evaluates to True, then the clause is already 
+satisfied and we need to do nothing except for move onto the next variable to propagate on. 
+And if the second watched literal evaluates to Unassigned, then we can assign it the value it 
+needs to evaluate to True and we then propagate on that newly assigned unit literal. 
+
+If we encounter a contradiction, we must undo all the propagation we've done, including 
+the initial decision before returning a null value to signify that the propagation failed. 
+However, if it has succeeded, then we return the array of the variable indices that we've 
+assigned.
+
+So one of the big aspects of watched literals is how we get away with doing so little 
+amount of work. And the answer is something called the ``watched literal invariant.''
+This invariant is that at all times, at least one of the watched literals doesn't 
+evaluate to False. I don't expect this to make everything click immediately, so let's 
+explain more. A clause is only a contradiction when everything evaluates to False.
+However, we don't want to check every single clause when we assign only one variable.
+And even checking the negative of the variable we assigned is too much. So instead, we 
+change which variables are watching which clauses every now and then. We pick at most 
+two variables to watch a singular clause with, and each one watches their respective clauses
+until they are assigned a value that makes them evaluate to False. In that case, there is 
+the possibility that the watched literal invariant may be violated (ie, there is a possibility
+that both watched literals may evaluate to False), but just to be sure, we try to change the 
+variable watching that same clause. 
+
+We scan the clause for any unwatched literal that is Unassigned or True, and if we find one, 
+we've restored the watched literal invariant, so we don't need to propagate or do anything 
+else for that matter. However, if we can't find one, then we're in serious danger of the 
+watched literal invariant being violated. So our only hope is for the second watched literal 
+to either already be True (we need to do nothing), or Unassigned (we assign it and propagate).
+
+Thanks to that invariant, we also don't need to do any undoing when we backtrack other 
+than undoing what we propagated. So long as the watched literal invariant holds true 
+when we undo our assignments, the watched literals don't need to move, which means 
+besides the undoing of what we propagated, we get zero cost backtracking.
+
+\subsection{Why Two Watches?}
+This now begs the question, why two watched literals? What is special about the number $2$?
+Why can't we have just one watched literal? In order to answer this question, we need to ask 
+ourselves: ``what can we do with two watched literals that we can't do with one?'' 
+When we have two watched literals, we can efficiently check for whether or not we can 
+propagate. How so?
+
+After we try propagating on a literal, we scan the whole clause except for the indices 
+of the first and second watched literals. Next, if everything in the clause evaluates to 
+False, our only hope to propagate is on the second watched literal. So if that evaluates to 
+False as well, we have found a contradiction, and if it doesn't we have found a literal we 
+can propagate on.
+
+But why is that more efficient that just one watched literal? Let's think of the worst case 
+scenario for if we just had one watched literal. What does that look like? Suppose we were 
+watching the first literal in the clause and every other literal in the clause evaluated 
+to False. Ie, we need to propagate on this watched literal. How would it know it needs to 
+propagate when it was never alerted by anything becoming False? It would have no idea 
+it needs to do anything until that watched literal was falsified, and by that point,
+everything in the clause would evaluate to False, so the clause would be unsatisfied,
+only then would we backtrack, but when we backtrack, we'd still have no way of knowing if 
+the clause is unit. 
+
+So with only one watched literal, in the worst case scenario, which is that the literal
+we're watching is the last literal in the clause to be falsified, we'd be doing the same 
+amount of work as normal unit propagation, perhaps even more. 
+
+Visually speaking, this is what I'm talking about:
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U U U \]
+\end{center}
+The last literal becomes False, but we're not watching it so nothing moves.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U U F \]
+\end{center}
+Next the second literal becomes False, but we're not watching it so nothing happens.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U F F \]
+\end{center}
+Although we should perform unit propagation, our watched literal is completely blind 
+to the fact that it is the last Unassigned literal in the clause, so it remains as is.
+If luck has it, it could become True and all would be well, but this is reality, so more 
+likely than not, it will also become False.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ F F F \]
+\end{center}
+Now we scan the clause, and we see that we can't relocate the watched literal, so we 
+backtrack on our assignment.
+\begin{center}
+    \[ \blackinwhitesquare \square \square \]
+    \[ U F F \]
+\end{center}
+Since the watched literal was never aware if both of the other literals became False 
+in one pass of the algorithm or if it was across multiple decisions, it still doesn't 
+know that it's the last Unassigned literal. It has to scan the clause each time to know 
+whether or not it's the last Unassigned literal, which is no better than regular unit
+propagation.
+
+\subsection{Watched Literals - Results}
+
+After implementing watched literals, our runtime decreases dramatically. 
+For uf20.91, solving all 1000 instances takes \textbf{349ms}, as opposed to the 
+\textbf{1548ms} from pure literal elimination and the \textbf{868ms} from normal unit propagation.
+And for UUF50.218.1000, it takes only \textbf{7130ms} as opposed to the \textbf{231,107ms} 
+from pure literal elimination and the \textbf{140,411ms} from normal unit propagation.
+Watched literals took us down from minutes to seconds for the unsatisfiable 
+problems, which is amazing for us.
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
