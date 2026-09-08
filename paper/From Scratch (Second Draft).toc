@@ -38,4 +38,10 @@
 \contentsline {subsection}{\numberline {4.4.1}Removing Hashing}{83}{subsection.4.4.1}%
 \contentsline {subsection}{\numberline {4.4.2}Fixing Clause Resolution}{84}{subsection.4.4.2}%
 \contentsline {subsection}{\numberline {4.4.3}Improvements - Results}{89}{subsection.4.4.3}%
+\contentsline {chapter}{\numberline {5}VSIDS}{90}{chapter.5}%
+\contentsline {section}{\numberline {5.1}cVSIDS}{91}{section.5.1}%
+\contentsline {section}{\numberline {5.2}mVSIDS}{93}{section.5.2}%
+\contentsline {section}{\numberline {5.3}EMA/Normalized VSIDS}{95}{section.5.3}%
+\contentsline {section}{\numberline {5.4}AMA/adaptVSIDS}{99}{section.5.4}%
+\contentsline {section}{\numberline {5.5}VSIDS - Results}{100}{section.5.5}%
 \contentsfinish 

@@ -41,7 +41,7 @@ are starting to become more active have a better chance at competing with the po
 inactive, but score-dominating variables. As it is a decaying factor, this value is chosen 
 to be greater than 0, but less than 1, so that the scores shrink to some percentage.
 
-\subsection{cVSIDS}
+\section{cVSIDS}
 
 We're going to start out with implementing the most basic form of VSIDS and work our way 
 up to some better versions. We'll start with the ``textbook'' form, which was outlined in 
@@ -60,59 +60,69 @@ object with a counter for the number of conflicts.
         ...
 \end{lstlisting}
 Then our solve code becomes as follows:
-\begin{lstlisting}
-bool solve() {
-    //setup
-    ...
 
-    while (True) {
-        if (trailHead == trail.size) {
-            double maxScore = -1.0
-            optional int firstUnassigned
+\begin{algorithm}[H]
+\caption{cVSIDS Solving Method}\label{alg:36}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
 
-            for (i = 1 up to numVars) {
-                if (assignment[i] == Unassigned) {
-                    if (activity[i] > maxScore) {
-                        firstUnassigned = i
-                        maxScore = activity[i]
-                    }
-                }
-            }  
-            
-            //the rest of the assignment code is the same
-            ...
-        }
+\State \Call{setup}{}
 
-        optional int[] contradiction = propagate(assignment)
+\While{true}
+    \If{trailHead = size of trail}
+        \State maxScore $\gets$ -1.0
+        \State firstUnassigned $\gets$ -1
+        \For{i $\gets$ 1 up to numVars}
+            \If{assignment[i] = Unassigned}
+                \If{maxScore < activity[i]}
+                    \State firstUnassigned $\gets$ i
+                    \State maxScore $\gets$ activity[i]
+                \EndIf
+            \EndIf
+        \EndFor
 
-        if (contradiction has a value) {
-            numConflicts = numConflicts + 1
+        \State $\Call{assign}{firstUnassigned}$
+    \EndIf
 
-            //resolve conflict using UIPs
-            ...
-            int[] learned
-            while (seenIdx is not empty) {
-                int lit_idx = seenIdx.last
-                activity[lit_idx] = activity[lit_idx] + 1
-                ...
-            }
+    \State propResult $\gets \Call{propagate}{assignment}$
+    \If{propResult failed}
+        \State numConflicts $\gets$ numConflicts + 1
 
-            //backjump
-            ...
+        \State \Call{resolveConflict}{conflict}
 
-            //apply decay factor
-            if (numConflicts == X) {
-                for (i = 0 up to activity.size) {
-                    activity[i] *= Y
-                }
-                numConflicts = 0
-            }
+        \State $\Call{backjump}{backJumpTo}$
+        \State \Comment{apply decay factor}
+        \If{numConflicts = MAX\_CONFLICTS}
+            \For{i $\gets$ 1 up to numVars}
+                \State activity[i] $\gets$ activity[i] * DECAY
+            \EndFor
+            \State numConflicts $\gets$ 0
+        \EndIf
 
-            continue
-        }
-    }
-}
-\end{lstlisting}
+        \State continue
+    \EndIf
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{cVSIDS First UIP resolution}\label{alg:37}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
+
+\State ...
+\While{seenIdx is not empty}
+    \State lIdx $\gets$ seenIdx.last 
+    \State activity[lIdx] $\gets$ activity[lIdx] + 1
+    \State ...
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
 The pseudocode is very straightforward, so I won't bother to explain it much. Just 
 so you know, if you choose to initialize \textit{maxScore} with a value of 0.0 in the 
 assignment code, use \verb|>=| instead of \verb|>| because the activity scores start 
@@ -160,64 +170,52 @@ versions of our solver. In the results, it appears to be that lower
 X and Y values lead to faster solving times, however, I encourage you to 
 choose your own X and Y values and see what happens for yourself.
 
-\subsection{mVSIDS}
+\section{mVSIDS}
 
 \textbf{mVSIDS} is the second form of VSIDS introduced by the paper from 
 the section introduction. In this type of VSIDS, we bump the values of 
 every variable we resolve on during clause resolution as well as the values 
 of the variables in the learned clause. The multiplicative decay step is 
-applied the same as during cVSIDS.
+applied the same as during cVSIDS. This means that we only need to change the
+clause resolution code.
 
 The algorithmic change is basically trivial:
-\begin{lstlisting}
-bool solve() {
-    //setup
-    ..
 
-    while (True) {
-        //assigning
-        ...
+\begin{algorithm}[H]
+\caption{mVSIDS First UIP resolution}\label{alg:38}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
 
-        optional int[] contradiction = propagate(assignment)
+\State ...
 
-        if (contradiction has a value) {
-            numConflicts = numConflicts + 1
+\For{each $entry$ in $trail$ from last} \Comment traverse the trail in reverse order
+    \State idx $\gets$ entry.lit
+    
+    \If{seen[idx] = true}
+        \State reason $\gets$ Clauses[entry.reasonIdx]
+        \For{each $var$ in $reason$}
+            \State ...
+        \EndFor
 
-            //set up UIPs from conflict clause
-            ...
+        \State ...
+        \State activity[idx] $\gets$ activity[idx] + 1
+    \EndIf
 
-            for (i = trail.size down to 0) {
-                TrailEntry entry = trail[i]
-                idx = abs(entry.lit)
+    \If{levelCount = 1}
+        \State break
+    \EndIf
+\EndFor
 
-                if (seen[idx]) {
-                    //grab reason and update seen and levelCount
-                    ...
+\While{seenIdx is not empty}
+    \State lIdx $\gets$ seenIdx.last 
+    \State activity[lIdx] $\gets$ activity[lIdx] + 1
+    \State ...
+\EndWhile
 
-                    activity[idx] += 1
-                    //unmark seen and update levelCount
-                    ...
-                }
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-                if (levelCount == 1) {
-                    break
-                }
-            }
-
-            //create learned clause and update activity scores
-            ...
-
-            //backjump
-            ...
-
-            //apply decay factor
-            ...
-
-            continue
-        }
-    }
-}
-\end{lstlisting}
 \noindent 
 Here are the results using \textbf{X = 10} and \textbf{Y = 0.8}:
 
@@ -255,7 +253,7 @@ So even with the worst mVSIDS time, it beats the best cVSIDS time
 (per the benchmark, results may vary, these tests are very small and are not 
 very representative of real-world SAT solver usage).
 
-\subsection{EMA/Normalized VSIDS}
+\section{EMA/Normalized VSIDS}
 
 EMA stands for ``Exponential Moving Average'' and it's what allows us to 
 mathematically decide which variables' activity scores should be decayed 
@@ -297,67 +295,94 @@ data structure to keep track of the $\delta$ values. Since we're appending norma
 on top of mVSIDS, we still update a $\delta$ value only when we resolve a variable or it 
 appears in the learned clause. This means that we now delay the updating of our activity 
 scores until after we construct the learned clause:
-\begin{lstlisting}
-bool solve() {
-    //setup
-    ..
 
-    while (True) {
-        //assigning
-        ...
+\begin{algorithm}[H]
+\caption{cVSIDS Solving Method}\label{alg:39}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
 
-        optional int[] contradiction = propagate(assignment)
+\State \Call{setup}{}
 
-        if (contradiction has a value) {
-            numConflicts = numConflicts + 1
+\While{true}
+    \If{trailHead = size of trail}
+        \State maxScore $\gets$ -1.0
+        \State firstUnassigned $\gets$ -1
+        \For{i $\gets$ 1 up to numVars}
+            \If{assignment[i] = Unassigned}
+                \If{maxScore < activity[i]}
+                    \State firstUnassigned $\gets$ i
+                    \State maxScore $\gets$ activity[i]
+                \EndIf
+            \EndIf
+        \EndFor
 
-            //set up UIPs from conflict clause
-            ...
+        \State $\Call{assign}{firstUnassigned}$
+    \EndIf
 
-            for (i = trail.size down to 0) {
-                TrailEntry entry = trail[i]
-                idx = abs(entry.lit)
+    \State propResult $\gets \Call{propagate}{assignment}$
+    \If{propResult failed}
+        \State numConflicts $\gets$ numConflicts + 1
 
-                if (seen[idx]) {
-                    //grab reason and update seen and levelCount
-                    ...
+        \State \Call{resolveConflict}{conflict}
 
-                    delta[idx] = True
-                    //unmark seen and update levelCount
-                    ...
-                }
+        \State $\Call{backjump}{backJumpTo}$
+        \State \Comment{apply decay factor}
 
-                if (levelCount == 1) {
-                    break
-                }
-            }
+        \For{i $\gets$ 1 up to numVars}
+            \If{delta[i] = true} 
+                \State activity[i] $\gets$ (1 - Y) + DECAY * activity[i]
+            \Else
+                \State activity[i] $\gets$ DECAY * activity[i]
+            \EndIf
+            \State delta[i] $\gets$ false
+        \EndFor
+        \State numConflicts $\gets$ 0
 
-            //create learned clause and update activity scores
-            int[] learned
-            while (seenIdx is not empty) {
-                int lit_idx = seenIdx.last
-                delta[lit_idx] = True
-                ...
-            }
+        \State continue
+    \EndIf
+\EndWhile
 
-            //backjump
-            ...
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-            //apply decay factor
-            for (i = 1 up to numVars) {
-                if (delta[i] == True) {
-                    activity[i] = (1 - Y) + Y * activity[i]
-                } else {
-                    activity[i] = Y * activity[i]
-                }
-                delta[i] = False
-            }
+\begin{algorithm}[H]
+\caption{Normalized VSIDS First UIP resolution}\label{alg:40}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
 
-            continue
-        }
-    }
-}
-\end{lstlisting}
+\State ...
+
+\For{each $entry$ in $trail$ from last} \Comment traverse the trail in reverse order
+    \State idx $\gets$ entry.lit
+    
+    \If{seen[idx] = true}
+        \State reason $\gets$ Clauses[entry.reasonIdx]
+        \For{each $var$ in $reason$}
+            \State ...
+        \EndFor
+
+        \State ...
+        \State delta[idx] $\gets$ delta[idx]
+        \State activity[idx] $\gets$ activity[idx] + 1
+    \EndIf
+
+    \If{levelCount = 1}
+        \State break
+    \EndIf
+\EndFor
+
+\While{seenIdx is not empty}
+    \State lIdx $\gets$ seenIdx.last 
+    \State activity[lIdx] $\gets$ activity[lIdx] + 1
+    \State delta[lIdx] $\gets$ true
+    \State ...
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
 \noindent
 Notice how that there is no X value anymore because normalization happens upon 
 every iteration instead of after a set number. Thankfully, our fastest times were 
@@ -406,7 +431,7 @@ Improved CDCL:              2,385ms (~2.39 seconds).
 Here we see that EMA/normalizing the VSIDS doesn't make a huge contribution,
 but it still makes a decent one for some values of Y.
 
-\subsection{AMA/adaptVSIDS}
+\section{AMA/adaptVSIDS}
 
 Adaptive Moving Average (AMA) VSIDS is an extension to EMA VSIDS where rather than 
 having a fixed decay factor, we choose between two different decay rates depending on 
@@ -419,7 +444,7 @@ which stands for \textbf{literal blocks distance}. LBD is defined as the number 
 distinct decision levels in the learned clause. A learned clause with a low LBD is considered to be higher 
 quality than that of one with a high LBD. The paper doesn't explicitly say why this is the case,
 \footnote{I might be illiterate and may have just missed the reason.}
-but we can make a few guesses as to why.Considering that a low LBD means that there aren't 
+but we can make a few guesses as to why. Considering that a low LBD means that there aren't 
 many decision levels involved in the contradiction, so that means that the contradiction 
 is more or less ``confined" to a smaller area of the search space. This indicates that 
 the conflict has a more localized relationship with the current set of decisions. 
@@ -444,7 +469,7 @@ $\alpha$ is our \textbf{smoothing factor}, ${LBD}_t$ is the LBD of the current l
 and \\${lbdema}_{n - 1}$ is the previous lbdema. In our testing of AMA VSIDS, I used 
 $\alpha = 0.1$. 
 
-\subsection{VSIDS - Results}
+\section{VSIDS - Results}
 The results for VSIDS vary wildly because there are so many different types beyond what 
 we've explored, and there are so many different parameters that could affect the end 
 results. For VSIDS, although there might look like there's a clear winner, we need to 

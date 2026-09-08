@@ -343,6 +343,9 @@ INPUT subfiles/CDCL/firstUIP.aux
 INPUT ./subfiles/CDCL/improvements.aux
 INPUT ./subfiles/CDCL/improvements.aux
 INPUT subfiles/CDCL/improvements.aux
+INPUT ./subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/VSIDS.aux
+INPUT subfiles/Extra/VSIDS.aux
 OUTPUT From Scratch (Second Draft).aux
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
@@ -597,6 +600,12 @@ INPUT ./subfiles/CDCL/improvements.tex
 INPUT subfiles/CDCL/improvements.tex
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tctt1000.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+INPUT ./subfiles/Extra/VSIDS.tex
+INPUT ./subfiles/Extra/VSIDS.tex
+OUTPUT subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/VSIDS.tex
+INPUT ./subfiles/Extra/VSIDS.tex
+INPUT subfiles/Extra/VSIDS.tex
 INPUT From Scratch (Second Draft).aux
 INPUT ./subfiles/preface.aux
 INPUT ./subfiles/preface.aux
@@ -643,6 +652,9 @@ INPUT subfiles/CDCL/firstUIP.aux
 INPUT ./subfiles/CDCL/improvements.aux
 INPUT ./subfiles/CDCL/improvements.aux
 INPUT subfiles/CDCL/improvements.aux
+INPUT ./subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/VSIDS.aux
+INPUT subfiles/Extra/VSIDS.aux
 INPUT ./From Scratch (Second Draft).out
 INPUT ./From Scratch (Second Draft).out
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 SEP 2026 12:46
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 SEP 2026 14:55
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -704,7 +704,7 @@ Package: titletoc 2025/01/04 v2.17 TOC entries
 LaTeX Font Info:    Trying to load font information for T1+stix on input line 75.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/stix/t1stix.fd
 File: t1stix.fd 2015/04/17 v1.1.2-latex STIX T1 font definitions
-) (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux) (./subfiles/CDCL/firstUIP.aux) (./subfiles/CDCL/improvements.aux))
+) (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux) (./subfiles/CDCL/firstUIP.aux) (./subfiles/CDCL/improvements.aux) (./subfiles/Extra/VSIDS.aux))
 \openout1 = `"From Scratch (Second Draft).aux"'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 75.
@@ -946,27 +946,37 @@ Overfull \hbox (11.81499pt too wide) in paragraph at lines 18--100
 {/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [84] [85] [86] [87]
 Overfull \vbox (103.62492pt too high) has occurred while \output is active []
 
- [88]) [89] (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux) (./subfiles/CDCL/firstUIP.aux) (./subfiles/CDCL/improvements.aux))
+ [88]) [89]
+\openout2 = `subfiles/Extra/VSIDS.aux'.
+
+ (./subfiles/Extra/VSIDS.tex
+Chapter 5.
+[90
+
+
+
+
+] [91] [92] [93] [94] [95] [96] [97] [98] [99] [100]) [101] (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux) (./subfiles/CDCL/firstUIP.aux) (./subfiles/CDCL/improvements.aux) (./subfiles/Extra/VSIDS.aux))
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `"From Scratch (Second Draft)".out' has not changed.
-(rerunfilecheck)             Checksum: 91E3A3E8E61DD5DB8B9335A64D50EA28;6999.
+(rerunfilecheck)             Checksum: 5EE88EB79152E64E8E47B71BA10E86A7;7657.
  ) 
 Here is how much of TeX's memory you used:
- 37260 strings out of 467525
- 782938 string characters out of 5418982
- 1478072 words of memory out of 5000000
- 65116 multiletter control sequences out of 15000+600000
+ 37332 strings out of 467525
+ 784311 string characters out of 5418982
+ 1478809 words of memory out of 5000000
+ 65145 multiletter control sequences out of 15000+600000
  726025 words of font info for 149 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,11n,108p,1675b,1979s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-BoldItalic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathcal.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathscr.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathsf.pfb>
-Output written on "From Scratch (Second Draft).pdf" (90 pages, 530256 bytes).
+Output written on "From Scratch (Second Draft).pdf" (102 pages, 555802 bytes).
 PDF statistics:
- 1132 PDF objects out of 1200 (max. 8388607)
- 1000 compressed objects within 10 object streams
- 451 named destinations out of 1000 (max. 500000)
- 333 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1240 PDF objects out of 1440 (max. 8388607)
+ 1094 compressed objects within 11 object streams
+ 486 named destinations out of 1000 (max. 500000)
+ 381 words of extra memory for PDF output out of 10000 (max. 10000000)
 
