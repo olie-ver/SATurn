@@ -1,34 +1,41 @@
-\contentsline {chapter}{\numberline {1}Introduction}{4}{chapter.1}%
-\contentsline {section}{\numberline {1.1}What Do SAT Solvers Even Solve?}{5}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Our Environment}{6}{section.1.2}%
-\contentsline {section}{\numberline {1.3}CNF Encoding}{6}{section.1.3}%
-\contentsline {section}{\numberline {1.4}Reading a CNF Equation Programmatically}{10}{section.1.4}%
-\contentsline {chapter}{\numberline {2}Brute Force}{14}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Optimizing Brute Force}{16}{section.2.1}%
-\contentsline {subsection}{\numberline {2.1.1}Generating Assignments}{19}{subsection.2.1.1}%
-\contentsline {section}{\numberline {2.2}Brute Force - Results}{19}{section.2.2}%
-\contentsline {chapter}{\numberline {3}DPLL}{21}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Recursive Backtracking}{23}{section.3.1}%
-\contentsline {subsection}{\numberline {3.1.1}Recursive Backtracking -- Results}{26}{subsection.3.1.1}%
-\contentsline {section}{\numberline {3.2}Unit Propagation}{27}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Changes To Our Implementation}{27}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}``Textbook" Unit Propagation}{28}{subsection.3.2.2}%
-\contentsline {section}{\numberline {3.3}Better Unit Propagation}{32}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Better Unit Propagation - Results}{36}{subsection.3.3.1}%
-\contentsline {section}{\numberline {3.4}Pure Literal Elimination}{38}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}Implementing Pure Literal Elimination}{39}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Pure Literal Elimination - Results}{40}{subsection.3.4.2}%
-\contentsline {section}{\numberline {3.5}Watched Literals}{42}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}A Visual Example of Watched Literals}{43}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}Algorithmic Changes}{45}{subsection.3.5.2}%
-\contentsline {subsection}{\numberline {3.5.3}Why Two Watches?}{53}{subsection.3.5.3}%
-\contentsline {subsection}{\numberline {3.5.4}Watched Literals - Results}{54}{subsection.3.5.4}%
-\contentsline {section}{\numberline {3.6}Iterative DPLL}{55}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{62}{subsection.3.6.1}%
-\contentsline {chapter}{\numberline {4}CDCL}{64}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Clause Learning}{65}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}Clause Resolution}{72}{subsection.4.1.1}%
-\contentsline {subsection}{\numberline {4.1.2}Clause Learning - Results}{74}{subsection.4.1.2}%
-\contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{76}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Non-Chronological Backjumping - Results}{78}{subsection.4.2.1}%
+\contentsline {chapter}{\numberline {1}Introduction}{5}{chapter.1}%
+\contentsline {section}{\numberline {1.1}What Do SAT Solvers Even Solve?}{6}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Our Environment}{7}{section.1.2}%
+\contentsline {section}{\numberline {1.3}CNF Encoding}{7}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Reading a CNF Equation Programmatically}{11}{section.1.4}%
+\contentsline {chapter}{\numberline {2}Brute Force}{15}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Optimizing Brute Force}{17}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Generating Assignments}{20}{subsection.2.1.1}%
+\contentsline {section}{\numberline {2.2}Brute Force - Results}{20}{section.2.2}%
+\contentsline {chapter}{\numberline {3}DPLL}{22}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Recursive Backtracking}{24}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Recursive Backtracking -- Results}{27}{subsection.3.1.1}%
+\contentsline {section}{\numberline {3.2}Unit Propagation}{28}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Changes To Our Implementation}{28}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}``Textbook" Unit Propagation}{29}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}Better Unit Propagation}{33}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Better Unit Propagation - Results}{37}{subsection.3.3.1}%
+\contentsline {section}{\numberline {3.4}Pure Literal Elimination}{39}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Implementing Pure Literal Elimination}{40}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Pure Literal Elimination - Results}{41}{subsection.3.4.2}%
+\contentsline {section}{\numberline {3.5}Watched Literals}{43}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}A Visual Example of Watched Literals}{44}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Algorithmic Changes}{46}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Why Two Watches?}{54}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.4}Watched Literals - Results}{55}{subsection.3.5.4}%
+\contentsline {section}{\numberline {3.6}Iterative DPLL}{56}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{63}{subsection.3.6.1}%
+\contentsline {chapter}{\numberline {4}CDCL}{65}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Clause Learning}{66}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Clause Resolution}{73}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Clause Learning - Results}{75}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{77}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Non-Chronological Backjumping - Results}{79}{subsection.4.2.1}%
+\contentsline {section}{\numberline {4.3}First UIPs}{80}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Implementing First UIPs}{80}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}First UIPs - Results}{82}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}A Second Round of Improvements}{83}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Removing Hashing}{83}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Fixing Clause Resolution}{84}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Improvements - Results}{89}{subsection.4.4.3}%
 \contentsfinish 

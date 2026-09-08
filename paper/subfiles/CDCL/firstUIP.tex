@@ -114,103 +114,53 @@ clause contains only 1 literal from decision level 6.
 
 Once again, we only need to touch the conflict resolution code:
 
-\begin{lstlisting}
-bool solve() {
-    //setup
-    ...
+\begin{algorithm}[H]
+\caption{Naive First UIP Conflict Resolution}\label{alg:33}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
 
-    while (True) {
-        if (trailHead == trail.size) {
-            //Perform an assignment
-            ...
-        }
+\State curLevel $\gets$ decisionLevel
+\State end $\gets$ trail size
+\State begin $\gets$ 0
+\State resolveOn $\gets$ 0
 
-        optional int[] contradiction = propagate(assignment)
+\For{i $\gets 1$ up to $n$}
+    \State var $\gets$ conflict[i]
+    \State idx $\gets \Call{abs}{var}$
+    \State tIdx $\gets$ varToTrail[idx]
+    \If{trail[tIdx].decisionLevel = curLevel}
+        \State end $\gets \Call{min}{end, tIdx}$
+        \State begin $\gets \Call{max}{begin, tIdx}$
+        \If{trail[tIdx].reasonIdx exists}
+            \State resolveOn $\gets$ trail[tIdx].lit
+        \EndIf
+    \EndIf
+\EndFor
 
-        if (contradiction has a value) {
-            int curLevel = decisionLevel
-            int[] conflict = contradiction.value
-            int end = trail.size
-            int begin = 0
-            int resolveOn = 0
+\While{begin $\neq$ end}
+    \State lit $\gets \Call{abs}{resolveOn}$
+    \State tIdx $\gets$ varToTrail[resolveOn]
+    \State reason $\gets$ Clauses[trail[tIdx].reasonIdx]
+    \State $\Call{append}{conflict, reason}$
 
-            for (i = 0 up to conflict.size) {
-                int idx = abs(conflict[i])
-                int trail_idx = var_to_trail[idx]
+    \State remove all instances of lit and -lit from $conflict$
+    \State remove all duplicate literals from $conflict$
 
-                if (trail[trail_idx].decisionLevel == curLevel) {
-                    end = min(end, trail_idx)
-                    begin = max(begin, trail_idx)
-                    if (trail[trail_idx].reasonIdx is not optional) {
-                        resolveOn = trail[trail_idx].lit
-                    }
-                }
-            }
+    \For{each $var$ in conflict}
+        \State tIdx $\gets$ varToTrail[$\Call{abs}{var}$]
+        \If{trail[tIdx].decisionLevel = curLevel}
+            \State end $\gets \Call{min}{end, tIdx}$
+            \State begin $\gets \Call{max}{begin, tIdx}$
+            \If{trail[tIdx].reasonIdx exists}
+                \State resolveOn $\gets$ trail[tIdx].lit
+            \EndIf
+        \EndIf
+    \EndFor
+\EndWhile
 
-            while (begin != end) {
-                int trail_idx = var_to_trail[abs(resolveOn)]
-                int[] reason = clauses[trail[trail_idx].reasonIdx]
-                append(conflict, reason)
-                for (i = 0 up to conflict.size) {
-                    if (abs(conflict[i]) == abs(resolveOn)) {
-                        erase(conflict, conflict[i])
-                    } else {
-                        i = i + 1
-                    }
-                }
-
-                set<int> duplicates;
-                for (i = 0 up to conflict.size) {
-                    if (contains(duplicates, conflict[i])) {
-                        erase(conflict, conflict[i])
-                    } else {
-                        duplicates.insert(conflict[i]);
-                        i = i + 1
-                    }
-                }
-
-                end = INTEGER_MAX;
-                begin = 0;
-
-                for (i = 0 up to conflict.size) {
-                    int var = conflict[i];
-                    int idx = abs(var)
-                    int trail_idx = var_to_trail[idx];
-
-                    if (trail[trail_idx].decisionLevel 
-                        == decisionLevel)
-                    {
-                        end = min(end, trail_idx);
-                        begin = max(begin, trail_idx);
-
-                        if (trail[trail_idx].reasonIdx 
-                            is not optional)
-                        {
-                            resolve_var = trail[trail_idx].lit;
-                        }
-                    }
-                }
-            } 
-
-            //backjump
-            ...
-
-            if (trailStarts.size == 0) {
-                return False
-            }
-
-            decisionLevel = backjumpTo
-
-            trailHead = trailStarts.last
-
-            append(clauses, conflict)
-            createWatched(clauses.size)
-
-            continue
-        }
-    }
-}
-\end{lstlisting}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
 This is not a very efficient way of computing the first UIP (which you'll see in the 
 results). However, let's analyze it anyways. It's the normal resolution code, but we 

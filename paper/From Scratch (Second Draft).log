@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 SEP 2026 10:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 SEP 2026 12:46
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -704,7 +704,7 @@ Package: titletoc 2025/01/04 v2.17 TOC entries
 LaTeX Font Info:    Trying to load font information for T1+stix on input line 75.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/stix/t1stix.fd
 File: t1stix.fd 2015/04/17 v1.1.2-latex STIX T1 font definitions
-) (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux))
+) (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux) (./subfiles/CDCL/firstUIP.aux) (./subfiles/CDCL/improvements.aux))
 \openout1 = `"From Scratch (Second Draft).aux"'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 75.
@@ -792,124 +792,123 @@ File: ls2stixtt.fd 2015/04/17 v1.1.2-latex STIX typewriter LS2 font definitions
 ) [1
 
 
-{/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/stix/stix-t1.enc}] (./From Scratch (Second Draft).toc)
-\tf@toc=\write7
-\openout7 = `"From Scratch (Second Draft).toc"'.
-
-
+{/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/stix/stix-t1.enc}] (./From Scratch (Second Draft).toc
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.80 \include{subfiles/preface}
-                                [1
+l.37 ...nd Round of Improvements}{83}{section.4.4}
+                                                  % [1
 
-]
+])
+\tf@toc=\write7
+\openout7 = `"From Scratch (Second Draft).toc"'.
+
+LaTeX Font Info:    Font shape `T1/stix/m/sl' in size <10> not available
+(Font)              Font shape `T1/stix/m/it' tried instead on input line 80.
+ [2]
 \openout2 = `subfiles/preface.aux'.
 
  (./subfiles/preface.tex
 LaTeX Font Info:    Trying to load font information for TS1+stix on input line 33.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/stix/ts1stix.fd
 File: ts1stix.fd 2015/04/17 v1.1.2-latex STIX TS1 font definitions
-) [2
+) [3
 
 
-{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/stix/stix-ts1.enc}])
-LaTeX Font Info:    Font shape `T1/stix/m/sl' in size <10> not available
-(Font)              Font shape `T1/stix/m/it' tried instead on input line 80.
- [3]
+{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/stix/stix-ts1.enc}]) [4]
 \openout2 = `subfiles/intro.aux'.
 
  (./subfiles/intro.tex
 Chapter 1.
-[4
+[5
 
 
 
 
-{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}] [5] [6] [7] [8] [9]
+{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}] [6] [7] [8] [9] [10]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 395.
- [10] [11]
+ [11] [12]
 Overfull \vbox (31.64493pt too high) has occurred while \output is active []
 
- [12]) [13]
+ [13]) [14]
 \openout2 = `subfiles/bruteForce.aux'.
 
  (./subfiles/bruteForce.tex
 Chapter 2.
-[14
+[15
 
 
 
 
-] [15] [16] [17] [18]) [19] [20]
+] [16] [17] [18] [19]) [20] [21]
 \openout2 = `subfiles/DPLL/DPLL.aux'.
 
  (./subfiles/DPLL/DPLL.tex
 Chapter 3.
-[21
+[22
 
 
 
 
-]) [22]
+]) [23]
 \openout2 = `subfiles/DPLL/RecursiveBacktracking.aux'.
 
- (./subfiles/DPLL/RecursiveBacktracking.tex [23
+ (./subfiles/DPLL/RecursiveBacktracking.tex [24
 
 
 
-] [24] [25]) [26]
+] [25] [26]) [27]
 \openout2 = `subfiles/DPLL/UnitProp1.aux'.
 
- (./subfiles/DPLL/UnitProp1.tex [27
+ (./subfiles/DPLL/UnitProp1.tex [28
 
 
 
-] [28] [29] [30]) [31]
+] [29] [30] [31]) [32]
 \openout2 = `subfiles/DPLL/UnitProp2.aux'.
 
- (./subfiles/DPLL/UnitProp2.tex [32
+ (./subfiles/DPLL/UnitProp2.tex [33
 
 
 
-] [33] [34] [35] [36]) [37]
+] [34] [35] [36] [37]) [38]
 \openout2 = `subfiles/DPLL/PureLitElim.aux'.
 
- (./subfiles/DPLL/PureLitElim.tex [38
+ (./subfiles/DPLL/PureLitElim.tex [39
 
 
 
-] [39] [40]) [41]
+] [40] [41]) [42]
 \openout2 = `subfiles/DPLL/WatchedLits.aux'.
 
- (./subfiles/DPLL/WatchedLits.tex [42
+ (./subfiles/DPLL/WatchedLits.tex [43
 
 
 
-] [43] [44] [45] [46] [47] [48] [49] [50] [51] [52] [53]) [54]
+] [44] [45] [46] [47] [48] [49] [50] [51] [52] [53] [54]) [55]
 \openout2 = `subfiles/DPLL/IterativeDPLL.aux'.
 
- (./subfiles/DPLL/IterativeDPLL.tex [55
+ (./subfiles/DPLL/IterativeDPLL.tex [56
 
 
 
-] [56] [57] [58] [59] [60] [61] [62]) [63]
+] [57] [58] [59] [60] [61] [62] [63]) [64]
 \openout2 = `subfiles/CDCL/CDCL.aux'.
 
  (./subfiles/CDCL/CDCL.tex
 Chapter 4.
-[64
+[65
 
 
 
 
-] [65] [66] [67] [68]
+] [66] [67] [68] [69]
 Overfull \vbox (19.49992pt too high) has occurred while \output is active []
 
- [69] [70]) [71]
+ [70] [71]) [72]
 \openout2 = `subfiles/CDCL/clauseResolution.aux'.
 
- (./subfiles/CDCL/clauseResolution.tex [72
+ (./subfiles/CDCL/clauseResolution.tex [73
 
 
 
@@ -918,34 +917,56 @@ Overfull \hbox (11.81499pt too wide) in paragraph at lines 71--151
 [] 
  []
 
-[73] [74]) [75]
+[74] [75]) [76]
 \openout2 = `subfiles/CDCL/backjumping.aux'.
 
- (./subfiles/CDCL/backjumping.tex [76
+ (./subfiles/CDCL/backjumping.tex [77
 
 
 
-] [77]) [78] (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux))
+] [78]) [79]
+\openout2 = `subfiles/CDCL/firstUIP.aux'.
+
+ (./subfiles/CDCL/firstUIP.tex
+Overfull \hbox (11.81499pt too wide) in paragraph at lines 18--100
+[]
+ []
+
+[80
+
+
+
+] [81]) [82]
+\openout2 = `subfiles/CDCL/improvements.aux'.
+
+ (./subfiles/CDCL/improvements.tex [83
+
+
+
+{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [84] [85] [86] [87]
+Overfull \vbox (103.62492pt too high) has occurred while \output is active []
+
+ [88]) [89] (./From Scratch (Second Draft).aux (./subfiles/preface.aux) (./subfiles/intro.aux) (./subfiles/bruteForce.aux) (./subfiles/DPLL/DPLL.aux) (./subfiles/DPLL/RecursiveBacktracking.aux) (./subfiles/DPLL/UnitProp1.aux) (./subfiles/DPLL/UnitProp2.aux) (./subfiles/DPLL/PureLitElim.aux) (./subfiles/DPLL/WatchedLits.aux) (./subfiles/DPLL/IterativeDPLL.aux) (./subfiles/CDCL/CDCL.aux) (./subfiles/CDCL/clauseResolution.aux) (./subfiles/CDCL/backjumping.aux) (./subfiles/CDCL/firstUIP.aux) (./subfiles/CDCL/improvements.aux))
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `"From Scratch (Second Draft)".out' has not changed.
-(rerunfilecheck)             Checksum: 85EEC5C460FCA1A7DC5FAEBBCFADD183;5809.
+(rerunfilecheck)             Checksum: 91E3A3E8E61DD5DB8B9335A64D50EA28;6999.
  ) 
 Here is how much of TeX's memory you used:
- 37149 strings out of 467525
- 780237 string characters out of 5418982
- 1476836 words of memory out of 5000000
- 65068 multiletter control sequences out of 15000+600000
- 725728 words of font info for 148 fonts, out of 8000000 for 9000
+ 37260 strings out of 467525
+ 782938 string characters out of 5418982
+ 1478072 words of memory out of 5000000
+ 65116 multiletter control sequences out of 15000+600000
+ 726025 words of font info for 149 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,11n,108p,1675b,1979s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-BoldItalic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Italic.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Regular.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathcal.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathscr.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/stix-mathsf.pfb>
-Output written on "From Scratch (Second Draft).pdf" (79 pages, 504468 bytes).
+Output written on "From Scratch (Second Draft).pdf" (90 pages, 530256 bytes).
 PDF statistics:
- 1003 PDF objects out of 1200 (max. 8388607)
- 884 compressed objects within 9 object streams
- 404 named destinations out of 1000 (max. 500000)
- 277 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1132 PDF objects out of 1200 (max. 8388607)
+ 1000 compressed objects within 10 object streams
+ 451 named destinations out of 1000 (max. 500000)
+ 333 words of extra memory for PDF output out of 10000 (max. 10000000)
 

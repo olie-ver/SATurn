@@ -59,77 +59,9 @@ such a big fixer-upper, it deserves its own subsection.
 
 \subsection{Fixing Clause Resolution}
 
-Here is our current clause resolution code:
-\begin{lstlisting}
-if (contradiction has a value) {
-    int curLevel = decisionLevel
-    int[] conflict = contradiction.value
-    int end = trail.size
-    int begin = 0
-    int resolveOn = 0
-
-    for (i = 0 up to conflict.size) {
-        int idx = abs(conflict[i])
-        int trail_idx = var_to_trail[idx]
-
-        if (trail[trail_idx].decisionLevel == curLevel) {
-            end = min(end, trail_idx)
-            begin = max(begin, trail_idx)
-            if (trail[trail_idx].reasonIdx is not optional) {
-                resolveOn = trail[trail_idx].lit
-            }
-        }
-    }
-
-    while (begin != end) {
-        int trail_idx = var_to_trail[abs(resolveOn)]
-        int[] reason = clauses[trail[trail_idx].reasonIdx]
-        append(conflict, reason)
-        for (i = 0 up to conflict.size) {
-            if (abs(conflict[i]) == abs(resolveOn)) {
-                erase(conflict, conflict[i])
-            } else {
-                i = i + 1
-            }
-        }
-
-        set<int> duplicates;
-        for (i = 0 up to conflict.size) {
-            if (contains(duplicates, conflict[i])) {
-                erase(conflict, conflict[i])
-            } else {
-                duplicates.insert(conflict[i]);
-                i = i + 1
-            }
-        }
-
-        end = INTEGER_MAX;
-        begin = 0;
-
-        for (i = 0 up to conflict.size) {
-            int var = conflict[i];
-            int idx = abs(var)
-            int trail_idx = var_to_trail[idx];
-
-            if (trail[trail_idx].decisionLevel 
-                == decisionLevel)
-            {
-                end = min(end, trail_idx);
-                begin = max(begin, trail_idx);
-
-                if (trail[trail_idx].reasonIdx 
-                    is not optional)
-                {
-                    resolve_var = trail[trail_idx].lit;
-                }
-            }
-        }
-    } 
-}
-\end{lstlisting}
-\noindent
-It's pretty long and inefficient. This was written before we understood implication
-graphs fully. Now we do understand implication graphs, so let's exploit that structure.
+Our current implementation of clause resolution is pretty long and inefficient. This was 
+written before we understood implication graphs fully. Now we do understand implication graphs, 
+so let's exploit that structure.
 
 The idea is this: instead of rescanning over and over to make sure our resolution clause
 has just one current level variable, we'll keep track of which variables we've seen as 
@@ -155,60 +87,63 @@ conflict clause, whereas now, we are only concerned with the differences to the 
 clause made across each iteration. 
 
 Our resolution algorithm becomes as follows:
-\begin{lstlisting}
-if (contradiction has a value) {
-    int[] conflict = contradiction.value
-    int levelCount = 0
-    int curLevel = decisionLevel
+\begin{algorithm}[H]
+\caption{Improved First UIP}\label{alg:34}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
 
-    for each (int var in conflict) {
-        if (!seen[abs(var)]) {
-            seen[abs(var)] = True 
+\State levelCount $\gets$ 0
+\State curLevel $\gets$ decisionLevel
+\For{each $var$ in $conflict$}
+    \If{seen[\Call{abs}{var}] = false}
+        \State seen[\Call{abs}{var}] $\gets$ true 
+        \State tIdx $\gets$ varToTrail[\Call{abs}{var}]
+        \If{trail[tIdx].decisionLevel = curLevel}
+            \State levelCount $\gets$ levelCount + 1
+        \EndIf
+    \EndIf
+\EndFor
 
-            if (trail[var_to_trail[abs(var)]].decisionLevel == curLevel) {
-                levelCount = levelCount + 1
-            }
-        }
-    }
+\For{each $entry$ in $trail$ from last} \Comment traverse the trail in reverse order
+    \State idx $\gets$ entry.lit
 
-    for (i = trail.size down to 0) {
-        TrailEntry entry = trail[i]
-        idx = abs(entry.lit)
+    \If{seen[idx] = true}
+        \State reason $\gets$ Clauses[entry.reasonIdx]
 
-        if (seen[idx]) {
-            int[] reason = clauses[trail[i].reasonIdx]
+        \For{each $var$ in $reason$}
+            \If{seen[\Call{abs}{var}] = false}
+                \State seen[\Call{abs}{var}] $\gets$ true
+                \State tIdx $\gets$ varToTrail[\Call{abs}{var}]
+                \If{trail[tIdx].decisionLevel = curLevel}
+                    \State levelCount $\gets$ levelCount + 1
+                \EndIf
+            \EndIf
+        \EndFor
 
-            for each (int var in reason) {
-                if (!seen[abs(var)]) {
-                    seen[abs(var)] = True 
+        \State seen[idx] $\gets$ false
+        \State levelCount $\gets$ levelCount - 1
+    \EndIf
 
-                    int trailIdx = var_to_trail[abs(var)]
+    \If{levelCount = 1}
+        \State break
+    \EndIf
+\EndFor
 
-                    if (trail[trailIdx].decisionLevel == curLevel) {
-                        levelCount = levelCount + 1
-                    }
-                }
-            }
+\State learned[1..m]
+\For{i $\gets$ 1 up to numVars}
+    \If{seen[i] = true}
+        \State lit $\gets$ trail[varToTrail[i]].lit
+        \State $\Call{append}{learned, -lit}$
+        \State seen[i] $\gets$ false
+    \EndIf
+\EndFor
 
-            seen[idx] = False
-            levelCount = levelCount - 1
-        }
+\State return learned
 
-        if (levelCount == 1) {
-            break
-        }
-    }
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-    int[] learned
-    for (i = 1 up to numVars) {
-        if (seen[i] == True) {
-            int lit = trail[var_to_trail[i]].lit
-            append(learned, -lit)
-            seen[i] = False
-        }
-    }
-}
-\end{lstlisting}
 \noindent
 Here's the rundown of what's going on. In the first block, we're marking which 
 variables we've seen and how many of them are from the current decision level from 
@@ -281,84 +216,85 @@ upon initialization. Personally, I also reserve \textit{numVars} amount of space
 strictly necessary. 
 
 This is how these data structures change the algorithm:
-\begin{lstlisting}
-if (contradiction has a value) {
-    int[] conflict = contradiction.value
-    int levelCount = 0
-    int curLevel = decisionLevel
 
-    for each (int var in conflict) {
-        if (!seen[abs(var)]) {
-            seen[abs(var)] = True 
-            append(seenIdx, abs(var))
-            seenPos[abs(var)] = seenIdx.size
+\begin{algorithm}[H]
+\caption{Improved-improved First UIP}\label{alg:35}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
 
-            if (trail[var_to_trail[abs(var)]].decisionLevel == curLevel) {
-                levelCount = levelCount + 1
-            }
-        }
-    }
+\State levelCount $\gets$ 0
+\State curLevel $\gets$ decisionLevel
+\For{each $var$ in $conflict$}
+    \If{seen[\Call{abs}{var}] = false}
+        \State vIdx $\gets$ \Call{abs}{var}
+        \State seen[vIdx] $\gets$ true 
 
-    for (i = trail.size down to 0) {
-        TrailEntry entry = trail[i]
-        idx = abs(entry.lit)
+        \State \Call{append}{seenIdx, vIdx}
+        \State seenPos[vIdx] $\gets$ \Call{size}{seenIdx}
 
-        if (seen[idx]) {
-            int[] reason = clauses[trail[i].reasonIdx]
+        \State tIdx $\gets$ varToTrail[vIdx]
+        \If{trail[tIdx].decisionLevel = curLevel}
+            \State levelCount $\gets$ levelCount + 1
+        \EndIf
+    \EndIf
+\EndFor
 
-            for each (int var in reason) {
-                if (!seen[abs(var)]) {
-                    seen[abs(var)] = True 
-                    append(seenIdx, abs(var))
-                    seenPos[abs(var)] = seenIdx.size
+\For{each $entry$ in $trail$ from last} \Comment traverse the trail in reverse order
+    \State idx $\gets$ entry.lit
+    
+    \If{seen[idx] = true}
+        \State reason $\gets$ Clauses[entry.reasonIdx]
+        \For{each $var$ in $reason$}
+            \State vIdx $\gets$ \Call{abs}{var}
 
-                    int trailIdx = var_to_trail[abs(var)]
+            \If{seen[\Call{abs}{var}] = false}
+                \State seen[vIdx] $\gets$ true 
 
-                    if (trail[trailIdx].decisionLevel == curLevel) {
-                        levelCount = levelCount + 1
-                    }
-                }
-            }
+                \State \Call{append}{seenIdx, vIdx}
+                \State seenPos[vIdx] $\gets \Call{size}{seenIdx}$
 
-            seen[idx] = False
+                \State tIdx $\gets$ varToTrail[vIdx]
+                \If{trail[tIdx].decisionLevel = curLevel}
+                    \State levelCount $\gets$ levelCount + 1
+                \EndIf
+            \EndIf
+        \EndFor
 
-            //get the position of idx in seenIdx
-            int pos = seenPos[idx]
+        \State seen[idx] $\gets$ false
 
-            //get the last element in seenIdx
-            int last = seenIdx.last
+        \State pos $\gets$ seenPos[idx]
+        \State last $\gets$ seenIdx.last
+        \State seenIdx[pos] $\gets$ last
+        \State seenIdx[last] $\gets$ pos
 
-            //overwrite the element at the position pos with the value 
-            //  of the last element in seenIdx
-            seenIdx[pos] = last 
+        \State \Call{removeLast}{seenIdx}
 
-            //mark that the last element in seenIdx is now at position pos
-            seenPos[last] = pos
+        \State levelCount $\gets$ levelCount - 1
+    \EndIf
 
-            //remove the last element in seenIdx because it's also at position pos
-            pop(seenIdx)
+    \If{levelCount = 1}
+        \State break
+    \EndIf
+\EndFor
 
-            levelCount = levelCount - 1
-        }
+\State learned[1..m]
+\While{seenIdx is not empty}
+    \State lIdx $\gets$ seenIdx.last
+    \State lit $\gets$ trail[varToTrail[lIdx]].lit
+    \State $\Call{append}{learned, -lit}$
+    \State seen[lIdx] $\gets$ false
+    \State \Call{removeLast}{seenIdx}
+\EndWhile
 
-        if (levelCount == 1) {
-            break
-        }
-    }
+\State return learned
 
-    int[] learned
-    while (seenIdx is not empty) {
-        int lit_idx = seenIdx.last
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-        int lit = trail[var_to_trail[lit_idx]].lit
-        append(learned, -lit)
-
-        seen[lit_idx] = false
-        pop(seenIdx)
-        //do nothing with seenPos because we don't have to
-    }
-}
-\end{lstlisting}
+In this code, not much changes other than that we index using the seenIdx and seenPos
+data structures to achieve a quicker deletion and modification of the learned clause
+by both swapping and popping seenIdx as well as seenPos.
 
 \subsection{Improvements - Results}
 

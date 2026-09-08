@@ -337,6 +337,12 @@ INPUT subfiles/CDCL/clauseResolution.aux
 INPUT ./subfiles/CDCL/backjumping.aux
 INPUT ./subfiles/CDCL/backjumping.aux
 INPUT subfiles/CDCL/backjumping.aux
+INPUT ./subfiles/CDCL/firstUIP.aux
+INPUT ./subfiles/CDCL/firstUIP.aux
+INPUT subfiles/CDCL/firstUIP.aux
+INPUT ./subfiles/CDCL/improvements.aux
+INPUT ./subfiles/CDCL/improvements.aux
+INPUT subfiles/CDCL/improvements.aux
 OUTPUT From Scratch (Second Draft).aux
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
@@ -454,6 +460,7 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathtt.tfm
 OUTPUT From Scratch (Second Draft).toc
 INPUT ./subfiles/preface.tex
 INPUT ./subfiles/preface.tex
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/t1-stixgeneral-italic.tfm
 OUTPUT subfiles/preface.aux
 INPUT ./subfiles/preface.tex
 INPUT ./subfiles/preface.tex
@@ -463,7 +470,6 @@ INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ts1stix.fd
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ts1stix.fd
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/ts1-stixgeneral.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/stix/stix-ts1.enc
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/t1-stixgeneral-italic.tfm
 INPUT ./subfiles/intro.tex
 INPUT ./subfiles/intro.tex
 OUTPUT subfiles/intro.aux
@@ -577,6 +583,20 @@ OUTPUT subfiles/CDCL/backjumping.aux
 INPUT ./subfiles/CDCL/backjumping.tex
 INPUT ./subfiles/CDCL/backjumping.tex
 INPUT subfiles/CDCL/backjumping.tex
+INPUT ./subfiles/CDCL/firstUIP.tex
+INPUT ./subfiles/CDCL/firstUIP.tex
+OUTPUT subfiles/CDCL/firstUIP.aux
+INPUT ./subfiles/CDCL/firstUIP.tex
+INPUT ./subfiles/CDCL/firstUIP.tex
+INPUT subfiles/CDCL/firstUIP.tex
+INPUT ./subfiles/CDCL/improvements.tex
+INPUT ./subfiles/CDCL/improvements.tex
+OUTPUT subfiles/CDCL/improvements.aux
+INPUT ./subfiles/CDCL/improvements.tex
+INPUT ./subfiles/CDCL/improvements.tex
+INPUT subfiles/CDCL/improvements.tex
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tctt1000.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT From Scratch (Second Draft).aux
 INPUT ./subfiles/preface.aux
 INPUT ./subfiles/preface.aux
@@ -617,6 +637,12 @@ INPUT subfiles/CDCL/clauseResolution.aux
 INPUT ./subfiles/CDCL/backjumping.aux
 INPUT ./subfiles/CDCL/backjumping.aux
 INPUT subfiles/CDCL/backjumping.aux
+INPUT ./subfiles/CDCL/firstUIP.aux
+INPUT ./subfiles/CDCL/firstUIP.aux
+INPUT subfiles/CDCL/firstUIP.aux
+INPUT ./subfiles/CDCL/improvements.aux
+INPUT ./subfiles/CDCL/improvements.aux
+INPUT subfiles/CDCL/improvements.aux
 INPUT ./From Scratch (Second Draft).out
 INPUT ./From Scratch (Second Draft).out
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb
