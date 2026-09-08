@@ -63,8 +63,40 @@ will essentially allow us to learn which decisions we can't make together.
 
 Lastly, after we resolve on the learned clause, we want to add it to the database,
 and we want to initialize its watched literals so that we can use it as if it were 
-part of our initial CNF equation. Before we discuss how clause resolution works at 
-a theory level, let's first discuss a few implementation changes we'll need to make.
+part of our initial CNF equation. Let's look at the high level pseudocode we'll need 
+to implement:
+
+\begin{algorithm}[H]
+\caption{High Level CDCL}\label{alg:27}
+\begin{algorithmic}[1]
+\Procedure{CDCL}{}
+
+\State $\Call{Setup}{}$
+\While{Unsat = $false$}
+    \State $\Call{Assign}{}$
+    \If{All variables assigned}
+        \State return $true$
+    \EndIf
+    \State $\Call{propagate}{}$
+    \If{contradiction}
+        \State $\Call{resolveConflict}{}$
+        \State level $\gets \Call{calculateBackjump}{}$
+        \If{level < 0}
+            \State return $false$
+        \EndIf
+        \State $\Call{backjumpTo}{level}$
+        \State continue
+    \EndIf
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+In this chapter, we will transform our DPLL code into CDCL code. The first step is 
+to setup our interface and change some of our algorithms to be suited for CDCL. You 
+might be curious as to how clause resolution worst. Before we discuss how clause resolution 
+works at a theory level, let's first discuss a few implementation changes we'll need to make.
 
 \begin{lstlisting}
     public interface:
@@ -121,33 +153,30 @@ minimal changes. The change we're making now is that instead of returning a bool
 value to indicate whether or not propagation was successful, we're now going to return 
 a clause if we encounter a contradiction and nothing otherwise.
 
-\begin{lstlisting}
-    bool propagate(int[] assignment, int decisionLevel) {
-        while (trailHead < trail.size) {
-            int prop = trail[trailHead].lit
-            trailHead = trailHead + 1
-            ...
-            for (i = 0 up to watched_clauses.size) {
-                clause_idx = watched_clauses[i]
-                int[] clause = clauses[clause_idx]
-                (int, int) watches = clause_to_var[clause_idx]
-                ...
-                if (relocated == False) {
-                    ...
-                    int other_watch = clause[watches.second];
-                    int idx = abs(other_watch)
-                    if (assignment[idx] == Unassigned) {
-                        ...
-                        append(trail, {other_watch, decisionLevel, clause_idx})
-                    } else {
-                        return clause
-                    }
-                }
-            }
-        }
-        return null
-    }
-\end{lstlisting}
+\begin{algorithm}[H]
+\caption{Updated Propagate}\label{alg:28}
+\begin{algorithmic}[1]
+\Procedure{propagate}{assignment[1..n], decisionLevel}
+
+\While{trailHead < trail length}
+    \State prop $\gets$ trail[trailHead].lit
+    \State trailHead $\gets$ trailHead + 1
+    \State ...
+    \For{i $\gets 0$ up to watchedClause size}
+        \State ... 
+        \If{relocated = false}
+            \If{other watched literal evaluates to false}
+                return Clause
+            \Else
+                \State $\Call{append}{trail, (otherWatch, decisionLevel, Clause index)}$
+            \EndIf
+        \EndIf
+    \EndFor
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
 And before we look at changes to our solving method, we're going to create a new 
 overload for \textit{createWatched()} that takes in the index of a clause. Its 
@@ -165,79 +194,61 @@ that it can't be the same index as our first watched literal). We will then chec
 clause is unit, and if it is, we will add it to our trail, assign the Unassigned variable,
 etc. Otherwise, we do nothing.
 
-\begin{lstlisting}
-    bool createWatched(int index, int decisionLevel) {
-        clause = clauses[index]
-        if (clause.size == 0) {
-            return False
-        }
+\begin{algorithm}[H]
+\caption{createWatched overload}\label{alg:29}
+\begin{algorithmic}[1]
+\Procedure{createWatched}{index, decisionLevel}
+    \State Clause $\gets$ Clauses[index]
+    \If{clause is empty}
+        \State return $false$
+    \EndIf
+    \State foundFirst $\gets$ false
+    \State foundSecion $\gets$ false
+    \State firstIdx $\gets$ -1
+    \State secondIdx $\gets$ -1
 
-        bool foundFirst = False 
-        bool foundSecond = False 
-        int firstIdx = -1
-        int secondIdx = -1
+    \State numU $\gets$ 0
+    \State numT $\gets$ 0
 
-        int numUnassigned = 0
-        int numFalse = 0
-        int numTrue = 0
+    \For{each $var$ in $Clause$}
+        \If{var is Unassigned}
+            \State numU $\gets$ numU + 1
+            \If{foundFirst = false}
+                \State foundFirst $\gets$ true
+                \State firstIdx $\gets$ index of $var$
+            \Else
+                \State foundSecond $\gets$ true 
+                \State secondIdx $\gets$ index of $var$
+            \EndIf
+        \ElsIf{var evals to true}
+            \State numT $\gets$ numT + 1
+            \If{foundFirst = false}
+                \State foundFirst $\gets$ true
+                \State firstIdx $\gets$ index of $var$
+            \Else
+                \State foundSecond $\gets$ true 
+                \State secondIdx $\gets$ index of $var$
+            \EndIf
+        \EndIf
+    \EndFor
 
-        for (i = 1 up to clause.size) {
-            int idx = abs(clause[i])
-            if (assignment[idx] == Unassigned) {
-                numUnassigned = numUnassigned + 1
-                if (foundFirst == False) {
-                    foundFirst = True
-                    firstIdx = i
-                } else if (foundSecond == False) {
-                    foundSecond = True 
-                    secondIdx = i
-                }
-            } else if (evals_false(clause[i])) {
-                numFalse = numFalse + 1
-            } else {
-                numTrue = numTrue + 1
+    \If{clause has at least two literals}
+        \If{foundSecond = false}
+            \State secondIdx $\gets$ mod(firstIdx + 1, clause size)
+        \EndIf
+        \State $\Call{addWatchedLiteralsToSolver}{firstIdx, secondIdx}$
+    \Else
+        \State $\Call{addWatchedLiteralsToSolver}{firstIdx, firstIdx}$
+    \EndIf
 
-                if (foundFirst == False) {
-                    foundFirst = True
-                    firstIdx = i
-                } else if (foundSecond == False) {
-                    foundSecond = True 
-                    secondIdx = i
-                }
-            }
-        }
-
-        if (clause.size >= 2) {
-            if (foundSecond == False) {
-                secondIdx = (firstIdx + 1) % clause.size
-            }
-
-            append(var_to_clause[clause[firstIdx]], index)
-            append(var_to_clause[clause[secondIdx]], index)
-            
-            clause_to_var[index] = {firstIdx, secondIdx}
-        } else {
-            append(var_to_clause[clause[firstIdx]])
-            clause_to_var[index] = {firstIdx, firstIdx}
-        }
-
-        if (numTrue == 0 && numUnassigned == 1) {
-            append(trail, {clause[firstIdx], decisionLevel, index})
-            var_to_trail[abs(clause[firstIdx])] = trail.size() - 1
-
-            int var = clause[firstIdx]
-            int idx = abs(var)
-
-            if (var > 0) {
-                assignment[idx] = True
-            } else {
-                assignment[idx] = False
-            }
-        }
-
-        return True
-    }
-\end{lstlisting}
+    \If{numT = 0 $\wedge$ numU = 1}
+        \State $\Call{append}{trail, (clause[firstIdx], decisionLevel, index)}$
+        \State $\Call{assignVar}{clause[firstIdx]}$
+    \EndIf
+    \State return $true$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
 Because we don't know anything about this clause, we need to gather as much 
 information as we can right away before we decide how watched literals are 
@@ -257,143 +268,87 @@ why a conflict occurred. If we were to undo propagations, then the resolution
 operator would have no reference as to what ``most recently'' means, and 
 therefore, clause resolution wouldn't work.
 
-\begin{lstlisting}
-    bool solve() {
-        var[1..numVars] assignment
+\begin{algorithm}[H]
+\caption{Initial CDCL}\label{alg:30}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
+    \State setupFailed $\gets \Call{setup}{}$
+    \If{setupFailed = true}
+        return $false$
+    \EndIf
 
-        for each (var in assignment) {
-            var = Unassigned
-        }
+    \State decisionLevel $\gets$ 0
 
-        if (createWatched(assignment) == False) {
-            return False
-        }
+    \While{$true$}
+        \If{\Call{assign}{assignment} = true}
+            \State return $true$
+        \Else 
+            \State decisionLevel $\gets$ decisionLevel + 1
+        \EndIf
 
-        int decisionLevel = 0
+        \State succeeded $\gets \Call{propagate}{assignment}$
+        \If{succeeded is not null}
+            \State conflict $\gets$ value of succeeded
 
-        if (trail.size > 0) {
-            append(trailStarts, {0, true})
+            \State learned $\gets$ \Call{resolveConflict}{conflict}
 
-            if (propagate(assignment, decisionLevel) == False) {
-                return False
-            }
-        }
+            \If{learned is empty}
+                \State return $false$
+            \EndIf
 
-        while (True) {
-            if (trailHead == trail.size) {
-                //Assignment code
-                int firstUnassigned = -1
-                for (i = 1 up to numVars) {
-                    if (assignment[i] == Unassigned) {
-                        firstUnassigned = i
-                        break
-                    }
-                }
+            \State \Call{backtrack}{}
 
-                if (firstUnassigned == -1) {
-                    return True
-                }
+            \If{\Call{size}{trailStarts} = 0}
+                \State return $false$
+            \EndIf
 
-                assignment[firstUnassigned] = True
-                append(trail, {firstUnassigned, -1})
-                append(trailStarts, {trail.size - 1, False})
-                trailHead = trailStarts.last.idx
-            }
+            \State decisionLevel $\gets$ decisionLevel - 1
+            \State trailHead $\gets$ trailStarts.last
 
-            optional int[] contradiction = propagate(assignment)
+            \State continue
+        \EndIf
+    \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-            if (contradiction has a value) {
-                int[] conflict = contradiction.value
+\begin{algorithm}[H]
+\caption{Resolve Conflict}\label{alg:31}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
+    \While{true}
+        \State pIdx $\gets$ -1
+        \For{i $\gets 1$ up to $n$}
+            \State var $\gets$ conflict[i]
+            \State idx $\gets \Call{abs}{var}$
+            \State tIdx $\gets$ varToTrail[idx]
+            \If{trail[tIdx].reasonIdx exists}
+                \State pIdx $\gets \Call{max}{pIdx, t_idx}$
+            \EndIf
+        \EndFor
 
-                bool propagated_found = True
-                while (True) {
-                    propagated_found = False
-                    int idx = 0
+        \If{pIdx = -1}
+            \State return conflict
+        \EndIf
 
-                    for (i = 1 up to conflict.size) {
-                        int var = conflict[i]
-                        int v_idx = abs(var)
+        \State lit $\gets$ trail[idx].lit
+        \State reason $\gets$ clauses[trail[idx].reasonIdx]
+        \State $\Call{append}{conflict, reason}$
 
-                        int t_idx = var_to_trail[v_idx]
-                        if (trail[t_idx].reasonIdx has a value) {
-                            propagated_found = True
-                            idx = max(idx, t_idx)
-                        }
-                    }
+        \State remove all occurrences of $lit$ and $-lit$ from $conflict$
+        \State remove all duplicate literals from $conflict$
+    \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-                    if (propagated_found == False) {
-                        break
-                    }
+We will need to substitute in \textit{resolveConflict()} into the main solving algorithm. 
+It should be noted that \textit{resolveConflict()} mutates the original parameter and then 
+returns the mutated parameter as the learned clause. One more thing to note is that in
+\textit{solve()}, some of the algorithms called are the same from our Iterative DPLL code. 
+For that reason, I didn't rewrite them and they can be referenced and substituted as needed.
 
-                    int lit = trail[idx].lit
-                    int[] reason = clauses[trail[idx].reasonIdx]
-
-                    append(conflict, reason)
-
-                    for (i = 0 up to conflict.size) {
-                        if (abs(conflict[i]) == abs(lit)) {
-                            swap(conflict[i], conflict.last)
-                            erase(conflict, conflict.last)
-                        } else {
-                            i = i + 1
-                        }
-                    }
-
-                    set<int> duplicates
-                    for (i = 0 up to conflict.size) {
-                        if (contains(duplicates, conflict[i])) {
-                            swap(conflict[i], conflict.last)
-                            erase(conflict, conflict.last)
-                        } else {
-                            insert(duplicates, conflict[i])
-                            i = i + 1
-                        }
-                    }
-                }
-
-                while (trailStarts.size > 0) {
-                    DecisionLevel decision = trailStarts.last
-
-                    while (trail.size > decision.idx + 1) {
-                        int lit = trail.last.lit
-                        assignment[abs(lit)] = Unassigned
-                        var_to_trail[abs(lit)] = -1
-                        erase(trail, trail.last)
-                    }
-
-                    if (decision.triedFalse == False) {
-                        TrailEntry entry = trail.last
-
-                        entry.lit = -entry.lit
-                        assignment[abs(entry.lit)] = False
-                        var_to_trail[abs(entry.lit)] = -1
-                        decision.triedFalse = True
-
-                        trailHead = decision.idx
-                        break
-                    } else {
-                        int lit = trail.last.lit
-                        assignment[abs(lit)] = Unassigned
-                        var_to_trail[abs(lit)] = -1
-                        erase(trail.last)
-                        erase(trailStarts.last)
-                    }
-                }
-
-                if (trailStarts.size == 0) {
-                    return False
-                }
-
-                append(clauses, conflict)
-                createWatched(clauses.size)
-
-                continue
-            }
-        }
-    }
-\end{lstlisting}
-
-I want to point out that this isn't nevessarily CDCL yet. This is more like DPLL, but with 
+I want to point out that this isn't necessarily CDCL yet. This is more like DPLL, but with 
 adding clauses to our database. The reason as to why this is, is because whenever we recover 
 from a contradiction, we only go back one level. You see, CDCL does away with the idea of a
 ``tried other branch" flag and relies on the learned clauses to guide what variable assignments

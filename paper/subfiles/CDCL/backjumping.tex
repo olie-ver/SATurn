@@ -36,84 +36,66 @@ be False, and $4$ will be Unassigned. That way, we can propagate immediately on 
 learned clause! So the rule for backjumping after learning a new clause is to backjump 
 to the second largest decision level present in the clause. Here's how we'll do it:
 
-\begin{lstlisting}
-bool solve() {
-    var[1..numVars] assignment
+\begin{algorithm}[H]
+\caption{CDCL with Backjumping}\label{alg:32}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
 
-    for each (var in assignment) {
-        var = Unassigned
-    }
+\State setupFailed $\gets \Call{setup}{}$
+\If{setupFailed = true}
+    return $false$
+\EndIf
 
-    if (createWatched(assignment) == False) {
-        return False
-    }
+\State decisionLevel $\gets$ 0
 
-    int decisionLevel = 0
+\While{$true$}
+    \If{\Call{assign}{assignment} = true}
+        \State return $true$
+    \Else 
+        \State decisionLevel $\gets$ decisionLevel + 1
+    \EndIf
 
-    if (trail.size > 0) {
-        append(trailStarts, {0, true})
+    \State succeeded $\gets \Call{propagate}{assignment}$
+    \If{succeeded is not null}
+        \State conflict $\gets$ value of succeeded
 
-        if (propagate(assignment, decisionLevel) == False) {
-            return False
-        }
-    }
+        \State learned $\gets$ \Call{resolveConflict}{conflict}
 
-    while (True) {
-        if (trailHead == trail.size) {
-            //Perform an assignment
-            ...
-        }
+        \If{learned is empty}
+            \State return $false$
+        \EndIf
 
-        optional int[] contradiction = propagate(assignment)
+        \If{\Call{size}{trailStarts} = 0}
+            \State return $false$
+        \EndIf
 
-        if (contradiction has a value) {
-            //resolve conflict
-            ...
+        \State maxLevel $\gets$ decisionLevel
+        \State sLevel $\gets$ -1
 
-            if (conflict.size == 0) {
-                return False
-            }
+        \For{each $var$ in $learned$}
+            \State idx $\gets \Call{abs}{var}$
+            \State dLvl $\gets$ trail[varToTrail[idx]].decisionLevel
+            \If{dLvl $\neq$ maxLevel}
+                \State sLevel $\gets \Call{max}{sLevel, dLvl}$
+            \EndIf
+        \EndFor
 
-            int maxLevel = decisionLevel
-            int secondLargest = -1
-            for (i = 0 up to conflict.size) {
-                int idx = abs(conflict[i])
-                int decisionLvl = trail[var_to_trail[idx]].decisionLevel;
-                if (decisionLvl != maxLevel) {
-                    secondLargest = max(secondLargest, decisionLvl)
-                }
-            }
+        \While{trail is not empty $\wedge$ trail.last.decisionLevel > sLevel}
+            \State remove entries from the trail
+            \State remove decision levels from trailStarts as necessary
+        \EndWhile
 
-            int backjumpTo = secondLargest
+        \State decisionLevel $\gets$ sLevel
+        \State trailHead $\gets$ trailStarts.last
+        \State $\Call{createWatched}{learned, decisionLevel}$
 
-            while (trail.size > 0 && trail.last.decisionLevel > backjumpTo) {
-                int decision_start = trailStarts.last
-                while (trail.size > decision_start) {
-                    int lit = trail.last.lit
-                    int idx = abs(lit)
-                    assignment[idx] = Unassigned
-                    var_to_trail[idx] = -1
-                    erase(trail, trail.last)
-                }
-                erase(trailStarts, trailStarts.last)
-            }
+        \State continue
+    \EndIf
+\EndWhile
 
-            if (trailStarts.size == 0) {
-                return False
-            }
-
-            decisionLevel = backjumpTo
-
-            trailHead = trailStarts.last
-
-            append(clauses, conflict)
-            createWatched(clauses.size)
-
-            continue
-        }
-    }
-}
-\end{lstlisting}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
 The code remains largely the same. However, we now want to check that the learned clause isn't empty
 so we can avoid doing large amounts of work. When can the learned clause become empty? To answer 

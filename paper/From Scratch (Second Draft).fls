@@ -331,6 +331,12 @@ INPUT subfiles/DPLL/IterativeDPLL.aux
 INPUT ./subfiles/CDCL/CDCL.aux
 INPUT ./subfiles/CDCL/CDCL.aux
 INPUT subfiles/CDCL/CDCL.aux
+INPUT ./subfiles/CDCL/clauseResolution.aux
+INPUT ./subfiles/CDCL/clauseResolution.aux
+INPUT subfiles/CDCL/clauseResolution.aux
+INPUT ./subfiles/CDCL/backjumping.aux
+INPUT ./subfiles/CDCL/backjumping.aux
+INPUT subfiles/CDCL/backjumping.aux
 OUTPUT From Scratch (Second Draft).aux
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
@@ -547,6 +553,30 @@ OUTPUT subfiles/CDCL/CDCL.aux
 INPUT ./subfiles/CDCL/CDCL.tex
 INPUT ./subfiles/CDCL/CDCL.tex
 INPUT subfiles/CDCL/CDCL.tex
+INPUT ./subfiles/CDCL/clauseResolution.tex
+INPUT ./subfiles/CDCL/clauseResolution.tex
+OUTPUT subfiles/CDCL/clauseResolution.aux
+INPUT ./subfiles/CDCL/clauseResolution.tex
+INPUT ./subfiles/CDCL/clauseResolution.tex
+INPUT subfiles/CDCL/clauseResolution.tex
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathrm.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathit.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathscr.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathex.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathrm-bold.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathfrak.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathbb.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathbbit.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathcal.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathsf.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathsfit.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/stix/stix-mathtt.tfm
+INPUT ./subfiles/CDCL/backjumping.tex
+INPUT ./subfiles/CDCL/backjumping.tex
+OUTPUT subfiles/CDCL/backjumping.aux
+INPUT ./subfiles/CDCL/backjumping.tex
+INPUT ./subfiles/CDCL/backjumping.tex
+INPUT subfiles/CDCL/backjumping.tex
 INPUT From Scratch (Second Draft).aux
 INPUT ./subfiles/preface.aux
 INPUT ./subfiles/preface.aux
@@ -581,6 +611,12 @@ INPUT subfiles/DPLL/IterativeDPLL.aux
 INPUT ./subfiles/CDCL/CDCL.aux
 INPUT ./subfiles/CDCL/CDCL.aux
 INPUT subfiles/CDCL/CDCL.aux
+INPUT ./subfiles/CDCL/clauseResolution.aux
+INPUT ./subfiles/CDCL/clauseResolution.aux
+INPUT subfiles/CDCL/clauseResolution.aux
+INPUT ./subfiles/CDCL/backjumping.aux
+INPUT ./subfiles/CDCL/backjumping.aux
+INPUT subfiles/CDCL/backjumping.aux
 INPUT ./From Scratch (Second Draft).out
 INPUT ./From Scratch (Second Draft).out
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb

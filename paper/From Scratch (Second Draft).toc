@@ -27,4 +27,8 @@
 \contentsline {subsection}{\numberline {3.6.1}Iterative DPLL - Results}{62}{subsection.3.6.1}%
 \contentsline {chapter}{\numberline {4}CDCL}{64}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Clause Learning}{65}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Clause Resolution}{72}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Clause Learning - Results}{74}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Non-Chronological Backjumping}{76}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Non-Chronological Backjumping - Results}{78}{subsection.4.2.1}%
 \contentsfinish 
