@@ -346,6 +346,12 @@ INPUT subfiles/CDCL/improvements.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/restarts.aux
+INPUT ./subfiles/Extra/restarts.aux
+INPUT subfiles/Extra/restarts.aux
+INPUT ./subfiles/conclusion.aux
+INPUT ./subfiles/conclusion.aux
+INPUT subfiles/conclusion.aux
 OUTPUT From Scratch (Second Draft).aux
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/stix/ls1stix.fd
@@ -606,6 +612,18 @@ OUTPUT subfiles/Extra/VSIDS.aux
 INPUT ./subfiles/Extra/VSIDS.tex
 INPUT ./subfiles/Extra/VSIDS.tex
 INPUT subfiles/Extra/VSIDS.tex
+INPUT ./subfiles/Extra/restarts.tex
+INPUT ./subfiles/Extra/restarts.tex
+OUTPUT subfiles/Extra/restarts.aux
+INPUT ./subfiles/Extra/restarts.tex
+INPUT ./subfiles/Extra/restarts.tex
+INPUT subfiles/Extra/restarts.tex
+INPUT ./subfiles/conclusion.tex
+INPUT ./subfiles/conclusion.tex
+OUTPUT subfiles/conclusion.aux
+INPUT ./subfiles/conclusion.tex
+INPUT ./subfiles/conclusion.tex
+INPUT subfiles/conclusion.tex
 INPUT From Scratch (Second Draft).aux
 INPUT ./subfiles/preface.aux
 INPUT ./subfiles/preface.aux
@@ -655,6 +673,12 @@ INPUT subfiles/CDCL/improvements.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/restarts.aux
+INPUT ./subfiles/Extra/restarts.aux
+INPUT subfiles/Extra/restarts.aux
+INPUT ./subfiles/conclusion.aux
+INPUT ./subfiles/conclusion.aux
+INPUT subfiles/conclusion.aux
 INPUT ./From Scratch (Second Draft).out
 INPUT ./From Scratch (Second Draft).out
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/stix/STIXGeneral-Bold.pfb

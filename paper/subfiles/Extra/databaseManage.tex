@@ -122,114 +122,67 @@ We first need to remember to change our interface to use our old DecisionLevel s
 And of course we need to adjust our code to use the DecisionLevel struct instead of just an index.
 
 The algorithmic changes are as follows:
-\begin{lstlisting}
-bool solve() {
-    //setup
-    ..
 
-    while (True) {
-        //assigning
-        ...
+\begin{algorithm}[H]
+\caption{cVSIDS Solving Method}\label{alg:41}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
 
-        optional int[] contradiction = propagate(assignment)
+\State \Call{setup}{}
 
-        if (contradiction has a value) {
-            numConflicts = numConflicts + 1
+\While{true}
+    \If{trailHead = size of trail}
+        \State maxScore $\gets$ -1.0
+        \State firstUnassigned $\gets$ -1
+        \For{i $\gets$ 1 up to numVars}
+            \If{assignment[i] = Unassigned}
+                \If{maxScore < activity[i]}
+                    \State firstUnassigned $\gets$ i
+                    \State maxScore $\gets$ activity[i]
+                \EndIf
+            \EndIf
+        \EndFor
 
-            //set up UIPs from conflict clause
-            ...
+        \State $\Call{assign}{firstUnassigned}$
+    \EndIf
 
-            for (i = trail.size down to 0) {
-                TrailEntry entry = trail[i]
-                idx = abs(entry.lit)
+    \State propResult $\gets \Call{propagate}{assignment}$
+    \If{propResult failed}
+        \State numConflicts $\gets$ numConflicts + 1
 
-                if (seen[idx]) {
-                    //grab reason and update seen and levelCount
-                    ...
+        \State learned $\gets$ \Call{resolveConflict}{conflict}
 
-                    delta[idx] = True
-                    //unmark seen and update levelCount
-                    ...
-                }
+        \If{size of learned > N} 
+            \State backtrack one level like in iterative DPLL
+            \State reset every element to $seen$ to $false$
+            \State clear $seenIdx$
+            \State set every element in $delta$ to $false$
+            \State continue with solving loop
+        \Else
+            \State VSIDS tracking
+            \State $\Call{backjump}{backJumpTo}$
+        \EndIf
 
-                if (levelCount == 1) {
-                    break
-                }
-            }
+        \State \Comment{apply decay factor}
 
-            if (seenIdx.size > maxSize) {
-                while (trail.size > 0 && trail_starts.size > 0) {
-                    DecisionLevel decision = trailStarts.last
+        \For{i $\gets$ 1 up to numVars}
+            \If{delta[i] = true} 
+                \State activity[i] $\gets$ (1 - Y) + DECAY * activity[i]
+            \Else
+                \State activity[i] $\gets$ DECAY * activity[i]
+            \EndIf
+            \State delta[i] $\gets$ false
+        \EndFor
+        \State numConflicts $\gets$ 0
 
-                    while (trail.size > decision.idx + 1) {
-                        int lit = trail.last.lit
-                        assignment[abs(lit)] = Unassigned
-                        var_to_trail[abs(lit)] = -1
-                        erase(trail, trail.last)
-                    }
+        \State continue
+    \EndIf
+\EndWhile
 
-                    if (decision.triedFalse == False) {
-                        TrailEntry entry = trail.last
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-                        entry.lit = -entry.lit
-                        assignment[abs(entry.lit)] = False
-                        var_to_trail[abs(entry.lit)] = -1
-                        decision.triedFalse = True
-
-                        trailHead = decision.idx
-                        break
-                    } else {
-                        int lit = trail.last.lit
-                        assignment[abs(lit)] = Unassigned
-                        var_to_trail[abs(lit)] = -1
-                        erase(trail.last)
-                        erase(trailStarts.last)
-                    }
-                    
-                    if (trail.size == 0) {
-                        return False
-                    }
-
-                    while (seenIdx.size > 0) {
-                        int idx = seenIdx.last
-                        seen[idx] = False
-                        pop(seenIdx)
-                    }
-
-                    for (i = 0 up to numVars) {
-                        delta[i] = False
-                    }
-
-                    continue
-                }
-            }
-
-            //create learned clause and update activity scores
-            int[] learned
-            while (seenIdx is not empty) {
-                int lit_idx = seenIdx.last
-                delta[lit_idx] = True
-                ...
-            }
-
-            //backjump
-            ...
-
-            //apply decay factor
-            for (i = 1 up to numVars) {
-                if (delta[i] == True) {
-                    activity[i] = (1 - Y) + Y * activity[i]
-                } else {
-                    activity[i] = Y * activity[i]
-                }
-                delta[i] = False
-            }
-
-            continue
-        }
-    }
-}
-\end{lstlisting}
 \noindent
 So it's pretty straightforward,
 \footnote{I struggled with debugging for half an hour because I forgot to clear out
@@ -322,39 +275,47 @@ object:
 \noindent
 We will implement them in order.
 
-\begin{lstlisting}
-void removeFromWatchList(int[] watchList, int idx) {
-    for (i = 0 up to watchList.size) {
-        if (watchList[i] == idx) {
-            swap(watchList[i], watchList.last)
-            pop(watchList)
-            break
-        }
-    }
-}
-\end{lstlisting}
+\begin{algorithm}[H]
+\caption{Remove From WatchList}\label{alg:42}
+\begin{algorithmic}[1]
+\Procedure{removeFromWatchList}{watchList[1..n], idx}
+\For{i $\gets$ 0 up to $n$}
+    \If{watchList[i] = idx}
+        \State \Call{swap}{watchList[i], watchList.last}
+        \State \Call{removeLast}{watchList}
+        \State return
+    \EndIf
+\EndFor
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 This algorithm is very straightforward. Given an array of clause indices that 
 we're watching, we want to remove the passed in \textit{clause index}, not 
 the \textit{element} at the passed in index. We use swap-and-pop to avoid 
 shifting elements, which would be a bookkeeping nightmare.
 
-\begin{lstlisting}
-void removeClauseFromWatchLists(int clauseIdx) {
-    (int firstWatch, int secondWatch) = clause_to_var[clauseIdx]
+\begin{algorithm}[H]
+\caption{Remove Clause From WatchList}\label{alg:43}
+\begin{algorithmic}[1]
+\Procedure{removeClauseFromWatchList}{cIdx}
+\For{i $\gets$ 0 up to $n$}
+    \State (firstWatch, secondWatch) = clauseToVar[cIdx]
+    \State lit1 $\gets$ clauses[clauseIdx][firstWatch]
+    \State lit2 $\gets$ clauses[clauseIdx][secondWatch]
 
-    int lit1 = clauses[clauseIdx][firstWatch]
-    int lit2 = clauses[clauseIdx][secondWatch]
+    \State vIdx1 $\gets$ \Call{varToWidx}{lit1}
+    \State vIdx2 $\gets$ \Call{varToWidx}{lit2}
 
-    int varIdx1 = var_to_widx(lit1)
-    int varIdx2 = var_to_widx(lit2)
+    \State \Call{removeFromWatchList}{varToClause[vIdx1], clauseIdx}
+    \If{vIdx1 != vIdx2}
+        \State \Call{removeFromWatchList}{varToClause[vIdx2], clauseIdx}
+    \EndIf
+\EndFor
 
-    removeFromWatchList(var_to_clause[varIdx1], clauseIdx)
-
-    if (varIdx1 != varIdx2) {
-       removeFromWatchList(var_to_clause[varIdx2], clauseIdx)
-    }
-}
-\end{lstlisting}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 \noindent
 This helper works by first grabbing the indices of the two literals watching 
 the clause at the passed in index. We then turn them into the actual literals 
@@ -364,33 +325,37 @@ Finally, we remove the clause index from those literals' watchlists. This is a
 little bit confusing because of all of the indexing and grabbing the corresponding 
 elements we're doing. 
 
-\begin{lstlisting}
-void replaceWatchIndex(int oldIdx, int newIdx) {
-    (int firstWatch, int secondWatch) = clause_to_var(newIdx)
+\begin{algorithm}[H]
+\caption{Remove Watch Index}\label{alg:44}
+\begin{algorithmic}[1]
+\Procedure{removeWatchIndex}{oldIdx, newIdx}
+    \State (firstWatch, secondWatch) = clauseToVar[newIdx]
 
-    int lit1 = clauses[newIdx][firstWatch]
-    int lit2 = clauses[newIdx][secondWatch]
+    \State lit1 $\gets$ clauses[clauseIdx][firstWatch]
+    \State lit2 $\gets$ clauses[clauseIdx][secondWatch]
 
-    int varIdx1 = var_to_widx(lit1)
-    int varIdx2 = var_to_widx(lit2)
+    \State vIdx1 $\gets$ \Call{varToWidx}{lit1}
+    \State vIdx2 $\gets$ \Call{varToWidx}{lit2}
 
-    int[] firstWatchList = var_to_clause[var1]
-    for (i = 0 up to firstWatchList.size) {
-        if (firstWatchList[i] == oldIdx) {
-            firstWatchList[i] = newIdx
-        }
-    }
+    \State wList $\gets$ varToClause[vIdx1]
+    \For{i $\gets$ 1 up to wList.size}
+        \If{wList[i] = oldIdx}
+            \State wList[i] $\gets$ newIdx
+        \EndIf
+    \EndFor
 
-    if (varIdx1 != varIdx2) {
-        int[] secondWatchList = var_to_clause[var2]
-        for (i = 0 up to secondWatchList.size) {
-            if (secondWatchList[i] == oldIdx) {
-                secondWatchList[i] = newIdx
-            }
-        }
-    }
-}
-\end{lstlisting}
+    \If{vIdx1 $\neq$ vIdx2}
+        \State wList $\gets$ varToClause[vIdx2]
+        \For{i $\gets$ 1 up to wList.size}
+            \If{wList[i] = oldIdx}
+                \State wList[i] $\gets$ newIdx
+            \EndIf
+        \EndFor
+    \EndIf
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 \noindent
 This one is pretty self explanatory. We do our indexing magic to get the watchlists 
 for the clause's corresponding watch literals, and we replace an old index with 
@@ -398,81 +363,73 @@ a new index. Again, not an element \textit{at} an old index, an element \textit{
 an old index.
 
 Here is how they are used in our m-size learning algorithm:
-\begin{lstlisting}
-bool solveCNF() {
-    //setup
-    ...
-    int numConflicts = 0
+\begin{algorithm}[H]
+\caption{M-Size Learning Solver}\label{alg:45}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
+    \State \Call{setup}{}
 
-    while(true) {
-        if (numConflicts > threshold) {
-            bool[] remove
+    \While{true}
+        \If{numConflicts > MAX\_CONFLICTS}
+            \State remove[1..Clauses.size - numClauses]
+            
+            \For{i $\gets$ numClauses up to Clauses.size}
+                \State numU $\gets$ 0
+                \For{j $\gets$ 1 up to Clauses[i].size}
+                    \If{Clauses[i][j] is Unassigned}
+                        \State numU $\gets$ numU + 1
+                    \EndIf
+                \EndFor
+                \If{numU > M}
+                    \State remove[i - numClauses] $\gets$ true
+                \EndIf
+            \EndFor
 
-            for (i = numClauses up to clauses.size) {
-                int[] clause = clauses[i]
-                
-                int numUnassigned = 0
-                for (j = 0 up to clause.size) {
-                    if (vars[abs(clause[j])] == Unassigned) {
-                        numUnassigned = numUnassigned + 1
-                    }
-                }
+            \For{each $entry$ in $trail$}
+                \If{$entry$ has reasonIdx}
+                    \If{entry.reasonIdx >= numClauses}
+                        \State remove[entry.reasonIdx - numClauses] $\gets$ false
+                    \EndIf
+                \EndIf
+            \EndFor
 
-                if (numUnassigned > m) {
-                    remove[i - numClauses] = True
-                }
-            }
+            \For{$i \gets Clauses.size down to numClauses$}
+                \If{remove[i - numClauses] = false}
+                    \State continue
+                \EndIf
 
-            for (i = 0 up to trail.size) {
-                if (trail[i].reasonIdx is not optional) {
-                    int reasonIdx = trail[i].reasonIdx.value
+                \State lIdx $\gets$ Clauses.size - 1
+                \If{i = lIdx}
+                    \State \Call{removeClauseFromWatchList}{i}
+                    \State \Call{removeAt}{Clauses, i}
+                    \State \Call{removeAt}{clauseToVar, i}
+                    \State continue
+                \EndIf
 
-                    if (reasonIdx >= numClauses) {
-                        remove[reasonIdx - numClauses] = False
-                    }
-                }
-            }
+                \State \Call{removeClauseFromWatchList}{i}
+                \State \Call{swap}{Clauses[i], Clauses.last}
+                \State \Call{swap}{clauseToVar[i], clauseToVar.last}
+                \State \Call{replaceWatchIndex}{last, i}
+            \EndFor
 
-            for (i = clauses.size down to numClauses) {
-                if (remove[i - numClauses] == False) {
-                    continue
-                }
+            \For{i $\gets$ 0 up to trail.size}
+                \If{trail[i].reasonIdx = last}
+                    \State trail[i].reasonIdx $\gets$ i
+                \EndIf
+            \EndFor
 
-                int lastIdx = clauses.size - 1
+            \State \Call{removeLast}{Clauses}
+            \State \Call{removeLast}{clauseToVar}
+        \EndIf
 
-                if (i == lastIdx) {
-                    removeClauseFromWatchLists(i)
-                    pop(clauses)
-                    pop(clause_to_var)
-                    continue
-                }
+        \State numConflicts $\gets$ 0
 
-                removeClauseFromWatchLists(i)
-                swap(clauses[i], clauses[last])
-                swap(clause_to_var[i], clause_to_var[last])
+        \State ... \Comment rest of solving loop
+    \EndWhile
 
-                replaceWatchIndex(last, idx)
-
-                for (i = 0 up to trail.size) {
-                    if (trail[i].reasonIdx is not optional) {
-                        if (trail[i].reasonIdx.value == last) {
-                            trail[i].reasonIdx.value = idx
-                        }
-                    }
-                }
-
-                pop(clauses)
-                pop(clause_to_var)
-            }
-
-            numConflicts = 0
-        }
-
-        //rest of solving loop
-        ...
-    }
-} 
-\end{lstlisting}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 \noindent
 This is what's going on: first, we check that a certain number of conflicts have happened. 
 This number is fixed. If there have been that many conflicts, we scan every clause that is 
@@ -646,99 +603,85 @@ different heuristic.
 In order to keep track of these metrics for each learned clause, we need to update our 
 VSIDS code, as well as some other parts of our conflict resolution algorithm. Luckily, 
 these changes are very minimal:
-\begin{lstlisting}
-bool solveCNF() {
-    //setup
-    ...
-    int totalConflicts = 0
-    int curSize = numClauses
 
-    double activityIncrease = 1.0
-    double activityGrowth = 1.05
-    double maxIncrease = 1e100
-    double resetIncrease = 1e-100
+\begin{algorithm}[H]
+\caption{M-Size Learning Solver}\label{alg:46}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
 
-    while (true) {
-        if (activityIncrease > maxIncrease) {
-            for each (clauseActivity in cActivity) {
-                clauseActivity *= resetIncrease
-            }
-            activityIncrease *= resetIncrease
-        }
+\State \Call{setup}{}
 
-        //Current clause deletion
-        if (clauseDatabase.size grew by X%) {
-            ...
+\State totalConflicts $\gets$ 0
+\State curSize $\gets$ numClauses
 
-            for (i = clauses.size down to numClauses) {
-                if (remove[i - numClauses] == False) {
-                    continue
-                }
+\State activityIncrease $\gets$ 1.0
+\State activityGrowth $\gets$ 1.05
+\State maxIncrease $\gets$ ReallyHighNumber
+\State maxIncrease $\gets$ 1 / ReallyHighNumber
 
-                int lastIdx = clauses.size - 1
+\While{true}
+    \If{activityIncrease $\ge$ maxIncrease}
+        \For{each clauseActivity in cActivity}
+            \State clauseActivity $\gets$ clauseActivity * resetIncrease
+        \EndFor
+        \State activityIncrease $\gets$ activityIncrease * resetIncrease
+    \EndIf
 
-                if (i == lastIdx) {
-                    removeClauseFromWatchLists(i)
-                    pop(clauses)
-                    pop(clause_to_var)
+    \If{Clauses.size grew by X\%}
+        \State ...
+        
+        \For{i $\gets$ Clauses.size down to numClauses}
+            \State ... 
+            \If{i = lIdx}
+                \State ... 
+                \State \Call{removeLast}{cActivity}
+                \State \Call{removeLast}{creationConflict}
+                \State \Call{removeLast}{lbds}
+                \State continue
+            \EndIf
 
-                    pop(cActivity)
-                    pop(creationConflict)
-                    pop(lbds)
+            \State ... 
+            \State \Call{swap}{cActivity[i], cActivity[lIdx]}
+            \State \Call{swap}{creationConflict[i], creationConflict[lIdx]}
+            \State \Call{swap}{lbds[i], lbds[lIdx]}
+            \State ...
 
-                    continue
-                }
+            \State \Call{removeLast}{cActivity}
+            \State \Call{removeLast}{creationConflict}
+            \State \Call{removeLast}{lbds}
+        \EndFor
+        \State curSize $\gets$ Clauses.size
+    \EndIf
 
-                removeClauseFromWatchLists(i)
-                swap(clauses[i], clauses[last])
-                swap(clause_to_var[i], clause_to_var[last])
+    \State \Call{assign}{}
+    \State \Call{propagate}{}
 
-                swap(cActivity[i], cActivity[last])
-                swap(creationConflict[i], creationConflict[last])
-                swap(lbds[i], lbds[last])
+    \If{contradiction occurred} 
+        \State totalConflicts $\gets$ totalConflicts + 1
+        \State ...
 
-                ...
+        \For{tIdx $\gets$ trail.size down to 0}
+            \State rIdx $\gets$ trail[tIdx].reasonIdx 
+            \If{rIdx $\ge$ numClauses}
+                \State cActivity[rIdx - numClauses] $\gets$ cActivity[rIdx - numClauses] + activityIncrease
+            \EndIf
+        \EndFor
 
-                pop(clauses)
-                pop(clause_to_var)
+        \State rest of VSIDS and LBD calculations
+        \State backjump and learn
 
-                pop(cActivity)
-                pop(creationConflict)
-                pop(lbds)
-            }
+        \State \Call{append}{cActivity}{0.0}
+        \State \Call{append}{creationConflict, totalConflicts}
+        \State \Call{append}{lbds, lbd}
+        \State activityIncrease $\gets$ activityIncrease * activityGrowth
+        \State ...
+    \EndIf
+\EndWhile
 
-            curSize = clauses.size
-        }
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
-        //assignment
-        ...
-
-        if (contradiction occurred) {
-            totalConflicts = totalConflicts + 1
-            ...
-
-            for (int trailIdx = trail.size down to 0) {
-                ...
-                int reasonIdx = trail[trailIdx].reasonIdx.value;
-                if (reasonIdx >= numClauses) {
-                    cActivity[reasonIdx - numClauses] += activityIncrease
-                }
-            }
-            //rest of VSIDS and LBD calculation
-            ...
-
-            //backjump and learn 
-            ... 
-
-            append(cActivity, 0.0)
-            append(creationConflict, totalConflicts)
-            append(lbds, lbd)
-            activityIncrease *= activityGrowth
-            ...
-        }
-    }
-}
-\end{lstlisting}
 \noindent
 In our clause deletion code, we just added code to update our new data structures
 to be consistent with the rest of the clause database data structures. And then 
@@ -801,53 +744,45 @@ that have low LBD (\verb|<=| 2), and clauses that are reason clauses as protecte
 so they can't be deleted even if they had at least two bad attributes.
 
 The code is as follows:
-\begin{lstlisting}
-bool solveCNF() {
-    //setup
-    ... 
 
-    while (true) {
-        //Current clause deletion
-        if (clauseDatabase.size grew by X%) {
-            int numCanDelete = clauseDatabase.size - curSize
+\begin{algorithm}[H]
+\caption{M-Size Learning Solver}\label{alg:47}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
 
-            int[] candidateIdx
-            for (i = 0 up to clauseDatabase.size - numClauses) {
-                candidateIdx[i] = i
-            }
+\State \Call{setup}{}
 
-            int cutoff = candidateIdx.size * 0.25
+\While{true}
+    \If{Clauses.size grew by X\%}
+        \State numCanDelete = Clauses.size - curSize
+        \State candidateIdx[1..n]
+        \For{i $\gets$ 1 up to Clauses.size - numClauses}
+            \State candidateIdx[i] $\gets$ i
+        \EndIf
 
-            sortIncreasing(cActivity)
+        \State cutoff $\gets$ n * 0.25
+        \State \Call{sortIncreasing}{cActivity}
+        \State activityCutoff $\gets$ cActivity[cutoff]
+        \State \Call{sortIncreasing}{conflictCreation}
+        \State ageCutoff $\gets$ conflictCreation[cutoff]
+        \State \Call{softDecreasing}{lbds}
+        \State lbdCutoff $\gets$ lbds[cutoff]
 
-            double activityCutoff = cActivity[cutoff]
+        \For{i $\gets$ numClauses up to Clauses.size}
+            \State lowActivity $\gets$ cActivity[i] $\le$ activityCutoff
+            \State highAge $\gets$ creationConflict[i] $\le$ ageCutoff
+            \State highLbd $\gets$ lbds[i] $\ge$ lbdCutoff
+            \State remove[i - numClauses] $\gets$ lowActivity + highAge + lighLbd $\ge$ 2 
+        \EndFor
 
-            sortIncreasing(conflictCreation)
+        \State rest of database deletion
+    \EndIf
+    \State rest of solving
+\EndWhile
 
-            int ageCutoff = conflictCreation[cutoff]
-
-            sortDecreasing(lbds)
-
-            int lbdCutoff = lbds[cutoff]
-
-            for (i = numClauses up to clauses.size) {
-                bool lowActivity = cActivity[i] <= activityCutoff
-                bool highAge = creationConflict[i] <= ageCutoff
-                bool highlbd = lbds[i] >= lbdCutoff
-
-                remove[i - numClauses] = lowActivity + highAge + highlbd >= 2
-            }
-
-            //rest of the database deletion
-            ...
-        }
-
-        //rest of solving
-        ...
-    }
-
-}
-\end{lstlisting}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
 \begin{FVerbatim}
 On all 1000 equations in uf20-91:
@@ -921,12 +856,6 @@ Clause Learning:            425ms (~0.43 seconds).
 Iterative DPLL (AbP):       328ms (~0.33 seconds).
 Iterative DPLL (PbA):       324ms (~0.32 seconds).
 Watched Literals:           349ms (~0.35 seconds).
-Pure Literal Elimination:   1548ms (~1.55 seconds).
-Unit Propagation:           868ms (~0.87 seconds).
-Recursive Backtracking:     1,540,613ms (~25.68 minutes).
-Brute Force:                1,770,851ms (~29.51 minutes).
-Short-Circuited (Basic):    49,874ms (~50 seconds).
-Parallel:                   10,589ms (~10.5 seconds).
 
 On all 100 equations in Flat200-479:
 
@@ -952,8 +881,6 @@ Clause Learning:            9,652ms (~9.65 seconds).
 Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
 Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
 Watched Literals:           7,130ms (~7.13 seconds).
-Pure Literal Elimination:   231,107ms (~3.85 minutes).
-Unit Propagation:           140,041ms (~2.34 minutes).
 \end{FVerbatim}
 \noindent
 
@@ -976,12 +903,6 @@ Clause Learning:            425ms (~0.43 seconds).
 Iterative DPLL (AbP):       328ms (~0.33 seconds).
 Iterative DPLL (PbA):       324ms (~0.32 seconds).
 Watched Literals:           349ms (~0.35 seconds).
-Pure Literal Elimination:   1548ms (~1.55 seconds).
-Unit Propagation:           868ms (~0.87 seconds).
-Recursive Backtracking:     1,540,613ms (~25.68 minutes).
-Brute Force:                1,770,851ms (~29.51 minutes).
-Short-Circuited (Basic):    49,874ms (~50 seconds).
-Parallel:                   10,589ms (~10.5 seconds).
 
 On all 100 equations in Flat200-479:
 
@@ -1004,8 +925,7 @@ Clause Learning:            9,652ms (~9.65 seconds).
 Iterative DPLL (AbP):       6,369ms (~6.37 seconds).
 Iterative DPLL (PbA):       6,365ms (~6.37 seconds).
 Watched Literals:           7,130ms (~7.13 seconds).
-Pure Literal Elimination:   231,107ms (~3.85 minutes).
-Unit Propagation:           140,041ms (~2.34 minutes).
 \end{FVerbatim}
 \noindent
 Sorry that this section is really bloated.
+\footnote{I was cursing at myself for how large this section is when I was making this second draft}
