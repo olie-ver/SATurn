@@ -1,0 +1,118 @@
+\documentclass[oneside]{book}
+
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{sectsty}
+\usepackage{graphicx}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\usepackage{forest}
+\usepackage{tikz-qtree}
+\usetikzlibrary{positioning, arrows.meta}
+
+\usepackage{stix}
+
+\usepackage[normalem]{ulem}
+
+\newsavebox{\FVerbBox}
+\newenvironment{FVerbatim}
+ {\VerbatimEnvironment
+  \begin{center}
+  \begin{lrbox}{\FVerbBox}
+  \begin{BVerbatim}}
+ {\end{BVerbatim}
+  \end{lrbox}
+  \fbox{\usebox{\FVerbBox}}
+  \end{center}}
+
+\lstset{
+  upquote=true,
+  basicstyle=\fontencoding{T1}\ttfamily\small,
+  frame=single,
+  numbers=left,
+  numberstyle=\small,
+  stepnumber=1,
+  numbersep=15pt,
+  numberstyle=\ttfamily\small,
+  xleftmargin=2em,
+  framexleftmargin=0pt,
+  framesep=8pt,
+  showstringspaces=false,
+  keepspaces=true,
+  columns=fullflexible,
+  breaklines=true,
+  tabsize=4
+}
+
+\lstset{escapeinside={(*@}{@*)}}
+
+\usepackage{fancyvrb}
+
+\usepackage{hyperref}
+
+\usepackage{lipsum}% http://ctan.org/pkg/lipsum
+\usepackage{titletoc}% http://ctan.org/pkg/titletoc
+
+\titlecontents*{chapter}% <section-type>
+  [0pt]% <left>
+  {}% <above-code>
+  {\bfseries\chaptername\ \thecontentslabel\quad}% <numbered-entry-format>
+  {}% <numberless-entry-format>
+  {\bfseries\hfill\contentspage}% <filler-page-format>
+
+\title{From Scratch:\\The Design and Implementation of a SAT Solver (Second Draft)}
+\author{Oliver Lie}
+\date{\today}
+
+%FOR DARK MODE READING
+\pagecolor[rgb]{0,0,0} %black
+\color[rgb]{0.8,0.8,0.8} %white
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\include{subfiles/preface}
+
+\include{subfiles/intro}
+
+\include{subfiles/bruteForce}
+
+\include{subfiles/DPLL/DPLL}
+
+\include{subfiles/DPLL/RecursiveBacktracking}
+
+\include{subfiles/DPLL/UnitProp1}
+
+\include{subfiles/DPLL/UnitProp2}
+
+\include{subfiles/DPLL/PureLitElim}
+
+\include{subfiles/DPLL/WatchedLits}
+
+\include{subfiles/DPLL/IterativeDPLL}
+
+\include{subfiles/CDCL/CDCL}
+
+\include{subfiles/CDCL/clauseResolution}
+
+\include{subfiles/CDCL/backjumping}
+
+\include{subfiles/CDCL/firstUIP}
+
+\include{subfiles/CDCL/improvements}
+
+\include{subfiles/Extra/VSIDS}
+
+% \include{subfiles/Extra/databaseManage}
+
+\include{subfiles/Extra/restarts}
+
+\include{subfiles/conclusion}
+
+\end{document}

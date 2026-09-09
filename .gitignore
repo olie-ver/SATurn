@@ -1,4 +1,4 @@
-paper/*
-paper/subfiles/*
-paper/subfiles/*.tex
-!paper/*.pdf
+# /paper/*
+# !/paper/*.pdf
+# !/paper/*.tex
+# !/paper/subfiles/*/*.tex

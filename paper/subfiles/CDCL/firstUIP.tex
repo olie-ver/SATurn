@@ -1,0 +1,216 @@
+\section{First UIPs}
+
+Our next addition to CDCL is First UIPs. UIP stands for "unit implication point," which 
+is called a ``dominator'' in our implication graph. What is a dominator? A node $d$ is said 
+to \textit{dominate} another node $n$ if every path in the graph from the entry node to $n$ 
+passes through $d$. Think of a binary tree. Our entry node is the the head of the tree, and 
+it dominates its two children. Likewise, each of those children dominates their own children 
+nodes. So in other words, the UIP in our implication graph is kind of like the reason why 
+we had a contradiction in the first place!
+
+Given that summary of what a UIP is, wouldn't the first UIP be the decision we made on 
+the current decision level? After all, we wouldn't have had a contradiction if we didn't 
+make that decision. Well not necessarily, because in our implication graph, every decision 
+we make only has outward edges, whereas all propagated nodes have inward edges as well. 
+So while it is true that a first UIP could be a decision variable, it's not true that it's 
+\textit{always} a decision variable. Take this previous implication graph as an example:
+
+\noindent
+\fbox{
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    >=Stealth,
+    every node/.style={font=\large},
+    implication/.style={->, thick}
+]
+
+% Left side
+\node (x31) {$x_{31}=0\ @\ 3$};
+
+\node (x2)
+    [below right=0.8cm and 1.8cm of x31]
+    {$x_2=0\ @\ 5$};
+
+\node (x1)
+    [below left=0.8cm and 1.8cm of x2]
+    {$x_1=0\ @\ 5$};
+
+\node (x3)
+    [below right=0.8cm and 1.8cm of x1]
+    {$x_3=0\ @\ 5$};
+
+\node (x4)
+    [above right=0.8cm and 1.8cm of x3]
+    {$x_4=1\ @\ 5$};
+
+% Right side
+\node (x5)
+    [above right=0.8cm and 2.5cm of x4]
+    {$x_5=0\ @\ 5$};
+
+\node (x6)
+    [below right=0.8cm and 2.5cm of x4]
+    {$x_6=0\ @\ 5$};
+
+\node (x21)
+    [below left=1.0cm and 1.8cm of x6]
+    {$x_{21}=0\ @\ 2$};
+
+\node (kappa)
+    [right=2.5cm of x6]
+    {$\kappa$};
+
+% Left implication graph
+\draw[implication]
+    (x31) -- node[above left] {$\omega_1$} (x2);
+
+\draw[implication]
+    (x1) -- node[above left] {$\omega_1$} (x2);
+
+\draw[implication]
+    (x1) -- node[below left] {$\omega_2$} (x3);
+
+\draw[implication]
+    (x2) -- node[above right] {$\omega_3$} (x4);
+
+\draw[implication]
+    (x3) -- node[below right] {$\omega_3$} (x4);
+
+% Right implication graph
+\draw[implication]
+    (x4) -- node[above left] {$\omega_4$} (x5);
+
+\draw[implication]
+    (x4) -- node[below left] {$\omega_5$} (x6);
+
+\draw[implication]
+    (x21) -- node[below right] {$\omega_5$} (x6);
+
+\draw[implication]
+    (x5) -- node[above right] {$\omega_6$} (kappa);
+
+\draw[implication]
+    (x6) -- node[below right] {$\omega_6$} (kappa);
+
+\end{tikzpicture}
+}
+}
+$x_4$ is a UIP in our implication graph because every path to $x_5$ and $x_6$ all 
+pass through $x_4$'s node.
+
+So what does the first UIP offer us? Resolving clauses up until we encounter the first UIP 
+maximizes the level we backjump to and it makes the clauses we learn shorter, not just in length,
+but also in how long it takes to resolve a clause. More details can be found here:
+\begin{center}
+    \small{\url{https://www3.cs.stonybrook.edu/~cram/cse505/Fall20/Resources/cdcl.pdf}}
+\end{center}
+
+How do we find the first UIP? The first UIP in a conflict is found when a the number 
+of literals in the clause for the \textit{current} decision level is 1. So if our current 
+decision level is 6, we resolve only on literals from decision level 6 and stop once the 
+clause contains only 1 literal from decision level 6.
+
+\subsection{Implementing First UIPs}
+
+Once again, we only need to touch the conflict resolution code:
+
+\begin{algorithm}[H]
+\caption{Naive First UIP Conflict Resolution}\label{alg:33}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
+
+\State curLevel $\gets$ decisionLevel
+\State end $\gets$ trail size
+\State begin $\gets$ 0
+\State resolveOn $\gets$ 0
+
+\For{i $\gets 1$ up to $n$}
+    \State var $\gets$ conflict[i]
+    \State idx $\gets \Call{abs}{var}$
+    \State tIdx $\gets$ varToTrail[idx]
+    \If{trail[tIdx].decisionLevel = curLevel}
+        \State end $\gets \Call{min}{end, tIdx}$
+        \State begin $\gets \Call{max}{begin, tIdx}$
+        \If{trail[tIdx].reasonIdx exists}
+            \State resolveOn $\gets$ trail[tIdx].lit
+        \EndIf
+    \EndIf
+\EndFor
+
+\While{begin $\neq$ end}
+    \State lit $\gets \Call{abs}{resolveOn}$
+    \State tIdx $\gets$ varToTrail[resolveOn]
+    \State reason $\gets$ Clauses[trail[tIdx].reasonIdx]
+    \State $\Call{append}{conflict, reason}$
+
+    \State remove all instances of lit and -lit from $conflict$
+    \State remove all duplicate literals from $conflict$
+
+    \For{each $var$ in conflict}
+        \State tIdx $\gets$ varToTrail[$\Call{abs}{var}$]
+        \If{trail[tIdx].decisionLevel = curLevel}
+            \State end $\gets \Call{min}{end, tIdx}$
+            \State begin $\gets \Call{max}{begin, tIdx}$
+            \If{trail[tIdx].reasonIdx exists}
+                \State resolveOn $\gets$ trail[tIdx].lit
+            \EndIf
+        \EndIf
+    \EndFor
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+This is not a very efficient way of computing the first UIP (which you'll see in the 
+results). However, let's analyze it anyways. It's the normal resolution code, but we 
+do something different, which is stop when there's only one literal from the current 
+decision level left in the clause. In our pseudocode, we don't compute the counts of 
+literals from the current decision level, we have the condition $begin != end$. Why is 
+that equivalent? Well \textit{end} is the index of the least recently propagated literal 
+in the resolution clause, and \textit{begin} is the index of the most recently propagated 
+literal in the resolution clause. So when the most recently and least recently propagated 
+literals are the same, there must be only one left, therefore we can stop. Although it's 
+clever, it's not efficient, and therefore, not very clever.
+
+\subsection{First UIPs - Results}
+
+Unfortunately our runtime increases again. At this point, I'm willing to accept
+that perhaps I was just really really good at implementing DPLL, but since I'm not 
+good at implementing CDCL (I literally failed the first time), my implementation 
+is not up to par. In the next section, I will identify possible improvements that 
+can be made, and hopefully they'll make a \textit{positive} difference.
+
+\noindent
+uf20.91: \textbf{406ms}
+
+\noindent
+UUF50.218.1000: \textbf{14012ms}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+First UIPs:                406ms (~0.41 seconds)
+Backjumping:               380ms (~0.38 seconds).
+Clause Learning:           425ms (~0.43 seconds).
+Iterative DPLL (AbP):      328ms (~0.33 seconds).
+Iterative DPLL (PbA):      324ms (~0.32 seconds).
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+First UIPs:               14,012ms (~14.01 seconds).
+Backjumping:              11,291ms (~11.29 seconds).
+Clause Learning:          9,652ms (~9.65 seconds).
+Iterative DPLL (AbP):     6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):     6,365ms (~6.37 seconds).
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}

@@ -1,0 +1,358 @@
+\chapter{CDCL}
+
+Conflict Driven Clause Learning (CDCL), is \textit{the} modern SAT solving 
+algorithm. It builds off of the ideas of DPLL and takes it to a whole new level.
+The ``conflict driven'' part of CDCL means that we analyze conflicts (contradictions)
+and see what we can learn from them. The ``clause learning'' part is exactly what it 
+sounds like, we add new clauses to our database. In other words, CDCL is about 
+analyzing why conflicts occur when we solve and using those conflicts to learn 
+new clauses that will help enforce new rules as to what values variables can take,
+essentially changing the CNF equation into one that's logically equivalent, but 
+easier to solve. I won't lie to you, I was not able to implement this algorithm the 
+first time I tried. I hope and pray that this time I will be successful, so that 
+\textit{we} will be successful together dear reader. 
+
+\textit{Aside: why have we been opting for indices so often? You see, although
+we live in the land of pseudocode or machine-agnosticism, implementations don't
+(duh). So in our previous chapter in DPLL, there were times where we used clause 
+indices instead of pointers to clauses (obviously using copies would be terrible 
+for performance and memory), but why did we use indices? Now that we're implementing 
+CDCL, we're going to be adding clauses to the database quite often, and that can 
+trigger a resize on the database. If we used pointers to clauses, after a resize 
+triggers, the memory address of each clause would change, thus making the pointers 
+invalid. We would need to add new code after the insertion of each clause to make 
+sure a resize didn't trigger, and if one did, we'd need to update each pointer for 
+each reason clause and watched literal, which would be very difficult because after 
+a resize, we now have no way to tell which clauses mapped to which reasons and watched 
+literals, because, well, the old mapping isn't valid and contains no information about 
+the new addresses for everything.
+}
+
+\footnote{More information about CDCL can be found here: 
+    \url{https://www.cis.upenn.edu/~cis1890/files/Lecture4.pdf}}
+\section{Clause Learning}
+
+The first step in creating a CDCL solver is to learn and use new clauses. There are 
+many versions involving different ways of backtracking, variable assigning, and even 
+how we learn new clauses, but for now, we will keep our implementation as close to 
+our iterative DPLL version and work our way up to the more advanced and widely used 
+versions of the algorithm. 
+
+In order to learn a new clause, we first need to understand the learning process. 
+The big idea is that we will encounter conflicts and contradictions while assigning 
+and propagating new literals, and we want to learn from those conflicts and contradictions 
+in a way that would ideally prevent us from making the same mistake again. Our unit 
+propagation method is the perfect tool for this because it already analyzes our clauses 
+for us and can detect when a contradiction has occurred. Rather than returning True or 
+False to indicate a successful or unsuccessful propagation respectively, when we 
+encounter a contradiction, we want to return the clause that is unsatisfied. You may know that
+when we propagate, there could be more than one clause that is unsatisfied, but just not 
+yet evaluated to be unsatisfied. Even though there could be many conflicting clauses at
+once, we just want to return the first one that we find. You may wonder why not learn from 
+all of them, and the answer is that by resolving the bad decision/propagation we made, 
+we will (hopefully) prevent ourselves from doing more propagations that lead to those 
+extra unsatisfied clauses.
+
+After we return the conflicting clause to the main solving method, we then want to 
+perform ``clause resolution.'' As stated in the beginning, there are many versions of 
+clause resolution, mainly differing in when they/how they stop resolving. For our basic 
+CDCL implementation, we will resolve the conflicting clause until it contains no more 
+propagated literals, ie, it's a clause of only decisions. The reason why this is a good 
+stopping point is because we made all decisions, and because of that, clause learning 
+will essentially allow us to learn which decisions we can't make together. 
+
+Lastly, after we resolve on the learned clause, we want to add it to the database,
+and we want to initialize its watched literals so that we can use it as if it were 
+part of our initial CNF equation. Let's look at the high level pseudocode we'll need 
+to implement:
+
+\begin{algorithm}[H]
+\caption{High Level CDCL}\label{alg:27}
+\begin{algorithmic}[1]
+\Procedure{CDCL}{}
+
+\State $\Call{Setup}{}$
+\While{Unsat = $false$}
+    \State $\Call{Assign}{}$
+    \If{All variables assigned}
+        \State return $true$
+    \EndIf
+    \State $\Call{propagate}{}$
+    \If{contradiction}
+        \State $\Call{resolveConflict}{}$
+        \State level $\gets \Call{calculateBackjump}{}$
+        \If{level < 0}
+            \State return $false$
+        \EndIf
+        \State $\Call{backjumpTo}{level}$
+        \State continue
+    \EndIf
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+In this chapter, we will transform our DPLL code into CDCL code. The first step is 
+to setup our interface and change some of our algorithms to be suited for CDCL. You 
+might be curious as to how clause resolution worst. Before we discuss how clause resolution 
+works at a theory level, let's first discuss a few implementation changes we'll need to make.
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        TrailEntry {
+            int lit,
+            int decisionLevel,
+            int clauseIdx
+        }
+
+        DecisionLevel {
+            int idx,
+            bool triedOtherBranch
+        }
+
+        void parse(string equation)
+        bool propagate(int[] decisionLevel, int decisionLevel)
+        bool createWatched()
+        bool createWatched(int idx, int decisionLevel)
+
+        int numVars
+        int numClauses
+        int trailHead
+
+        int[][] clauses
+        
+        TrailEntry[] trail
+        DecisionLevel[] trailStarts
+        int[] var_to_trail
+
+        optional var[] vars
+        map<int, int[]> var_to_clause
+        map<int, (int, int)> clause_to_vars
+\end{lstlisting}
+
+The \textit{var\_to\_trail} field is the only change we'll need to make, and it 
+is just a mapping from variable index to trail index. If you enforce the invariant 
+that each variable maps to exactly one place in the trail and no two variables 
+map to the same place in the trail at the same time, you don't need to initialize 
+these values to anything. 
+
+The next thing we'll look at is our \textit{propagate()} code since it needs very 
+minimal changes. The change we're making now is that instead of returning a boolean
+value to indicate whether or not propagation was successful, we're now going to return 
+a clause if we encounter a contradiction and nothing otherwise.
+
+\begin{algorithm}[H]
+\caption{Updated Propagate}\label{alg:28}
+\begin{algorithmic}[1]
+\Procedure{propagate}{assignment[1..n], decisionLevel}
+
+\While{trailHead < trail length}
+    \State prop $\gets$ trail[trailHead].lit
+    \State trailHead $\gets$ trailHead + 1
+    \State ...
+    \For{i $\gets 0$ up to watchedClause size}
+        \State ... 
+        \If{relocated = false}
+            \If{other watched literal evaluates to false}
+                return Clause
+            \Else
+                \State $\Call{append}{trail, (otherWatch, decisionLevel, Clause index)}$
+            \EndIf
+        \EndIf
+    \EndFor
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+And before we look at changes to our solving method, we're going to create a new 
+overload for \textit{createWatched()} that takes in the index of a clause. Its 
+only purpose is to be called on newly learned clauses, which don't have the same 
+guarantees as the other overload. You see, the learned clause should hopefully 
+NEVER be unsatisfied when this method operates over it. It should ALWAYS return 
+True, so if it ever doesn't, it's a good debugging tool. Here's how it works:
+we traverse over the clause of the passed in index, counting the number of 
+True, False, and Unassigned literals it has. We will then search for two 
+indices that could be watched literals. Since the clause should never be 
+unsatisfied, we are guaranteed to always find one (if our implementation is correct).
+If we can't find another and our clause has more than one literal, we will initialize 
+the second watched literal to any arbitrary place in the clause (with the caveat 
+that it can't be the same index as our first watched literal). We will then check if the 
+clause is unit, and if it is, we will add it to our trail, assign the Unassigned variable,
+etc. Otherwise, we do nothing.
+
+\begin{algorithm}[H]
+\caption{createWatched overload}\label{alg:29}
+\begin{algorithmic}[1]
+\Procedure{createWatched}{index, decisionLevel}
+    \State Clause $\gets$ Clauses[index]
+    \If{clause is empty}
+        \State return $false$
+    \EndIf
+    \State foundFirst $\gets$ false
+    \State foundSecion $\gets$ false
+    \State firstIdx $\gets$ -1
+    \State secondIdx $\gets$ -1
+
+    \State numU $\gets$ 0
+    \State numT $\gets$ 0
+
+    \For{each $var$ in $Clause$}
+        \If{var is Unassigned}
+            \State numU $\gets$ numU + 1
+            \If{foundFirst = false}
+                \State foundFirst $\gets$ true
+                \State firstIdx $\gets$ index of $var$
+            \Else
+                \State foundSecond $\gets$ true 
+                \State secondIdx $\gets$ index of $var$
+            \EndIf
+        \ElsIf{var evals to true}
+            \State numT $\gets$ numT + 1
+            \If{foundFirst = false}
+                \State foundFirst $\gets$ true
+                \State firstIdx $\gets$ index of $var$
+            \Else
+                \State foundSecond $\gets$ true 
+                \State secondIdx $\gets$ index of $var$
+            \EndIf
+        \EndIf
+    \EndFor
+
+    \If{clause has at least two literals}
+        \If{foundSecond = false}
+            \State secondIdx $\gets$ mod(firstIdx + 1, clause size)
+        \EndIf
+        \State $\Call{addWatchedLiteralsToSolver}{firstIdx, secondIdx}$
+    \Else
+        \State $\Call{addWatchedLiteralsToSolver}{firstIdx, firstIdx}$
+    \EndIf
+
+    \If{numT = 0 $\wedge$ numU = 1}
+        \State $\Call{append}{trail, (clause[firstIdx], decisionLevel, index)}$
+        \State $\Call{assignVar}{clause[firstIdx]}$
+    \EndIf
+    \State return $true$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Because we don't know anything about this clause, we need to gather as much 
+information as we can right away before we decide how watched literals are 
+spread out on the clause. When the clause has more than one literal, we 
+use ``secondIdx = (firstIdx + 1) \% clause.size" because that prevents us 
+from adding a watched literal past the end of the clause, if \textit{firstIdx}
+is already on the edge.
+
+The last method we need to discuss is our \textit{solve} loop. Clause 
+resolution happens after backtracking because it relies on the current 
+trail to understand
+\footnote{It follows a mathematical process to transform the conflict clause 
+into one that prevents that same conflict from ever occurring again. The 
+algorithm does not ``understand'' anything. Do not anthropomorphize computer 
+algorithms, especially artificial intelligence.}
+why a conflict occurred. If we were to undo propagations, then the resolution 
+operator would have no reference as to what ``most recently'' means, and 
+therefore, clause resolution wouldn't work.
+
+\begin{algorithm}[H]
+\caption{Initial CDCL}\label{alg:30}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
+    \State setupFailed $\gets \Call{setup}{}$
+    \If{setupFailed = true}
+        return $false$
+    \EndIf
+
+    \State decisionLevel $\gets$ 0
+
+    \While{$true$}
+        \If{\Call{assign}{assignment} = true}
+            \State return $true$
+        \Else 
+            \State decisionLevel $\gets$ decisionLevel + 1
+        \EndIf
+
+        \State succeeded $\gets \Call{propagate}{assignment}$
+        \If{succeeded is not null}
+            \State conflict $\gets$ value of succeeded
+
+            \State learned $\gets$ \Call{resolveConflict}{conflict}
+
+            \If{learned is empty}
+                \State return $false$
+            \EndIf
+
+            \State \Call{backtrack}{}
+
+            \If{\Call{size}{trailStarts} = 0}
+                \State return $false$
+            \EndIf
+
+            \State decisionLevel $\gets$ decisionLevel - 1
+            \State trailHead $\gets$ trailStarts.last
+
+            \State continue
+        \EndIf
+    \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Resolve Conflict}\label{alg:31}
+\begin{algorithmic}[1]
+\Procedure{resolveConflict}{conflict[1..n]}
+    \While{true}
+        \State pIdx $\gets$ -1
+        \For{i $\gets 1$ up to $n$}
+            \State var $\gets$ conflict[i]
+            \State idx $\gets \Call{abs}{var}$
+            \State tIdx $\gets$ varToTrail[idx]
+            \If{trail[tIdx].reasonIdx exists}
+                \State pIdx $\gets \Call{max}{pIdx, t_idx}$
+            \EndIf
+        \EndFor
+
+        \If{pIdx = -1}
+            \State return conflict
+        \EndIf
+
+        \State lit $\gets$ trail[idx].lit
+        \State reason $\gets$ clauses[trail[idx].reasonIdx]
+        \State $\Call{append}{conflict, reason}$
+
+        \State remove all occurrences of $lit$ and $-lit$ from $conflict$
+        \State remove all duplicate literals from $conflict$
+    \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+We will need to substitute in \textit{resolveConflict()} into the main solving algorithm. 
+It should be noted that \textit{resolveConflict()} mutates the original parameter and then 
+returns the mutated parameter as the learned clause. One more thing to note is that in
+\textit{solve()}, some of the algorithms called are the same from our Iterative DPLL code. 
+For that reason, I didn't rewrite them and they can be referenced and substituted as needed.
+
+I want to point out that this isn't necessarily CDCL yet. This is more like DPLL, but with 
+adding clauses to our database. The reason as to why this is, is because whenever we recover 
+from a contradiction, we only go back one level. You see, CDCL does away with the idea of a
+``tried other branch" flag and relies on the learned clauses to guide what variable assignments
+are possible and which ones are contradictory. However, because we only backtrack one level, there 
+is nothing to actually force new variable assignments in cases where the learned clause isn't a unit 
+clause. It can happen, but it doesn't always happen, so we still need to try the other assignment 
+since for the most part, the learned clause isn't used.

@@ -1,0 +1,439 @@
+\section{Iterative DPLL}
+
+Now that we've implemented DPLL to the best of our ability, it's time to 
+take it one step further. We will now implement it iteratively rather than 
+recursively. Why? Remember how I said in the beginning that DPLL is the foundation 
+for modern SAT solvers?
+\footnote{I can't remember if I actually said that}
+Well iterative DPLL is the foundation for the next chapter's algorithm: CDCL.
+Implementing iterative DPLL is imperative in order to create a modern SAT solver
+worth its salt.
+\footnote{Honestly, ``Salt'' is a better name than ``Saturn.'' I might change it.}
+
+As said in the beginning of the chapter, DPLL forces us to traverse the decision 
+tree as well, a tree. And that is still true, even in iterative DPLL. What changes 
+now is that instead of an implicit path, we now have an explicit one. Suppose we 
+are on the first decision level, so we decide variable $1 = T$, and that forces 
+$3 = F$, $5 = F$, and $6 = T$. In recursive DPLL, we assign these variables into 
+the \textit{assignment} or \textit{vars} field, but we don't really use them until 
+we get to the decision level that matches their index or the evaluation phase. 
+
+With iterative DPLL, there are still decision levels, but the representation is 
+now very, very different bcause instead of a decision \textit{tree}, we now use a 
+decision \textit{trail}. The trail is reminiscent of a queue in the sense that 
+we only operate at the end of the data structure. It contains some information 
+that we need in order to continue mimicking the behavior of recursive DPLL. Each 
+trail entry contains the literal that was forced, the decision level it's a part of,
+and the clause that forced that decision. We append these trail entries every single 
+time we force a variable's assignment. The next question is how do we know which 
+variables were decided for and which variables were inferred from propagation?
+Well, for decisions, there is no reason clause because there was no reason to 
+begin with other than ``because I said so.'' Therefore, the variables that were 
+decided for don't get a reason clause, but the ones that were inferred do. This 
+is great because it makes it easy to tell where the beginning of one decision 
+starts and where it ends.
+
+However, it would be nice to have some way to keep track of where the decisions
+are in the trail other than scanning for entries without a reason clause. Because 
+of that, we will also keep another trail specifically for the decision markers.
+This is also helpful because then we can store whether or not we've ``tried the 
+other branch'' when we backtrack. 
+
+While on the topic of backtracking, it would be nice to discuss it some more as well. 
+Since we can't simply go up the call stack and undo variable assignments, we have to 
+do it in the iterative way. When we backtrack, we first backtrack up to the decision
+entry. This is done by popping off the trail and undoing the propagated assignments. 
+Once that's done, you then check if you've ``tried the other branch'', and if you 
+haven't, you flip the decision literal's assignment and then retry. If you have 
+already tried the other branch, you pop off the decision entry, and then repeat 
+this process to the next decision entry. This process continues until you either 
+find a decision that has not been switched yet, or you run out of decision 
+entries.
+
+With most of the exposition out of the way, I think it would be good to 
+look at the changes we will make to our interface and algorithms, starting 
+with our SAT solver.
+
+\begin{lstlisting}
+    public interface:
+        SATSolver(string input)
+        bool solveCNF()
+
+    private interface:
+        enum var
+        {
+            False
+            True
+            Unassigned
+        }
+
+        TrailEntry {
+            int lit,
+            int clauseIdx
+        }
+
+        DecisionLevel {
+            int idx,
+            bool triedOtherBranch
+        }
+
+        void parse(string equation)
+        bool propagate()
+        bool createWatched()
+
+        int numVars
+        int numClauses
+        int trailHead
+
+        int[][] clauses
+        bool[] satisfied
+        
+        TrailEntry[] trail
+        DecisionLevel[] trailStarts
+
+        optional var[] vars
+        map<int, int[]> var_to_clause
+        map<int, (int, int)> clause_to_vars
+\end{lstlisting}
+
+The first notable change is that \textit{propagate()} now returns a boolean instead 
+of a delta. This is because it will no longer be responsible for undoing propagation 
+in response to a contradiction, thus achieving zero-cost backtracking. Next, 
+we now have a \textit{trail} and a \textit{trailHead}, which points to the last 
+made decision entry. \textit{trailStarts} keeps track of all the indices of the 
+decision entries. One last thing to note is that the \textit{TrailEntry} data 
+structure uses indices for clauses instead of the actual clause itself. 
+There's a very good reason for this, and I will reveal the answer in the next chapter,
+but until then, why do you think it might be that way? Hint: it's not because 
+indices are easy for accessing. 
+
+The next change we need to make is to our algorithm to create watched literals. 
+It's the same for basically $90\%$ of the algorithm, except for the unit clause 
+case, which I'll highlight.
+
+\begin{algorithm}[H]
+\caption{Modified createWatched}\label{alg:21}
+\begin{algorithmic}[1]
+\Procedure{createWatched}{}
+
+\For{each $Clause$ in $Clauses$}
+    \If{$Clause$ has at least 2 literals}
+        \State ...
+    \ElsIf{$Clause$ is has 1 literal}
+        \State lit $\gets$ Clause[0]
+        \State ...
+        \State cIdx $\gets$ $\Call{indexOf}{Clauses, Clause}$
+
+        \State $\Call{append}{trail, (lit, cIdx)}$
+        \State ...
+    \Else
+        \State return $false$
+    \EndIf
+\EndFor
+\State return $true$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Rather than enqueuing the variable, we create a new trail entry for each unit 
+clause. These ones are all part of the \textbf{root} decision level, which we 
+mentally reserve for the 0th decision level. If we backtrack up to this level (if it exists)
+or before it, we've encountered a root level contradiction, so the equation is 
+unsatisfiable. Because not every equation has unit clauses, it's important to 
+remember that this decision level may not always exist, and so we should be 
+keep that in mind for our solving algorithm. 
+
+The next algorithm we're going to change is the \textit{propagate()} algorithm 
+because the changes are also very minimal.
+
+\begin{algorithm}[H]
+\caption{Modified propagate}\label{alg:22}
+\begin{algorithmic}[1]
+\Procedure{propagate}{assignment[1..n]}
+
+\While{trailHead < $\Call{size}{trail}$}
+    \State prop $\gets$ trail[trailHead].lit
+    \State trailHead $\gets$ trailHead + 1
+    \State ...
+
+    \State watchedClauses $\gets$ varToClause[prop]
+
+    \For{each $cIdx$ in watchedClauses}
+        \State Clause[1..t] $\gets$ Clauses[cIdx]
+        \State watches $\gets$ clauseToVar[cIdx] \Comment pair of clause indices
+        \State ...
+
+        \If{relocated = False}
+            \State ...
+            \State otherWatch $\gets$ Clause[secondWatch]
+            \State oIdx $\gets \Call{abs}{otherWatch}$
+
+            \If{assignment[oIdx] = Unassigned}
+                \State ...
+                \State $\Call{append}{trail, (otherWatch, cIdx)}$
+            \Else
+                \If{\Call{evalsFalse}{otherWatch} = false}
+                    \State continue onto the next loop iteration
+                \Else 
+                    \State $\Call{undoPropagation}{delta}$
+                    \State $\Call{clear}{unitProp}$
+                    \State return $false$
+                \EndIf
+            \EndIf
+        \EndIf
+    \EndFor
+\EndWhile
+
+\State return $true$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+The main difference is that we just \textit{trailHead} to iterate through the trail, and 
+instead of enqueuing, we just append to the trail. We also return True/False depending on 
+whether or not propagation succeeded.
+
+Lastly, we look at our \textit{solve()} method, which has the most notable changes.
+There are two ways to implement this, depending on what makes sense to you. I call 
+them ``assignment before propagation'' and ``propagation before assignment.'' I
+call them these because that's what they are. Before showing the pseudocode, I 
+want to talk about the algorithm a bit more. The beginning is mostly the same:
+create our watched literals, check that it succeeded, return False if it didn't. 
+Otherwise, we do a root level propagation and then check if it succeeds as well.
+However, the main confusion comes from handling the case of when there is a 
+0th decision level and when there isn't. There are multiple ways to go about this.
+After the beginning, we enter the solving loop. 
+
+There are two main parts: assigning and backtracking, with a call to the propagate 
+method separating them. Assigning is now scanning for the first Unassigned variable,
+forcing it True, creating a new trail entry, and then updating the trail head. I'm 
+sure there's a better way to keep track of the next unassigned variable other than 
+scanning the entire assignment list on each loop iteration, however, for simplicity's 
+sake, we're implementing it the naive way. 
+
+Since we've already discussed backtracking, we will now get into the algorithm 
+itself:
+
+\begin{algorithm}[H]
+\caption{Modified solving loop}\label{alg:23}
+\begin{algorithmic}[1]
+\Procedure{solve}{}
+
+\State setupFailed $\gets \Call{setup}{}$
+
+\If{setupFailed = true}
+    return $false$
+\EndIf
+
+\While{$true$}
+    \State succeeded $\gets \Call{propagate}{assignment}$
+    \If{succeeded = $false$}
+        \State \Call{backtrack}{}
+
+        \If{\Call{size}{trailStarts} = 0}
+            \State return $false$
+        \EndIf
+
+        \State continue
+    \EndIf
+
+    \If{\Call{assign}{assignment} = true}
+        \State return $true$
+    \EndIf
+
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Setup Solve}\label{alg:24}
+\begin{algorithmic}[1]
+\Procedure{setup}{}
+
+\State assignment[1..numVars]
+\For{each $var$ in $assignment$}
+    \State $var \gets$ Unassigned
+\EndFor
+
+\If{\Call{createWatched}{assignment} = false}
+    \State return $true$
+\EndIf
+
+\State \Call{append}{trailStarts, (0, true)}
+
+\If{\Call{size}{trail} > 0}
+    \If{\Call{propagate}{assignment, 0} = $false$}
+        \State return $true$
+    \EndIf
+\EndIf
+
+\State return $false$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Backtracking code}\label{alg:25}
+\begin{algorithmic}[1]
+\Procedure{backtrack}{}
+
+\While{\Call{size}{trailStarts} > 0}
+    \State decision $\gets$ most recent decision level
+
+    \While{\Call{size}{trail} > decision.idx + 1}
+        \State lit $\gets$ last trail entry's literal
+        \State assignment[\Call{abs}{lit}] $\gets$ Unassigned 
+        \State erase last trail entry
+    \EndWhile
+
+    \If{decision.TriedFalse = false}
+        \State entry $\gets$ last trail entry
+        \State entry.lit $\gets$ -entry.lit
+        \State assignment[\Call{abs}{lit}] $\gets$ $false$
+        \State decision.TriedFalse $\gets$ $true$
+        \State trailHead $\gets$ decision.idx
+        \State break
+    \Else
+        \State lit $\gets$ last trail entry's lit
+        \State assignment[\Call{abs}{lit}] $\gets$ Unassigned 
+        \State erase last trail entry
+        \State erase last trailStarts entry
+    \EndIf
+\EndWhile
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Assignment code}\label{alg:26}
+\begin{algorithmic}[1]
+\Procedure{assign}{}
+
+\State firstUnassigned $\gets$ -1
+\For{$i \gets 1$ up to numVars}
+    \If{assignment[i] = Unassigned}
+        \State firstUnassigned $\gets$ i
+        \State break
+    \EndIf
+\EndFor
+
+\If{firstUnassigned = -1}
+    \State return $true$
+\EndIf
+
+\State assignment[firstUnassigned] = $true$
+\State \Call{append}{trail, (firstUnassigned, -1)}
+\State \Call{append}{trailStarts, (trail size - 1, false)}
+\State trailHead $\gets$ trailStarts.last.idx
+
+\State return $false$
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Here is the pseudocode for solving, written as ``propagate then assign." Quick question:
+when there's no 0th decision level and we propagate, how do we know that none of the 
+propagated variables will have the wrong decision level? Ie, how do we know that they'll 
+have a decision level of $0$ instead of $1$, since we haven't made any decisions yet?
+This is kind of a trick question, the answer is that if there is no 0th level,
+\textit{propagate()} will do nothing because the while-loop condition will immediately 
+return False, and so the method will terminate, assigning nothing! 
+
+Instead of showing you the code for ``assign then propagate'' (it is NOT just taking 
+the assigning code and moving it up before the call to \textit{propagate()}), let's 
+run through how this works. When there's a 0th level, we obviously want to mark it 
+in our \textit{trailStart}, but why do we want to mark that the ``other branch'' has 
+already been tried? Well that's because those assigned by the root level propagation 
+are forced into those values, so it doesn't make sense to swap their values to be 
+their opposites since it will immediately be an unsatisfiable assignment anyways. 
+
+Next, in the main solving loop, the backtracking code is just ``grab the last 
+decision index, undo until the root decision, if it's already tried False, undo 
+the decision entirely and repeat with the previous one, and if not, try False 
+and continue.''
+
+Lastly, let's talk about doing assign then propagation. Here's why it doesn't
+make total sense to start out with propagation:
+
+\begin{itemize}
+    \item we do a root level propagation if there needs to be one.
+    \item if there is no root level propagation to be done, it still
+            doesn't make sense to immediately propagate since there's 
+            nothing to propagate.
+    \item if there was a root level propagation, it doesn't make sense 
+            to do another one immediately since we've just completed one.
+\end{itemize}
+
+So if you wanted to do assign and then propagate, how would that be done? 
+Earlier, I said that it's not just taking the code for assigning and then 
+moving it before propagation, but why? Well, suppose we fail a propagation. 
+We backtrack, and then suppose we haven't tried the other branch for that 
+decision. We encounter a \textit{continue} statement and we go back to the 
+top. If we simply move the assigning code up to the top of the loop,
+what's the issue? Well remember, we just flipped a decision, so we should
+actually be \textbf{\textit{propagating}} instead of assigning. If we 
+assign immediately after flipping the decision, we now have two decisions 
+at the same time, and that's bad because what if they are contradictory to 
+one another, ie one would force a variable False and the other True? 
+Unfortunately, the propagation code wouldn't catch that because it assumes 
+everything in the trail is valid, but we just made the trail invalid. So 
+to the propagation code, instead of it catching that a variable is forced to be 
+False, but it's True, or vice versa, it may just ignore it because it focuses 
+mainly on Unassigned and False literals.
+
+So if we want to do assign then propagate, how do we make sure that 
+we don't accidentally push something onto the trail when we shouldn't have?
+We need to wrap the assigning code in a conditional statement that checks that 
+\textit{trailHead == trail.size}, if it doesn't, then that means that there's 
+something to be propagated on because we're not at the end of the trail, but 
+if it does, then we've reached the end, so we should check if we've assigned 
+everything and can be done, or if we need to assign something new.
+
+\subsection{Iterative DPLL - Results}
+Here are the results after this huge refactor:
+
+(Assignment before propagation)\\
+uf20.91: \textbf{328ms}, down 21ms from \textbf{349ms} by Watched Literals\\
+UUF50.218.1000: \textbf{6369ms}, down 761ms from \textbf{7130ms} by Watched Literals
+
+(Propagation before assignment)\\
+uf20.91: \textbf{324ms}\\
+UUF50.218.100: \textbf{6365ms}
+
+\begin{FVerbatim}
+On all 1000 equations in uf20-91:
+
+Iterative DPLL (AbP):      328ms (~0.33 seconds).
+Iterative DPLL (PbA):      324ms (~0.32 seconds).
+Watched Literals:          349ms (~0.35 seconds).
+Pure Literal Elimination:  1548ms (~1.55 seconds).
+Unit Propagation:          868ms (~0.87 seconds).
+Recursive Backtracking:    1,540,613ms (~25.68 minutes).
+Brute Force:               1,770,851ms (~29.51 minutes).
+Short-Circuited (Basic):   49,874ms (~50 seconds).
+Parallel:                  10,589ms (~10.5 seconds).
+
+On all 1000 equations in UUF50.218.1000:
+
+Iterative DPLL (AbP):     6,369ms (~6.37 seconds).
+Iterative DPLL (PbA):     6,365ms (~6.37 seconds).
+Watched Literals:         7,130ms (~7.13 seconds).
+Pure Literal Elimination: 231,107ms (~3.85 minutes).
+Unit Propagation:         140,041ms (~2.34 minutes).
+\end{FVerbatim}
+
+Should you do propagation before assignment simply because it's faster? It 
+really doesn't matter, you do you. However, for the rest of this book, we will be 
+using assignment before propagation because it's easier for me to understand, and it 
+follows online pseudocode examples better than propagate before assignment.
+
+The speed gain on satisfiable problems is very miniscule, however, if you ever want 
+proof that iterative algorithms are faster than recursive ones, the unsatisfiable 
+problem time decrease is pretty good evidence.
