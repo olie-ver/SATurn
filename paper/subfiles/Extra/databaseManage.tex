@@ -746,7 +746,7 @@ so they can't be deleted even if they had at least two bad attributes.
 The code is as follows:
 
 \begin{algorithm}[H]
-\caption{M-Size Learning Solver}\label{alg:47}
+\caption{M+K-Bounded Learning Solver}\label{alg:47}
 \begin{algorithmic}[1]
 \Procedure{solve}{}
 
@@ -758,7 +758,7 @@ The code is as follows:
         \State candidateIdx[1..n]
         \For{i $\gets$ 1 up to Clauses.size - numClauses}
             \State candidateIdx[i] $\gets$ i
-        \EndIf
+        \EndFor
 
         \State cutoff $\gets$ n * 0.25
         \State \Call{sortIncreasing}{cActivity}

@@ -346,6 +346,9 @@ INPUT subfiles/CDCL/improvements.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/databaseManage.aux
+INPUT ./subfiles/Extra/databaseManage.aux
+INPUT subfiles/Extra/databaseManage.aux
 INPUT ./subfiles/Extra/restarts.aux
 INPUT ./subfiles/Extra/restarts.aux
 INPUT subfiles/Extra/restarts.aux
@@ -612,6 +615,12 @@ OUTPUT subfiles/Extra/VSIDS.aux
 INPUT ./subfiles/Extra/VSIDS.tex
 INPUT ./subfiles/Extra/VSIDS.tex
 INPUT subfiles/Extra/VSIDS.tex
+INPUT ./subfiles/Extra/databaseManage.tex
+INPUT ./subfiles/Extra/databaseManage.tex
+OUTPUT subfiles/Extra/databaseManage.aux
+INPUT ./subfiles/Extra/databaseManage.tex
+INPUT ./subfiles/Extra/databaseManage.tex
+INPUT subfiles/Extra/databaseManage.tex
 INPUT ./subfiles/Extra/restarts.tex
 INPUT ./subfiles/Extra/restarts.tex
 OUTPUT subfiles/Extra/restarts.aux
@@ -673,6 +682,9 @@ INPUT subfiles/CDCL/improvements.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT ./subfiles/Extra/VSIDS.aux
 INPUT subfiles/Extra/VSIDS.aux
+INPUT ./subfiles/Extra/databaseManage.aux
+INPUT ./subfiles/Extra/databaseManage.aux
+INPUT subfiles/Extra/databaseManage.aux
 INPUT ./subfiles/Extra/restarts.aux
 INPUT ./subfiles/Extra/restarts.aux
 INPUT subfiles/Extra/restarts.aux
