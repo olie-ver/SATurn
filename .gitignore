@@ -2,3 +2,5 @@
 # !/paper/*.pdf
 # !/paper/*.tex
 # !/paper/subfiles/*/*.tex
+
+.DS_Store
